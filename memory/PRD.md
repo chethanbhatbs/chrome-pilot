@@ -10,13 +10,13 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
 - **Chrome API adapter:** Auto-detects extension vs web context; uses real APIs in extension, mock data in preview
 
-## All Features (all tested, 100% pass across 7 iterations)
+## All Features (all tested, 100% pass across 8 iterations)
 
 ### Core Tab Management
 - Tab Tree View with window/domain grouping
 - Global Fuzzy Search with live suggestions + Cmd+K hint
 - Chrome Tab Groups with colored headers + colored left borders
-- Duplicate Detection with inline ring indicators + descriptive banner
+- Duplicate Detection with inline badge indicators + descriptive banner
 - Drag & Drop with visible grip handles on hover
 - Session Save & Restore via API
 - Context Menu with visual grouping (navigation, state, organization, destructive)
@@ -39,12 +39,14 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - Extension manifest with permissions: tabs, tabGroups, sidePanel, storage, activeTab
 - Background service worker with badge updates and tab event monitoring
 
-### UX Polish
-- Toolbar icons with text labels + logical grouping with dividers
+### UX Polish (Iteration 8 — March 2026)
+- **Overflow toolbar**: Primary actions (New Tab, Window, Domain, Heatmap, Focus) always visible; secondary actions (Suspend, Resume, Mute, Unmute, Dupes, Save Session) in "More" dropdown
+- **Mixed-case group labels**: Semibold mixed-case instead of ALL CAPS
+- **Top-right icon contrast**: Increased from muted-foreground/60 to foreground/50 with size 13 and strokeWidth 1.8
+- **Tab status badge tooltips**: Pin ("Pinned tab"), Duplicate ("Duplicate — open in multiple tabs"), Audio ("Playing audio" / "Muted"), Note (shows note text)
+- **Window domain summaries**: Top 2 domains + "+X more" in italic
+- **Homepage overhaul**: Hero section, Quick Start (4 cards), Features (12 cards with icons, titles, descriptions), Keyboard Shortcuts section
 - Consistent tab alignment (single favicon column, no indent shifting)
-- Tab state badges: pin, note, duplicate ring, suspended
-- Window headers with domain summaries
-- Labeled status bar
 - Resizable sidebar (280–700px)
 - Dark theme default
 
@@ -54,5 +56,11 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - `DELETE /api/sessions/{id}` — Delete session
 - `POST /api/suggestions` — Submit suggestion
 
-## Status: Feature Complete
-All features implemented and tested (iterations 1-7: 100%).
+## Upcoming Tasks
+- **P0**: Fully transition to live Chrome APIs (replace useMockTabs with useChromeTabs)
+- **P1**: Keyboard-only workspace switching (Cmd+1/2/3)
+- **P2**: Live tab thumbnail previews via chrome.tabs.captureVisibleTab
+- **P2**: Export session/heatmap data as JSON/CSV
+
+## Status: Feature Complete + UX Polished
+All features implemented and tested (iterations 1-8: 100%).
