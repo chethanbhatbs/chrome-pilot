@@ -124,6 +124,11 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.action === 'toggle-tabpilot') toggleSidebar();
 });
 
+// ── Messages from iframe (collapse button inside the React app) ───────────────
+window.addEventListener('message', (e) => {
+  if (e.data?.action === 'collapse-tabpilot') hideSidebar();
+});
+
 // ── Keyboard shortcut (Ctrl/Cmd + Shift + E) ─────────────────────────────────
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toUpperCase() === 'E') {

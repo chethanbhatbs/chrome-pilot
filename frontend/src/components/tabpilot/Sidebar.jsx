@@ -324,18 +324,25 @@ export function Sidebar({ onCollapse }) {
                 <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
               </Tooltip>
             ))}
-            {onCollapse && (
+            {/* Collapse — works in extension (postMessage) and web preview (onCollapse prop) */}
+            {(onCollapse || isExtensionContext()) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     data-testid="collapse-sidebar-btn"
-                    onClick={onCollapse}
+                    onClick={() => {
+                      if (isExtensionContext()) {
+                        window.parent.postMessage({ action: 'collapse-tabpilot' }, '*');
+                      } else {
+                        onCollapse?.();
+                      }
+                    }}
                     className="p-1.5 rounded-md transition-all duration-150 text-foreground/50 hover:text-foreground hover:bg-white/[0.08] active:scale-95"
                   >
                     <PanelLeftClose size={13} strokeWidth={1.8} />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px] font-body">Collapse</TooltipContent>
+                <TooltipContent side="bottom" className="text-[10px] font-body">Collapse sidebar</TooltipContent>
               </Tooltip>
             )}
           </div>
