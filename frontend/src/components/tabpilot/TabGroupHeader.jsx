@@ -15,7 +15,7 @@ export function TabGroupHeader({ group, collapsed, onToggle }) {
         className="h-1.5 w-1.5 rounded-full shrink-0"
         style={{ backgroundColor: color.bg }}
       />
-      <span className="opacity-70" style={{ color: color.bg }}>{group.title}</span>
+      <span className="font-semibold text-foreground/65">{group.title}</span>
       <ChevronRight
         size={9}
         className={`transition-transform duration-200 opacity-50 ${collapsed ? '' : 'rotate-90'}`}

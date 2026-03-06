@@ -16,6 +16,7 @@ export function DomainView({
     : allTabs;
 
   const domains = groupByDomain(filteredTabs);
+  const focusedWindowId = windows?.find(w => w.focused)?.id;
 
   return (
     <div className="py-0.5" data-testid="domain-view">
@@ -33,6 +34,7 @@ export function DomainView({
           tabNotes={tabNotes}
           onHoverEnter={onHoverEnter}
           onHoverLeave={onHoverLeave}
+          focusedWindowId={focusedWindowId}
         />
       ))}
     </div>
@@ -43,7 +45,7 @@ function DomainGroup({
   domain, tabs, showFavicons, compact,
   highlightText, onSwitch, onClose,
   suspendedTabs, tabNotes,
-  onHoverEnter, onHoverLeave
+  onHoverEnter, onHoverLeave, focusedWindowId
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const faviconUrl = getFaviconUrl(tabs[0]?.url);
@@ -91,6 +93,7 @@ function DomainGroup({
                 tabNote={tabNotes?.[tab.id]}
                 onHoverEnter={onHoverEnter}
                 onHoverLeave={onHoverLeave}
+                focusedWindowId={focusedWindowId}
               />
             ))}
           </div>
@@ -100,7 +103,7 @@ function DomainGroup({
   );
 }
 
-function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspended, tabNote, onHoverEnter, onHoverLeave }) {
+function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspended, tabNote, onHoverEnter, onHoverLeave, focusedWindowId }) {
   const { X, Pin, StickyNote, Volume2, Pause } = require('lucide-react');
 
   return (
@@ -112,16 +115,16 @@ function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspend
       }}
       onMouseEnter={(e) => onHoverEnter?.(tab, e)}
       onMouseLeave={() => onHoverLeave?.()}
-      className={`group flex items-center gap-1.5 cursor-pointer transition-all duration-100
+      className={`group flex items-center gap-1.5 cursor-pointer transition-all duration-100 relative
         ${compact ? 'px-2 py-[3px]' : 'px-2 py-[5px]'}
-        ${tab.active
+        ${(tab.active && tab.windowId === focusedWindowId)
           ? 'bg-primary/[0.08] text-foreground'
           : 'hover:bg-white/[0.04] text-foreground/75'
         }
         ${suspended ? 'opacity-35' : ''}
       `}
     >
-      {tab.active && (
+      {(tab.active && tab.windowId === focusedWindowId) && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-r-full bg-primary" />
       )}
       <span className={`font-body leading-tight truncate flex-1 min-w-0 ${compact ? 'text-[11px]' : 'text-[11.5px]'}`}>

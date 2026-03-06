@@ -232,7 +232,7 @@ export function Sidebar({ onCollapse }) {
         {/* Header */}
         <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-1">
-            <span className="text-[11px] font-heading font-bold text-primary tracking-tight px-1 shrink-0">TabPilot</span>
+            <span className="text-[13px] font-heading font-bold text-primary tracking-tight px-1 shrink-0">TabPilot</span>
             <div className="flex-1 min-w-0">
               <SearchBar
                 query={search.query} setQuery={search.setQuery}
@@ -265,7 +265,7 @@ export function Sidebar({ onCollapse }) {
                   <button
                     data-testid="collapse-sidebar-btn"
                     onClick={onCollapse}
-                    className="p-1.5 rounded-md transition-all duration-150 text-foreground/30 hover:text-foreground hover:bg-white/[0.08] active:scale-95"
+                    className="p-1.5 rounded-md transition-all duration-150 text-foreground/50 hover:text-foreground hover:bg-white/[0.08] active:scale-95"
                   >
                     <PanelLeftClose size={13} strokeWidth={1.8} />
                   </button>
@@ -282,6 +282,7 @@ export function Sidebar({ onCollapse }) {
 
         {/* Content */}
         <ScrollArea className="flex-1">
+          <div className="pr-3 w-full">
           {showBackButton && (
             <button
               data-testid={`back-from-${activePanel}`}
@@ -334,6 +335,7 @@ export function Sidebar({ onCollapse }) {
               <DuplicatePanel allTabs={tabs.allTabs} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
             </div>
           )}
+          </div>
         </ScrollArea>
 
         <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />

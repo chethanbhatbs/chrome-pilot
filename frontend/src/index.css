@@ -111,3 +111,12 @@ code {
     border-bottom-color: inherit;
   }
 }
+
+/* Constrain Radix ScrollArea internal wrapper to viewport width in sidebar (prevents Fix All button from overflowing at narrow widths) */
+[data-testid="sidebar"] [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}

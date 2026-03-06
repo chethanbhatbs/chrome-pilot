@@ -79,7 +79,7 @@ export default function TabPilotPreview() {
       )}
 
       {/* Main content area */}
-      <div className="flex-1 overflow-y-auto relative" data-testid="homepage-content">
+      <div className="flex-1 overflow-y-auto relative bg-card" data-testid="homepage-content">
         {/* Expand sidebar button — only when collapsed */}
         {sidebarCollapsed && (
           <button

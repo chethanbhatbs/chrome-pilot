@@ -1,6 +1,6 @@
 import {
   Plus, Monitor, Pause, Play, ClipboardCheck, VolumeX, Volume2, Save,
-  LayoutGrid, Flame, Focus, MoreHorizontal
+  LayoutGrid, List, Flame, Focus, MoreHorizontal
 } from 'lucide-react';
 import {
   Tooltip, TooltipContent, TooltipTrigger
@@ -15,13 +15,20 @@ export function QuickActions({ handlers, viewMode, activePanel }) {
     <div className="flex items-center gap-0.5 px-0.5" data-testid="quick-actions">
       {/* Primary — always visible */}
       <ActionBtn id="new-tab" icon={Plus} label="New Tab" handler={handlers.onNewTab} />
-      <ActionBtn id="new-window" icon={Monitor} label="Window" handler={handlers.onNewWindow} />
+      {viewMode !== 'domain' && (
+        <ActionBtn id="new-window" icon={Monitor} label="Window" handler={handlers.onNewWindow} />
+      )}
 
       <Divider />
 
       {/* View toggles — always visible */}
-      <ActionBtn id="group-domain" icon={LayoutGrid} label="Domain" handler={handlers.onToggleGrouping}
-        active={viewMode === 'domain'} />
+      <ActionBtn
+        id="group-domain"
+        icon={viewMode === 'domain' ? List : LayoutGrid}
+        label={viewMode === 'domain' ? 'Windows' : 'Domain'}
+        handler={handlers.onToggleGrouping}
+        active={viewMode === 'domain'}
+      />
       <ActionBtn id="heatmap" icon={Flame} label="Heatmap" handler={handlers.onToggleHeatmap}
         active={activePanel === 'heatmap'} />
       <ActionBtn id="focus-mode" icon={Focus} label="Focus" handler={handlers.onToggleFocus}

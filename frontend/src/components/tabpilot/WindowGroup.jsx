@@ -131,7 +131,7 @@ export function WindowGroup({
               className={`animate-slide-in border-l-[3px] ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-t-primary' : ''}`}
               style={{ borderLeftColor: color.bg + '50' }}
             >
-              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
+              <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
                 tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
                 {...tabItemProps} />
             </div>
@@ -144,7 +144,7 @@ export function WindowGroup({
             key={tab.id}
             className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
           >
-            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
+            <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
               tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
               {...tabItemProps} />
           </div>
