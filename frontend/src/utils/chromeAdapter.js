@@ -12,9 +12,51 @@ export function isExtensionContext() {
 }
 
 // --- Real Chrome API wrappers ---
+
+/**
+ * Get all windows by grouping tabs (uses only `tabs` permission — more reliable than
+ * chrome.windows.getAll which can fail silently without the `windows` permission being granted).
+ */
 export async function chromeGetAllWindows() {
-  const windows = await chrome.windows.getAll({ populate: true });
-  return windows.filter(w => w.type === 'normal');
+  // Step 1: Get ALL tabs from ALL windows — requires only `tabs` permission
+  const allTabs = await chrome.tabs.query({});
+
+  // Step 2: Group tabs by windowId
+  const windowMap = new Map();
+  allTabs.forEach(tab => {
+    if (!windowMap.has(tab.windowId)) {
+      windowMap.set(tab.windowId, {
+        id: tab.windowId,
+        type: 'normal',
+        focused: false,
+        state: 'normal',
+        tabs: [],
+      });
+    }
+    windowMap.get(tab.windowId).tabs.push(tab);
+  });
+
+  // Step 3: Enrich with window metadata (focused, state, type) — best-effort
+  try {
+    const winInfos = await chrome.windows.getAll({ populate: false });
+    winInfos.forEach(w => {
+      if (windowMap.has(w.id)) {
+        const entry = windowMap.get(w.id);
+        entry.focused = w.focused;
+        entry.state   = w.state || 'normal';
+        entry.type    = w.type  || 'normal';
+      }
+    });
+  } catch {
+    // If windows API unavailable, mark first window as focused
+    const first = windowMap.values().next().value;
+    if (first) first.focused = true;
+  }
+
+  // Step 4: Only normal windows, focused first
+  return Array.from(windowMap.values())
+    .filter(w => w.type === 'normal' || w.type === undefined)
+    .sort((a, b) => Number(b.focused) - Number(a.focused));
 }
 
 export async function chromeGetTabGroups() {
@@ -138,27 +180,37 @@ export async function chromeDiscardTab(tabId) {
   }
 }
 
-// Listen for tab changes from background
+// Listen for tab AND window changes
 export function chromeOnTabsUpdated(callback) {
   if (!IS_EXTENSION) return () => {};
 
-  const handler = (msg) => {
-    if (msg?.action === 'tabs-updated') callback();
-  };
-  chrome.runtime.onMessage.addListener(handler);
+  // Background message (from service worker)
+  const msgHandler = (msg) => { if (msg?.action === 'tabs-updated') callback(); };
+  chrome.runtime.onMessage.addListener(msgHandler);
 
-  // Also listen to direct events as fallback
-  const events = [
+  // Tab events
+  const tabEvents = [
     chrome.tabs.onCreated,
     chrome.tabs.onRemoved,
     chrome.tabs.onUpdated,
     chrome.tabs.onMoved,
     chrome.tabs.onActivated,
+    chrome.tabs.onAttached,
+    chrome.tabs.onDetached,
   ];
-  events.forEach(e => e.addListener(callback));
+  tabEvents.forEach(e => e?.addListener(callback));
+
+  // Window events — wrapped in try/catch in case `windows` permission not yet granted
+  const windowEvents = [];
+  try {
+    [chrome.windows?.onCreated, chrome.windows?.onRemoved, chrome.windows?.onFocusChanged]
+      .filter(Boolean)
+      .forEach(e => { e.addListener(callback); windowEvents.push(e); });
+  } catch { /* windows permission unavailable */ }
 
   return () => {
-    chrome.runtime.onMessage.removeListener(handler);
-    events.forEach(e => e.removeListener(callback));
+    chrome.runtime.onMessage.removeListener(msgHandler);
+    tabEvents.forEach(e => e?.removeListener(callback));
+    windowEvents.forEach(e => e?.removeListener(callback));
   };
 }

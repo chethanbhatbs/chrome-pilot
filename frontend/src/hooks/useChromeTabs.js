@@ -46,10 +46,12 @@ export function useChromeTabs() {
 
   useEffect(() => {
     if (!isExtensionContext()) return;
+    // Immediate fetch + one retry after 300ms (handles extension initialization timing)
     refresh();
+    const retryTimer = setTimeout(() => refreshRef.current?.(), 300);
     const cleanup = chromeOnTabsUpdated(() => refreshRef.current?.());
     const interval = setInterval(() => refreshRef.current?.(), 2000);
-    return () => { cleanup(); clearInterval(interval); };
+    return () => { clearTimeout(retryTimer); cleanup(); clearInterval(interval); };
   }, [refresh]);
 
   // Merge stored window names into windows
