@@ -1,35 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
 # TabPilot Extension Builder
-# Builds the React app and packages it into the Chrome extension directory.
 # Run from /app: bash build-extension.sh
 # =============================================================================
 set -e
 
 echo "==> Building React app for Chrome Extension..."
 cd /app/frontend
-
-# Build with relative paths (required for Chrome Extension local files)
 PUBLIC_URL="." GENERATE_SOURCEMAP=false yarn build
 
 echo "==> Packaging extension..."
 EXT_SIDEPANEL="/app/extension/tabpilot/sidepanel"
+JS_FILE=$(ls /app/frontend/build/static/js/main.*.js | xargs basename)
+CSS_FILE=$(ls /app/frontend/build/static/css/main.*.css | xargs basename)
+echo "    JS:  $JS_FILE"
+echo "    CSS: $CSS_FILE"
 
-# Clear previous build artifacts (keep directory)
 rm -rf "$EXT_SIDEPANEL/static" "$EXT_SIDEPANEL/asset-manifest.json" "$EXT_SIDEPANEL/index.html"
-
-# Copy the React build output
 cp -r /app/frontend/build/static "$EXT_SIDEPANEL/static"
 cp /app/frontend/build/asset-manifest.json "$EXT_SIDEPANEL/asset-manifest.json"
 
-# Dynamically get built filenames
-JS_FILE=$(ls /app/frontend/build/static/js/main.*.js | xargs basename)
-CSS_FILE=$(ls /app/frontend/build/static/css/main.*.css | xargs basename)
-
-echo "==> JS:  $JS_FILE"
-echo "==> CSS: $CSS_FILE"
-
-# Create clean extension index.html (no Emergent badge, no PostHog)
 cat > "$EXT_SIDEPANEL/index.html" << HTMLEOF
 <!doctype html>
 <html lang="en" class="dark">
@@ -50,17 +40,10 @@ cat > "$EXT_SIDEPANEL/index.html" << HTMLEOF
 HTMLEOF
 
 echo ""
-echo "==> Extension build complete!"
+echo "==> Done! Extension is in /app/extension/tabpilot/"
 echo ""
-echo "  Extension folder: /app/extension/tabpilot/"
-echo ""
-echo "==> To install the extension in Chrome:"
-echo "  1. Save the /app/extension/tabpilot/ folder to your computer"
-echo "  2. Navigate to chrome://extensions/"
-echo "  3. Enable 'Developer mode' (top-right toggle)"
-echo "  4. Click 'Load unpacked' → select the 'tabpilot' folder"
-echo "  5. Press Ctrl+Shift+E (Mac: Cmd+Shift+E) to open the sidebar"
-echo ""
-echo "  The extension will automatically use real Chrome tabs when installed."
-echo "  The web preview at your Emergent URL continues using mock data for demo."
+echo "  To install:"
+echo "  1. Download /app/extension/tabpilot/ to your computer"
+echo "  2. chrome://extensions/ → Developer mode ON → Load unpacked"
+echo "  3. Select the 'tabpilot' folder → Ctrl+Shift+E to open"
 echo ""

@@ -262,7 +262,7 @@ export function WindowGroup({
           <div className="pb-0.5 pl-5">
             {(() => {
               const allElements = renderElements();
-              const TAB_LIMIT = 5;
+              const TAB_LIMIT = 15;
               if (allElements.length <= TAB_LIMIT || showAllTabs) {
                 return allElements;
               }

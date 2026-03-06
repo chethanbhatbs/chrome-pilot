@@ -78,7 +78,10 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Keyboard workspace switching (Cmd+1/2/3)
 - **P3**: Live tab thumbnail previews, Export data
 
-### Bug Fixes (Feb 2026) — Batch 2
+### Extension Mode Fix (Mar 6, 2026)
+- Extension now shows **sidebar only** (no homepage) — `isExtensionContext()` guard in `TabPilotPreview.jsx`
+- Tab "show more" threshold raised from 5 → 15 (practical for real Chrome tabs)
+- Extension rebuilt with new JS/CSS: `main.f1038638.js` / `main.0d247cfd.css`
 - **Search bar character input**: `pr-16` (64px) reduced to `pr-7` — now shows full text input
 - **Search bar visibility**: Fixed dark-only transparent bg to use `bg-input/60 border border-border/60`
 - **TabPilot text color**: Split "Tab"=foreground + "Pilot"=primary in sidebar — matches homepage
