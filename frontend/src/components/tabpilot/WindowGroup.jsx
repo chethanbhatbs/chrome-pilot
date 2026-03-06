@@ -112,11 +112,12 @@ export function WindowGroup({
           );
         }
         if (!collapsedGroups[group.id]) {
+          // Grouped tab: colored left border gutter at the edge, NO extra indent
           elements.push(
             <div
               key={tab.id}
-              className={`animate-slide-in border-l-2 ml-3 ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-t-primary' : ''}`}
-              style={{ borderLeftColor: color.bg + '40' }}
+              className={`animate-slide-in border-l-[3px] ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-t-primary' : ''}`}
+              style={{ borderLeftColor: color.bg + '50' }}
             >
               <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
                 tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
@@ -125,10 +126,11 @@ export function WindowGroup({
           );
         }
       } else {
+        // Ungrouped tab: transparent left border to maintain the same layout as grouped tabs
         elements.push(
           <div
             key={tab.id}
-            className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+            className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
           >
             <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
               tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
