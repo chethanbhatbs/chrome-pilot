@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { MOCK_WINDOWS, MOCK_TAB_GROUPS, INITIAL_TAB_NOTES } from '@/utils/mockData';
 
 let nextTabId = 400;
@@ -23,14 +23,44 @@ export function useMockTabs() {
     })));
   }, []);
 
+  const closedTabHistory = useRef([]);
+
   const closeTab = useCallback((tabId) => {
     setWindows(prev => {
-      const updated = prev.map(w => ({
-        ...w,
-        tabs: w.tabs.filter(t => t.id !== tabId)
-      }));
+      let closedTab = null;
+      let closedWindowId = null;
+      const updated = prev.map(w => {
+        const tab = w.tabs.find(t => t.id === tabId);
+        if (tab) { closedTab = tab; closedWindowId = w.id; }
+        return { ...w, tabs: w.tabs.filter(t => t.id !== tabId) };
+      });
+      if (closedTab) {
+        closedTabHistory.current = [
+          ...closedTabHistory.current.slice(-9),
+          { ...closedTab, windowId: closedWindowId }
+        ];
+      }
       return updated.filter(w => w.tabs.length > 0);
     });
+  }, []);
+
+  const undoCloseTab = useCallback(() => {
+    const history = closedTabHistory.current;
+    if (history.length === 0) return false;
+    const lastClosed = history[history.length - 1];
+    closedTabHistory.current = history.slice(0, -1);
+    setWindows(prev => {
+      const winExists = prev.find(w => w.id === lastClosed.windowId);
+      if (winExists) {
+        return prev.map(w => w.id === lastClosed.windowId
+          ? { ...w, tabs: [...w.tabs, { ...lastClosed, active: false }] }
+          : w
+        );
+      }
+      // Window was closed — create it
+      return [...prev, { id: lastClosed.windowId, focused: false, tabs: [{ ...lastClosed, active: false }] }];
+    });
+    return true;
   }, []);
 
   const pinTab = useCallback((tabId) => {
@@ -282,7 +312,7 @@ export function useMockTabs() {
 
   return {
     windows, tabGroups, allTabs, suspendedTabs, tabNotes,
-    switchToTab, closeTab, pinTab, muteTab, duplicateTab,
+    switchToTab, closeTab, undoCloseTab, pinTab, muteTab, duplicateTab,
     moveTab, moveTabToNewWindow, closeWindow, minimizeWindow,
     createNewTab, createNewWindow, createTabInWindow, renameWindow,
     muteAll, unmuteAll, closeDuplicates,

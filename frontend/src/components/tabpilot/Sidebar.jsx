@@ -66,9 +66,13 @@ export function Sidebar({ onCollapse }) {
   }, [tabs, hidePreview]);
 
   const handleCloseTab = useCallback((tabId) => {
-    withConfirm('Close this tab?', () => {
+    const tabTitle = tabs.allTabs.find(t => t.id === tabId)?.title?.slice(0, 35) || 'Tab';
+    withConfirm(`Close "${tabTitle}"?`, () => {
       tabs.closeTab(tabId);
-      toast.success('Tab closed', { duration: 1000 });
+      toast.success(`Closed: ${tabTitle}`, {
+        duration: 5000,
+        action: { label: 'Undo', onClick: () => tabs.undoCloseTab() },
+      });
     });
   }, [tabs, withConfirm]);
 

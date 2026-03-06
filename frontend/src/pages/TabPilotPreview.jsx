@@ -71,7 +71,9 @@ export default function TabPilotPreview() {
         <div
           data-testid="sidebar-resize-handle"
           onMouseDown={handleMouseDown}
+          onDoubleClick={() => setSidebarWidth(400)}
           className="w-[5px] shrink-0 cursor-col-resize relative group"
+          title="Drag to resize · Double-click to reset"
         >
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-primary/20" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full

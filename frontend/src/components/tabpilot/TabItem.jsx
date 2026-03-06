@@ -131,15 +131,32 @@ export function TabItem({
             )}
           </div>
 
-          {/* Hover actions: close + mute (mute only for audible/muted tabs) */}
+          {/* Hover actions: note + close (+ mute for audible/muted tabs) */}
           <div className="flex items-center gap-0 shrink-0">
+            {/* Note button — always shown on hover, indicates add/edit */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  data-testid={`tab-note-btn-${tab.id}`}
+                  onClick={(e) => { e.stopPropagation(); onAddNote?.(tab.id); }}
+                  className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                    opacity-0 group-hover:opacity-100
+                    ${hasNote ? 'text-primary/70' : 'text-muted-foreground/30 hover:text-foreground/60'}`}
+                >
+                  <StickyNote size={11} strokeWidth={1.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[10px] font-body">
+                {hasNote ? `Note: ${tabNote.slice(0, 40)}` : 'Add note'}
+              </TooltipContent>
+            </Tooltip>
             {(isAudible || isMuted) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     data-testid={`tab-mute-${tab.id}`}
                     onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-                    className={`p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                    className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
                       ${isAudible ? 'text-tp-audible' : 'text-muted-foreground/60'}`}
                   >
                     {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
@@ -162,59 +179,62 @@ export function TabItem({
 
       <ContextMenuContent className="w-52 font-body text-xs" data-testid={`tab-context-menu-${tab.id}`}>
         {/* Navigation */}
-        <ContextMenuItem onClick={() => onSwitch(tab.id)}>Switch to tab</ContextMenuItem>
+        <ContextMenuItem className="cursor-pointer" onClick={() => onSwitch(tab.id)}>Switch to tab</ContextMenuItem>
         <ContextMenuSeparator />
 
         {/* Tab state */}
-        <ContextMenuItem onClick={() => onPin(tab.id)}>
+        <ContextMenuItem className="cursor-pointer" onClick={() => onPin(tab.id)}>
           <Pin size={12} className="mr-1.5" strokeWidth={1.5} />
           {isPinned ? 'Unpin tab' : 'Pin tab'}
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onMute(tab.id)}>
+        <ContextMenuItem className="cursor-pointer" onClick={() => onMute(tab.id)}>
           {isMuted ? <Volume2 size={12} className="mr-1.5" strokeWidth={1.5} /> : <VolumeX size={12} className="mr-1.5" strokeWidth={1.5} />}
           {isMuted ? 'Unmute tab' : 'Mute tab'}
         </ContextMenuItem>
         {isSuspended ? (
-          <ContextMenuItem onClick={() => onUnsuspend?.(tab.id)}>Reload tab</ContextMenuItem>
+          <ContextMenuItem className="cursor-pointer" onClick={() => onUnsuspend?.(tab.id)}>Reload tab</ContextMenuItem>
         ) : (
-          <ContextMenuItem onClick={() => onSuspend?.(tab.id)}>Suspend tab</ContextMenuItem>
+          <ContextMenuItem className="cursor-pointer" onClick={() => onSuspend?.(tab.id)}>Suspend tab</ContextMenuItem>
         )}
         <ContextMenuSeparator />
 
         {/* Organization */}
-        <ContextMenuItem onClick={() => onDuplicate(tab.id)}>Duplicate tab</ContextMenuItem>
-        <ContextMenuItem onClick={() => onAddNote?.(tab.id)}>
+        <ContextMenuItem className="cursor-pointer" onClick={() => onDuplicate(tab.id)}>
+          <Copy size={12} className="mr-1.5" strokeWidth={1.5} />
+          Duplicate tab
+        </ContextMenuItem>
+        <ContextMenuItem className="cursor-pointer" onClick={() => onAddNote?.(tab.id)}>
           <StickyNote size={12} className="mr-1.5" strokeWidth={1.5} />
           {hasNote ? 'Edit note' : 'Add note'}
         </ContextMenuItem>
         <ContextMenuSub>
-          <ContextMenuSubTrigger>Move to</ContextMenuSubTrigger>
+          <ContextMenuSubTrigger className="cursor-pointer">Move to</ContextMenuSubTrigger>
           <ContextMenuSubContent className="font-body text-xs">
             {otherWindows.map(w => (
-              <ContextMenuItem key={w.id} onClick={() => onMoveToWindow(tab.id, w.id)}>
-                Window {w.id} ({w.tabs.length} tabs)
+              <ContextMenuItem className="cursor-pointer" key={w.id} onClick={() => onMoveToWindow(tab.id, w.id)}>
+                {w.name || `Window ${w.id}`} ({w.tabs.length} tabs)
               </ContextMenuItem>
             ))}
             <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => onMoveToNewWindow(tab.id)}>New Window</ContextMenuItem>
+            <ContextMenuItem className="cursor-pointer" onClick={() => onMoveToNewWindow(tab.id)}>New Window</ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />
 
         {/* Clipboard */}
-        <ContextMenuItem onClick={handleCopyUrl}>
+        <ContextMenuItem className="cursor-pointer" onClick={handleCopyUrl}>
           <Copy size={12} className="mr-1.5" strokeWidth={1.5} /> Copy URL
         </ContextMenuItem>
         <ContextMenuSeparator />
 
         {/* Destructive actions */}
-        <ContextMenuItem onClick={() => onCloseToRight(tab.id, currentWindowId)} className="text-destructive/70 focus:text-destructive">
+        <ContextMenuItem onClick={() => onCloseToRight(tab.id, currentWindowId)} className="cursor-pointer text-destructive/70 focus:text-destructive">
           Close tabs to the right
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCloseOthers(tab.id, currentWindowId)} className="text-destructive/70 focus:text-destructive">
+        <ContextMenuItem onClick={() => onCloseOthers(tab.id, currentWindowId)} className="cursor-pointer text-destructive/70 focus:text-destructive">
           Close other tabs
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onClose(tab.id)} className="text-destructive focus:text-destructive font-semibold">
+        <ContextMenuItem onClick={() => onClose(tab.id)} className="cursor-pointer text-destructive focus:text-destructive font-semibold">
           Close tab
         </ContextMenuItem>
       </ContextMenuContent>
