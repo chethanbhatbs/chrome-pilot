@@ -8,24 +8,20 @@ export function TabGroupHeader({ group, collapsed, onToggle }) {
     <button
       data-testid={`tab-group-header-${group.id}`}
       onClick={onToggle}
-      className="flex items-center gap-1.5 w-full px-2 py-1 text-[11px] font-heading font-semibold
-        rounded-md transition-colors hover:bg-white/5 cursor-pointer"
-      style={{ borderLeft: `3px solid ${color.bg}` }}
+      className="flex items-center gap-1.5 w-full px-2.5 py-1 text-[10.5px] font-heading font-semibold
+        rounded-[4px] transition-colors hover:bg-white/[0.04] cursor-pointer"
     >
       <ChevronRight
-        size={11}
+        size={10}
         className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-90'}`}
         strokeWidth={2}
         style={{ color: color.bg }}
       />
       <div
-        className="h-2.5 w-2.5 rounded-sm shrink-0"
+        className="h-2 w-2 rounded-[2px] shrink-0"
         style={{ backgroundColor: color.bg }}
       />
       <span style={{ color: color.bg }}>{group.title}</span>
-      {collapsed && (
-        <span className="text-[9px] text-muted-foreground/50 font-mono ml-auto">collapsed</span>
-      )}
     </button>
   );
 }

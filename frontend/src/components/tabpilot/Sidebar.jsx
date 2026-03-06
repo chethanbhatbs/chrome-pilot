@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Settings, ArrowLeft, HelpCircle } from 'lucide-react';
+import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -12,6 +12,9 @@ import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
 import { FocusMode } from './FocusMode';
 import { HelpPanel } from './HelpPanel';
+import { CommandPalette } from './CommandPalette';
+import { TabNotesPanel } from './TabNotesPanel';
+import { WorkspaceManager } from './WorkspaceManager';
 import { StatsBar } from './StatsBar';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
@@ -30,6 +33,7 @@ export function Sidebar() {
   const [viewMode, setViewMode] = useState('window');
   const [selectedTabIdx, setSelectedTabIdx] = useState(-1);
   const [visitCounts, setVisitCounts] = useState({});
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
   const handleSwitchTab = useCallback((tabId) => {
     tabs.switchToTab(tabId);
@@ -71,24 +75,53 @@ export function Sidebar() {
     else toast.info('No inactive tabs to suspend');
   }, [tabs]);
 
+  const handleUnsuspendAll = useCallback(() => {
+    const count = tabs.unsuspendAll();
+    if (count > 0) toast.success(`Restored ${count} tab${count > 1 ? 's' : ''}`);
+    else toast.info('No suspended tabs');
+  }, [tabs]);
+
+  const handleUnmuteAll = useCallback(() => {
+    tabs.unmuteAll();
+    toast.success('All tabs unmuted');
+  }, [tabs]);
+
   const handleRestoreSession = useCallback((session) => {
     toast.info(`Session "${session.name}" restored (${session.tabCount} tabs)`);
   }, []);
+
+  const handleAddNote = useCallback((tabId) => {
+    const note = prompt('Add a note for this tab:', tabs.tabNotes[tabId] || '');
+    if (note !== null) {
+      tabs.setTabNote(tabId, note);
+      if (note.trim()) toast.success('Note saved');
+      else toast.info('Note removed');
+    }
+  }, [tabs]);
 
   const quickActionHandlers = {
     onNewTab: tabs.createNewTab,
     onNewWindow: tabs.createNewWindow,
     onCloseDuplicates: handleCloseDuplicates,
     onMuteAll: () => { tabs.muteAll(); toast.success('All tabs muted'); },
+    onUnmuteAll: handleUnmuteAll,
     onSaveSession: handleSaveSession,
     onToggleGrouping: handleToggleGrouping,
     onToggleHeatmap: handleToggleHeatmap,
     onToggleFocus: handleToggleFocus,
     onSuspendInactive: handleSuspendInactive,
+    onUnsuspendAll: handleUnsuspendAll,
   };
 
+  // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
+      // Cmd+K / Ctrl+K for command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdPaletteOpen(prev => !prev);
+        return;
+      }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedTabIdx(prev => Math.min(prev + 1, tabs.allTabs.length - 1));
@@ -115,6 +148,7 @@ export function Sidebar() {
     matchingTabIds: search.matchingTabIds,
     windows: tabs.windows,
     suspendedTabs: tabs.suspendedTabs,
+    tabNotes: tabs.tabNotes,
     onSwitch: handleSwitchTab,
     onClose: handleCloseTab,
     onPin: tabs.pinTab,
@@ -128,9 +162,10 @@ export function Sidebar() {
     onMoveTab: tabs.moveTab,
     onSuspend: tabs.suspendTab,
     onUnsuspend: tabs.unsuspendTab,
+    onAddNote: handleAddNote,
   };
 
-  const showBackButton = ['settings', 'sessions', 'heatmap', 'help'].includes(activePanel);
+  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces'].includes(activePanel);
 
   // Focus mode renders a completely different layout
   if (activePanel === 'focus') {
@@ -152,9 +187,18 @@ export function Sidebar() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
+        {/* Command Palette */}
+        <CommandPalette
+          allTabs={tabs.allTabs}
+          onSwitch={handleSwitchTab}
+          isOpen={cmdPaletteOpen}
+          onClose={() => setCmdPaletteOpen(false)}
+        />
+
         {/* Header */}
-        <div className="px-2 pt-2 pb-1.5 space-y-1.5 bg-background/90 backdrop-blur-md sticky top-0 z-10">
+        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-1">
+            <span className="text-[11px] font-heading font-bold text-primary tracking-tight px-1">TabPilot</span>
             <div className="flex-1">
               <SearchBar
                 query={search.query}
@@ -162,40 +206,33 @@ export function Sidebar() {
                 resultCount={search.resultCount}
                 clearSearch={search.clearSearch}
                 inputRef={searchInputRef}
+                suggestions={search.suggestions}
+                onSwitchTab={handleSwitchTab}
               />
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  data-testid="help-toggle-btn"
-                  onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
-                  className={`p-1.5 rounded-md transition-all duration-150
-                    ${activePanel === 'help'
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
-                    } active:scale-95`}
-                >
-                  <HelpCircle size={13} strokeWidth={1.5} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px] font-body">Help & Feedback</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  data-testid="settings-toggle-btn"
-                  onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-                  className={`p-1.5 rounded-md transition-all duration-150
-                    ${activePanel === 'settings'
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
-                    } active:scale-95`}
-                >
-                  <Settings size={13} strokeWidth={1.5} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px] font-body">Settings</TooltipContent>
-            </Tooltip>
+            {[
+              { id: 'notes', icon: StickyNote, label: 'Tab Notes', panel: 'notes' },
+              { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
+              { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
+              { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
+            ].map(({ id, icon: Icon, label, panel }) => (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button
+                    data-testid={`${id}-toggle-btn`}
+                    onClick={() => setActivePanel(activePanel === panel ? null : panel)}
+                    className={`p-1 rounded-md transition-all duration-150
+                      ${activePanel === panel
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06]'
+                      } active:scale-95`}
+                  >
+                    <Icon size={12} strokeWidth={1.5} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
+              </Tooltip>
+            ))}
           </div>
           <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel} />
         </div>
@@ -206,37 +243,31 @@ export function Sidebar() {
             <button
               data-testid={`back-from-${activePanel}`}
               onClick={() => setActivePanel(null)}
-              className="flex items-center gap-1.5 px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
             >
-              <ArrowLeft size={11} strokeWidth={1.5} /> Back to tabs
+              <ArrowLeft size={10} strokeWidth={1.5} /> Back to tabs
             </button>
           )}
 
           {activePanel === 'settings' ? (
-            <div className="animate-slide-in">
-              <SettingsPanel settings={settings} onUpdate={updateSetting} />
-            </div>
+            <div className="animate-slide-in"><SettingsPanel settings={settings} onUpdate={updateSetting} /></div>
           ) : activePanel === 'sessions' ? (
             <div className="animate-slide-in">
-              <SessionManager
-                sessions={sessions}
-                onSave={saveSession}
-                onDelete={deleteSession}
-                onRestore={handleRestoreSession}
-                windows={tabs.windows}
-              />
+              <SessionManager sessions={sessions} onSave={saveSession} onDelete={deleteSession} onRestore={handleRestoreSession} windows={tabs.windows} />
             </div>
           ) : activePanel === 'heatmap' ? (
             <div className="animate-slide-in">
-              <HeatmapPanel
-                allTabs={tabs.allTabs}
-                visitCounts={visitCounts}
-                onSwitch={handleSwitchTab}
-              />
+              <HeatmapPanel allTabs={tabs.allTabs} visitCounts={visitCounts} onSwitch={handleSwitchTab} />
             </div>
           ) : activePanel === 'help' ? (
+            <div className="animate-slide-in"><HelpPanel onBack={() => setActivePanel(null)} /></div>
+          ) : activePanel === 'notes' ? (
             <div className="animate-slide-in">
-              <HelpPanel onBack={() => setActivePanel(null)} />
+              <TabNotesPanel allTabs={tabs.allTabs} tabNotes={tabs.tabNotes} onSetNote={tabs.setTabNote} onSwitch={handleSwitchTab} />
+            </div>
+          ) : activePanel === 'workspaces' ? (
+            <div className="animate-slide-in">
+              <WorkspaceManager allTabs={tabs.allTabs} onSwitch={handleSwitchTab} />
             </div>
           ) : (
             <div>
@@ -254,11 +285,7 @@ export function Sidebar() {
               ) : (
                 <DomainView allTabs={tabs.allTabs} {...sharedTabProps} />
               )}
-              <DuplicatePanel
-                allTabs={tabs.allTabs}
-                onCloseDuplicates={handleCloseDuplicates}
-                onCloseTab={handleCloseTab}
-              />
+              <DuplicatePanel allTabs={tabs.allTabs} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
             </div>
           )}
         </ScrollArea>

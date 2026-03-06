@@ -1,33 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
-import {
-  Monitor, Search, LayoutGrid, Copy, GripVertical, Save,
-  BarChart3, Mouse, Keyboard, Settings, Zap, Download, ArrowLeft, ExternalLink, Flame,
-  Focus, Pause, HelpCircle, GripHorizontal
-} from 'lucide-react';
-
-const features = [
-  { icon: Monitor, title: 'Tab Tree View', desc: 'See all windows and tabs in a real-time tree' },
-  { icon: Search, title: 'Global Search', desc: 'Fuzzy search across all tabs instantly' },
-  { icon: LayoutGrid, title: 'Group by Domain', desc: 'Toggle between window and domain views' },
-  { icon: Copy, title: 'Duplicate Detection', desc: 'Find and close duplicate tabs in one click' },
-  { icon: GripVertical, title: 'Drag & Drop', desc: 'Reorder and move tabs between windows' },
-  { icon: Save, title: 'Session Manager', desc: 'Save and restore tab sessions' },
-  { icon: Flame, title: 'Activity Heatmap', desc: 'Time tracking with day/week/month filters' },
-  { icon: BarChart3, title: 'Memory & CPU', desc: 'Live memory and CPU usage per tab' },
-  { icon: Focus, title: 'Focus Mode', desc: 'Hide distractions, show only core tabs' },
-  { icon: Pause, title: 'Tab Suspension', desc: 'Free memory by suspending inactive tabs' },
-  { icon: Mouse, title: 'Context Menu', desc: 'Right-click for all tab actions' },
-  { icon: Keyboard, title: 'Keyboard Shortcuts', desc: 'Navigate and manage with hotkeys' },
-  { icon: HelpCircle, title: 'Help & Feedback', desc: 'Built-in guide and suggestion form' },
-];
 
 export default function TabPilotPreview() {
-  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const [sidebarWidth, setSidebarWidth] = useState(380);
   const isDragging = useRef(false);
   const startX = useRef(0);
-  const startWidth = useRef(400);
+  const startWidth = useRef(380);
 
   const handleMouseDown = useCallback((e) => {
     isDragging.current = true;
@@ -44,13 +23,12 @@ export default function TabPilotPreview() {
       const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 700);
       setSidebarWidth(newWidth);
     };
-
     const handleMouseUp = () => {
+      if (!isDragging.current) return;
       isDragging.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     return () => {
@@ -60,170 +38,85 @@ export default function TabPilotPreview() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground" data-testid="tabpilot-preview">
+    <div className="h-screen bg-background text-foreground flex" data-testid="tabpilot-preview">
       <Toaster richColors position="bottom-right" />
 
-      <div className="h-screen flex flex-col">
-        {/* Fake browser chrome */}
-        <div className="bg-card border-b border-border/50 px-3 py-1.5 flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-destructive/60" />
-            <div className="w-3 h-3 rounded-full bg-tp-duplicate/60" />
-            <div className="w-3 h-3 rounded-full bg-tp-audible/60" />
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="bg-secondary rounded-full px-4 py-1 text-xs text-muted-foreground font-mono flex items-center gap-2 max-w-md w-full">
-              <Search size={11} strokeWidth={1.5} />
-              <span className="truncate">tabpilot.dev</span>
-            </div>
-          </div>
-          <div className="w-16" />
+      {/* Sidebar */}
+      <div
+        className="shrink-0 bg-background flex flex-col border-r border-border/40"
+        style={{ width: `${sidebarWidth}px` }}
+        data-testid="sidebar-container"
+      >
+        <div className="flex-1 overflow-hidden">
+          <Sidebar />
         </div>
+      </div>
 
-        {/* Main content area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left: Interactive Sidebar */}
-          <div
-            className="shrink-0 border-r border-border/50 bg-background flex flex-col"
-            style={{ width: `${sidebarWidth}px` }}
-            data-testid="sidebar-container"
-          >
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-card/50">
-              <span className="text-xs font-heading font-bold text-primary tracking-tight">TabPilot</span>
-              <span className="text-[9px] font-mono text-muted-foreground">v1.0.0</span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <Sidebar />
-            </div>
-          </div>
+      {/* Resize handle — subtle, appears on hover */}
+      <div
+        data-testid="sidebar-resize-handle"
+        onMouseDown={handleMouseDown}
+        className="w-[5px] shrink-0 cursor-col-resize relative group"
+      >
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-primary/20" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full
+          bg-border/40 group-hover:bg-primary/60 transition-colors duration-150" />
+      </div>
 
-          {/* Resize handle */}
-          <div
-            data-testid="sidebar-resize-handle"
-            onMouseDown={handleMouseDown}
-            className="w-1.5 shrink-0 cursor-col-resize group relative flex items-center justify-center
-              hover:bg-primary/20 active:bg-primary/30 transition-colors"
-          >
-            <div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
-          </div>
-
-          {/* Right: Hero / Marketing content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-8 py-16">
-              {/* Hero */}
-              <div className="mb-16">
-                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-heading font-semibold mb-6">
-                  <Zap size={12} strokeWidth={2} />
-                  Chrome Extension
-                </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-black tracking-tighter leading-[0.95] mb-6">
-                  <span className="text-foreground">Tab</span>
-                  <span className="text-primary">Pilot</span>
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto bg-card/30">
+        <div className="max-w-2xl mx-auto px-8 py-12">
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="text-lg font-heading font-black text-primary">T</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-heading font-black tracking-tight">
+                  <span className="text-foreground">Tab</span><span className="text-primary">Pilot</span>
                 </h1>
-                <p className="text-base sm:text-lg text-muted-foreground font-body leading-relaxed max-w-lg mb-8">
-                  Master your tabs. Control your browser. A powerful sidebar that gives you
-                  full control over every window and tab from one clean panel.
-                </p>
-                <div className="flex items-center gap-3">
-                  <a
-                    href="/extension/tabpilot"
-                    data-testid="download-extension-btn"
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground
-                      px-5 py-2.5 rounded-lg font-heading font-bold text-sm
-                      shadow-[0_0_20px_rgba(76,201,240,0.3)] hover:shadow-[0_0_30px_rgba(76,201,240,0.4)]
-                      transition-all duration-200 hover:scale-[1.02] active:scale-95"
-                  >
-                    <Download size={16} strokeWidth={2} />
-                    Download Extension
-                  </a>
-                  <a
-                    href="https://github.com/tabpilot/extension"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="github-link"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-body text-sm
-                      text-muted-foreground hover:text-foreground border border-border/50
-                      hover:border-border transition-colors"
-                  >
-                    View Source
-                    <ExternalLink size={13} strokeWidth={1.5} />
-                  </a>
-                </div>
-              </div>
-
-              {/* Interactive hint */}
-              <div className="mb-12 p-4 rounded-xl bg-card border border-border/50">
-                <div className="flex items-center gap-2 mb-2">
-                  <ArrowLeft size={14} className="text-primary" strokeWidth={2} />
-                  <span className="text-sm font-heading font-bold">Interactive Preview</span>
-                </div>
-                <p className="text-xs text-muted-foreground font-body leading-relaxed">
-                  The sidebar on the left is a fully functional preview. Drag the edge to resize it.
-                  Try searching, closing tabs, right-clicking for context menus, and exploring the Activity Heatmap.
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {['Click tabs', 'Right-click menu', 'Resize sidebar', 'Tab groups', 'Heatmap', 'Help & Feedback'].map(action => (
-                    <span key={action} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                      {action}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Features grid */}
-              <div className="mb-16">
-                <h2 className="text-lg font-heading font-bold mb-6">Features</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {features.map(({ icon: Icon, title, desc }) => (
-                    <div
-                      key={title}
-                      className="p-3 rounded-lg bg-card border border-border/50 hover:border-primary/30
-                        transition-colors group"
-                      data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <Icon
-                        size={16}
-                        className="text-primary mb-2 group-hover:scale-110 transition-transform"
-                        strokeWidth={1.5}
-                      />
-                      <h3 className="text-xs font-heading font-bold mb-0.5">{title}</h3>
-                      <p className="text-[10px] text-muted-foreground font-body leading-relaxed">{desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Keyboard shortcuts */}
-              <div className="mb-16">
-                <h2 className="text-lg font-heading font-bold mb-4">Keyboard Shortcuts</h2>
-                <div className="space-y-1.5">
-                  {[
-                    ['Ctrl+Shift+E', 'Toggle sidebar'],
-                    ['Ctrl+Shift+F', 'Focus search'],
-                    ['Ctrl+Shift+D', 'Close duplicates'],
-                    ['Arrow Up/Down', 'Navigate tabs'],
-                    ['Enter', 'Switch to tab'],
-                    ['Delete', 'Close selected tab'],
-                    ['Escape', 'Clear search'],
-                  ].map(([key, action]) => (
-                    <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-card border border-border/50">
-                      <span className="text-xs text-muted-foreground font-body">{action}</span>
-                      <kbd className="text-[10px] font-mono bg-secondary px-2 py-0.5 rounded text-foreground/80">{key}</kbd>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="text-center py-8 border-t border-border/50">
-                <p className="text-xs text-muted-foreground font-body">
-                  TabPilot - Chrome Tab & Window Manager
-                </p>
-                <p className="text-[10px] text-muted-foreground/60 font-mono mt-1">
-                  Manifest V3 | React | Tailwind CSS
-                </p>
+                <p className="text-[11px] text-muted-foreground font-mono">Chrome Tab & Window Manager</p>
               </div>
             </div>
+            <p className="text-sm text-muted-foreground font-body leading-relaxed max-w-md">
+              Master your tabs. The sidebar on the left is fully interactive — try searching,
+              right-clicking, dragging tabs, opening the heatmap, or pressing <kbd className="text-[10px] bg-secondary px-1.5 py-0.5 rounded font-mono">Cmd+K</kbd> for quick switch.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-12">
+            {[
+              'Tab tree view', 'Fuzzy search', 'Domain grouping', 'Duplicate detection',
+              'Drag & drop', 'Session manager', 'Activity heatmap', 'Focus mode',
+              'Tab suspension', 'Tab groups', 'Tab notes', 'Smart workspaces',
+              'Command palette', 'Context menus', 'Keyboard shortcuts', 'Auto-close rules',
+            ].map(f => (
+              <div key={f} className="text-[11px] font-body text-muted-foreground py-1.5 px-3 rounded-md bg-card border border-border/40">
+                {f}
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-1.5 mb-12">
+            <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">Shortcuts</span>
+            {[
+              ['Cmd+K', 'Quick switch'],
+              ['Ctrl+Shift+F', 'Focus search'],
+              ['Arrow keys', 'Navigate'],
+              ['Enter', 'Switch to tab'],
+              ['Delete', 'Close tab'],
+            ].map(([key, action]) => (
+              <div key={key} className="flex items-center justify-between py-1 px-3 rounded-md bg-card border border-border/40">
+                <span className="text-[11px] text-muted-foreground font-body">{action}</span>
+                <kbd className="text-[9px] font-mono bg-secondary px-1.5 py-0.5 rounded text-foreground/70">{key}</kbd>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center pt-6 border-t border-border/30">
+            <p className="text-[10px] text-muted-foreground/50 font-mono">
+              Manifest V3 | React 18 | Tailwind CSS
+            </p>
           </div>
         </div>
       </div>

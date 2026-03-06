@@ -11,7 +11,7 @@ export function WindowGroup({
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
-  suspendedTabs, onSuspend, onUnsuspend
+  suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -19,7 +19,6 @@ export function WindowGroup({
 
   const isFocused = win.focused;
   const tabCount = win.tabs.length;
-
   const windowTabGroups = tabGroups.filter(g => g.windowId === win.id);
 
   const filteredTabs = matchingTabIds
@@ -34,8 +33,7 @@ export function WindowGroup({
   const handleDragOver = useCallback((e, tab) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    const idx = win.tabs.findIndex(t => t.id === tab.id);
-    setDragOverIdx(idx);
+    setDragOverIdx(win.tabs.findIndex(t => t.id === tab.id));
   }, [win.tabs]);
 
   const handleDrop = useCallback((e, targetTab) => {
@@ -44,11 +42,8 @@ export function WindowGroup({
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
       const targetIdx = win.tabs.findIndex(t => t.id === targetTab.id);
-      if (data.windowId === win.id) {
-        onReorderTab(data.tabId, win.id, targetIdx);
-      } else {
-        onMoveTab(data.tabId, win.id, targetIdx);
-      }
+      if (data.windowId === win.id) onReorderTab(data.tabId, win.id, targetIdx);
+      else onMoveTab(data.tabId, win.id, targetIdx);
       toast.success('Tab moved');
     } catch { /* ignore */ }
   }, [win.id, win.tabs, onReorderTab, onMoveTab]);
@@ -74,12 +69,11 @@ export function WindowGroup({
     onCloseOthers, onCloseToRight, windows, currentWindowId: win.id,
     onDragStart: handleDragStart, onDragOver: handleDragOver,
     onDrop: handleDrop, onDragEnd: handleDragEnd,
-    onSuspend, onUnsuspend,
+    onSuspend, onUnsuspend, onAddNote,
   };
 
   if (filteredTabs.length === 0) return null;
 
-  // Build a rendering plan: group consecutive grouped tabs under their header
   const renderElements = () => {
     const elements = [];
     const renderedGroupHeaders = new Set();
@@ -91,7 +85,7 @@ export function WindowGroup({
         if (!renderedGroupHeaders.has(group.id)) {
           renderedGroupHeaders.add(group.id);
           elements.push(
-            <div key={`gh-${group.id}`} className="ml-3 mt-1.5">
+            <div key={`gh-${group.id}`} className="mt-0.5 mb-0.5">
               <TabGroupHeader
                 group={group}
                 collapsed={collapsedGroups[group.id]}
@@ -104,9 +98,9 @@ export function WindowGroup({
           elements.push(
             <div
               key={tab.id}
-              className={`ml-5 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+              className={`pl-2 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
             >
-              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
+              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} tabNote={tabNotes?.[tab.id]} {...tabItemProps} />
             </div>
           );
         }
@@ -114,9 +108,9 @@ export function WindowGroup({
         elements.push(
           <div
             key={tab.id}
-            className={`ml-3 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+            className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
           >
-            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
+            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} tabNote={tabNotes?.[tab.id]} {...tabItemProps} />
           </div>
         );
       }
@@ -127,49 +121,48 @@ export function WindowGroup({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className="mb-0.5"
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
         onDrop={handleWindowDrop}
         data-testid={`window-group-${win.id}`}
       >
         <CollapsibleTrigger asChild>
-          <div className={`flex items-center justify-between px-3 py-2 cursor-pointer
+          <div className={`flex items-center justify-between px-3 py-1.5 cursor-pointer
             hover:bg-white/[0.03] transition-colors
             ${isFocused ? 'bg-primary/[0.04]' : ''}`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <ChevronRight
-                size={11}
-                className={`text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                size={10}
+                className={`text-muted-foreground/40 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
                 strokeWidth={2.5}
               />
-              <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/50'} strokeWidth={1.5} />
+              <Monitor size={11} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
               <span className="text-[11px] font-heading font-semibold tracking-tight">
                 Window {win.id}
               </span>
-              <span className="text-[10px] text-muted-foreground/50 font-mono">
+              <span className="text-[9px] text-muted-foreground/40 font-mono">
                 {tabCount}
               </span>
               {isFocused && (
                 <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
               )}
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ opacity: undefined }}
+            <div className="flex items-center gap-0.5"
+              style={{ opacity: 0 }}
               onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
               onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
             >
               <button
                 data-testid={`window-minimize-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onMinimizeWindow(win.id); }}
-                className="p-1 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
+                className="p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
               >
                 <Minus size={10} strokeWidth={1.5} />
               </button>
               <button
                 data-testid={`window-close-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onCloseWindow(win.id); }}
-                className="p-1 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <X size={10} strokeWidth={1.5} />
               </button>
@@ -178,7 +171,7 @@ export function WindowGroup({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="pb-1">
+          <div className="pb-0.5">
             {renderElements()}
           </div>
         </CollapsibleContent>

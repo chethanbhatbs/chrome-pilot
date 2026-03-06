@@ -170,7 +170,6 @@ export const TAB_METRICS = {
   304: { memory: 55, cpu: 1, visitCount: 8 },
 };
 
-// Time spent per domain (in hours) — simulated tracking data
 export const DOMAIN_TIME_SPENT = {
   'github.com': { hours: 4.2, label: 'GitHub', color: '#8ab4f8' },
   'stackoverflow.com': { hours: 3.1, label: 'Stack Overflow', color: '#f48225' },
@@ -186,14 +185,12 @@ export const DOMAIN_TIME_SPENT = {
   'www.netflix.com': { hours: 0.3, label: 'Netflix', color: '#e50914' },
 };
 
-// Per-tab time spent in minutes (for detailed view)
 export const TAB_TIME_MINUTES = {
   101: 142, 102: 98, 103: 65, 104: 52, 105: 88,
   106: 114, 107: 38, 201: 66, 202: 48, 203: 42,
   301: 30, 302: 22, 303: 24, 304: 5,
 };
 
-// Hourly activity breakdown for "today" view
 export const HOURLY_ACTIVITY = [
   { hour: '6am', minutes: 0 },
   { hour: '7am', minutes: 12 },
@@ -211,7 +208,6 @@ export const HOURLY_ACTIVITY = [
   { hour: '7pm', minutes: 8 },
 ];
 
-// Weekly activity — hours per day
 export const WEEKLY_ACTIVITY = [
   { day: 'Mon', hours: 6.2, visits: 45 },
   { day: 'Tue', hours: 7.8, visits: 72 },
@@ -222,7 +218,6 @@ export const WEEKLY_ACTIVITY = [
   { day: 'Sun', hours: 2.1, visits: 28 },
 ];
 
-// Monthly activity — hours per week
 export const MONTHLY_ACTIVITY = [
   { week: 'Week 1', hours: 32.5, visits: 310 },
   { week: 'Week 2', hours: 38.2, visits: 385 },
@@ -230,5 +225,55 @@ export const MONTHLY_ACTIVITY = [
   { week: 'Week 4', hours: 40.7, visits: 411 },
 ];
 
-// Legacy alias
 export const ACTIVITY_TIMELINE = WEEKLY_ACTIVITY;
+
+// Smart workspace presets
+export const WORKSPACE_PRESETS = [
+  {
+    id: 'deep-work',
+    name: 'Deep Work',
+    icon: 'code',
+    color: '#8ab4f8',
+    tabIds: [101, 102, 103, 104, 105],
+    description: 'GitHub, Stack Overflow, Jira, Confluence, Slack',
+  },
+  {
+    id: 'meetings',
+    name: 'Meetings',
+    icon: 'video',
+    color: '#81c995',
+    tabIds: [105, 107, 203],
+    description: 'Slack, Google Docs, Gmail',
+  },
+  {
+    id: 'research',
+    name: 'Research',
+    icon: 'search',
+    color: '#c58af9',
+    tabIds: [102, 106, 202],
+    description: 'Stack Overflow, ChatGPT, Reddit',
+  },
+  {
+    id: 'break',
+    name: 'Break Time',
+    icon: 'coffee',
+    color: '#f28b82',
+    tabIds: [201, 202, 303, 304],
+    description: 'YouTube, Reddit, Twitter, Netflix',
+  },
+];
+
+// Tab notes mock data
+export const INITIAL_TAB_NOTES = {
+  102: 'Check the accepted answer about useEffect cleanup',
+  103: 'Sprint ends Friday - review pending PRs',
+  201: 'Good focus music playlist',
+};
+
+// Auto-close rule presets
+export const AUTO_CLOSE_PRESETS = [
+  { id: 'aggressive', label: '15 minutes', minutes: 15 },
+  { id: 'moderate', label: '30 minutes', minutes: 30 },
+  { id: 'relaxed', label: '1 hour', minutes: 60 },
+  { id: 'off', label: 'Off', minutes: 0 },
+];

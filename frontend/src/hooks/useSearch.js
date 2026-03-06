@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { getDomain } from '@/utils/grouping';
 
 export function useSearch(allTabs) {
   const [query, setQuery] = useState('');
@@ -18,6 +19,36 @@ export function useSearch(allTabs) {
     [results]
   );
 
+  // Search suggestions: top 5 matching tabs + unique domains
+  const suggestions = useMemo(() => {
+    if (!query.trim() || query.length < 1) return [];
+    const q = query.toLowerCase();
+    const matched = allTabs.filter(tab =>
+      tab.title.toLowerCase().includes(q) ||
+      tab.url.toLowerCase().includes(q)
+    );
+    const tabSuggestions = matched.slice(0, 5).map(t => ({
+      type: 'tab',
+      id: t.id,
+      title: t.title,
+      domain: getDomain(t.url),
+      url: t.url,
+    }));
+    // Unique domain suggestions
+    const domains = [...new Set(matched.map(t => getDomain(t.url)))];
+    const domainSuggestions = domains
+      .filter(d => d.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map(d => ({
+        type: 'domain',
+        id: `domain-${d}`,
+        title: d,
+        domain: d,
+        count: matched.filter(t => getDomain(t.url) === d).length,
+      }));
+    return [...domainSuggestions, ...tabSuggestions];
+  }, [query, allTabs]);
+
   const highlightText = useCallback((text) => {
     if (!query.trim()) return text;
     const q = query.toLowerCase();
@@ -34,5 +65,5 @@ export function useSearch(allTabs) {
 
   const clearSearch = useCallback(() => setQuery(''), []);
 
-  return { query, setQuery, results, resultCount, matchingTabIds, highlightText, clearSearch };
+  return { query, setQuery, results, resultCount, matchingTabIds, highlightText, clearSearch, suggestions };
 }

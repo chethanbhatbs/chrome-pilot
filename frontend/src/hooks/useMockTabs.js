@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { MOCK_WINDOWS, MOCK_TAB_GROUPS } from '@/utils/mockData';
+import { MOCK_WINDOWS, MOCK_TAB_GROUPS, INITIAL_TAB_NOTES } from '@/utils/mockData';
 
 let nextTabId = 400;
 let nextWindowId = 4;
@@ -8,6 +8,7 @@ export function useMockTabs() {
   const [windows, setWindows] = useState(MOCK_WINDOWS);
   const [tabGroups] = useState(MOCK_TAB_GROUPS);
   const [suspendedTabs, setSuspendedTabs] = useState(new Set());
+  const [tabNotes, setTabNotes] = useState(INITIAL_TAB_NOTES);
 
   const allTabs = useMemo(() =>
     windows.flatMap(w => w.tabs.map(t => ({ ...t, windowId: w.id }))),
@@ -163,6 +164,15 @@ export function useMockTabs() {
     })));
   }, []);
 
+  const unmuteAll = useCallback(() => {
+    setWindows(prev => prev.map(w => ({
+      ...w,
+      tabs: w.tabs.map(t =>
+        t.mutedInfo?.muted ? { ...t, mutedInfo: { muted: false } } : t
+      )
+    })));
+  }, []);
+
   const closeDuplicates = useCallback(() => {
     const urlMap = {};
     const tabsToClose = [];
@@ -212,21 +222,47 @@ export function useMockTabs() {
     }));
   }, []);
 
+  const suspendTab = useCallback((tabId) => {
+    setSuspendedTabs(prev => new Set([...prev, tabId]));
+  }, []);
+
+  const unsuspendTab = useCallback((tabId) => {
+    setSuspendedTabs(prev => { const n = new Set(prev); n.delete(tabId); return n; });
+  }, []);
+
+  const suspendInactive = useCallback(() => {
+    const toSuspend = new Set();
+    windows.forEach(w => w.tabs.forEach(t => {
+      if (!t.active && !t.pinned && !t.audible) toSuspend.add(t.id);
+    }));
+    setSuspendedTabs(toSuspend);
+    return toSuspend.size;
+  }, [windows]);
+
+  const unsuspendAll = useCallback(() => {
+    const count = suspendedTabs.size;
+    setSuspendedTabs(new Set());
+    return count;
+  }, [suspendedTabs]);
+
+  const setTabNote = useCallback((tabId, note) => {
+    setTabNotes(prev => {
+      if (!note || !note.trim()) {
+        const next = { ...prev };
+        delete next[tabId];
+        return next;
+      }
+      return { ...prev, [tabId]: note.trim() };
+    });
+  }, []);
+
   return {
-    windows, tabGroups, allTabs, suspendedTabs,
+    windows, tabGroups, allTabs, suspendedTabs, tabNotes,
     switchToTab, closeTab, pinTab, muteTab, duplicateTab,
     moveTab, moveTabToNewWindow, closeWindow, minimizeWindow,
-    createNewTab, createNewWindow, muteAll, closeDuplicates,
+    createNewTab, createNewWindow, muteAll, unmuteAll, closeDuplicates,
     reorderTab, closeOtherTabs, closeTabsToRight,
-    suspendTab: (tabId) => setSuspendedTabs(prev => new Set([...prev, tabId])),
-    unsuspendTab: (tabId) => setSuspendedTabs(prev => { const n = new Set(prev); n.delete(tabId); return n; }),
-    suspendInactive: () => {
-      const toSuspend = new Set();
-      windows.forEach(w => w.tabs.forEach(t => {
-        if (!t.active && !t.pinned && !t.audible) toSuspend.add(t.id);
-      }));
-      setSuspendedTabs(toSuspend);
-      return toSuspend.size;
-    },
+    suspendTab, unsuspendTab, suspendInactive, unsuspendAll,
+    setTabNote,
   };
 }
