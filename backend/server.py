@@ -50,7 +50,7 @@ class Session(BaseModel):
 async def root():
     return {"message": "TabPilot API"}
 
-@api_router.post("/sessions", response_model=Session)
+@api_router.post("/sessions", response_model=Session, status_code=201)
 async def create_session(input_data: SessionCreate):
     session = Session(
         name=input_data.name,
