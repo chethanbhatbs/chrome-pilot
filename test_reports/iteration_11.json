@@ -1,0 +1,81 @@
+{
+  "summary": "Iteration 11: Batch of 10 UX fixes - All 9 tested features PASSED. Show More Tabs works correctly (5 tab limit + expand button), Toolbar hidden for non-tab panels (Notes/Settings/etc), Toolbar visible for Heatmap/Focus, Stats bar uses correct colors (emerald/rose/primary, no yellow), Single speaker icon per audible tab, Heatmap charts scale correctly (Day 0.6h/Week 4.2h/Month 16.8h for GitHub), Sidebar collapse/expand toggle working, Preview cards anchored 8px from sidebar edge, Duplicate banner text shows 'Fix All keeps one of each'. Chrome system fonts confirmed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Show More Tabs: Window 1 initially shows 4 tabs + 'Show 4 more tabs' button (TAB_LIMIT=5)",
+    "Show More Tabs: Clicking 'Show more' expands from 4 to 7 visible tabs",
+    "Toolbar Hidden: QuickActions removed from DOM when Notes panel is active",
+    "Toolbar Hidden: Clicking 'Back to tabs' restores QuickActions toolbar",
+    "Toolbar Visible: QuickActions remains visible for Heatmap panel",
+    "Stats Bar Styling: NO yellow/amber colors present",
+    "Stats Bar Styling: Font is text-[10px] as expected",
+    "Stats Bar Styling: Audio stat uses text-emerald-400 color",
+    "Stats Bar Styling: Dupes stat uses text-rose-400/80 color",
+    "Stats Bar Styling: Primary colors used for tabs/memory stats",
+    "Speaker Icon Single: YouTube tab has only 1 volume SVG icon (mute button)",
+    "Speaker Icon Single: No duplicate audio badge in status badges section",
+    "Heatmap Scaling Day: GitHub shows 0.6h (0.15x scale)",
+    "Heatmap Scaling Week: GitHub shows 4.2h (1x scale)",
+    "Heatmap Scaling Month: GitHub shows 16.8h (4x scale)",
+    "Heatmap Scaling: Most Used Tabs section also scales by filter",
+    "Sidebar Collapse: PanelLeftClose button visible at top-right of sidebar",
+    "Sidebar Collapse: Clicking collapses sidebar to 0px width",
+    "Sidebar Expand: Floating 'TabPilot' button appears when collapsed",
+    "Sidebar Expand: Clicking expands sidebar back to 380px",
+    "Preview Position: Preview card left=388px, sidebar right=380px (8px gap)",
+    "Preview Position: Preview anchored to sidebar edge as expected",
+    "Duplicate Banner: Text shows '1 URL in multiple tabs. Fix All keeps one of each.'",
+    "Duplicate Banner: Has min-w-0 class for overflow handling",
+    "Duplicate Banner: Has items-start class for proper alignment",
+    "Chrome System Font: Body uses -apple-system, BlinkMacSystemFont, Segoe UI, system-ui"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_11.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% - All 9 UX fix features verified working"
+  },
+
+  "test_credentials": "N/A",
+  "seed_data_creation": "N/A - Using existing mock data via useMockTabs.js",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Iteration 11 UX batch fixes all verified. Key features tested: (1) Show More Tabs - TAB_LIMIT=5 in WindowGroup.jsx, showAllTabs state toggle, (2) Toolbar visibility - QuickActions only renders when !activePanel || heatmap/focus (Sidebar.jsx line 264), (3) Stats bar colors - text-emerald-400 for audio, text-rose-400 for dupes, text-primary for tabs (StatsBar.jsx), (4) Speaker icon single - audio badge removed from TabItem.jsx status badges, only mute button in hover actions, (5) Heatmap scaling - domainTimeData scales by 0.15x/1x/4x based on timeFilter (HeatmapPanel.jsx), (6) Sidebar collapse - sidebarCollapsed state with PanelLeftClose/PanelLeftOpen icons (TabPilotPreview.jsx), (7) Preview position - uses sidebar getBoundingClientRect().right + 8 (TabPreview.jsx), (8) Duplicate banner - shorter text with min-w-0 overflow handling (DuplicatePanel.jsx), (9) Chrome system font - Tailwind config uses system font stack. Tab data MOCKED via useMockTabs.js.",
+
+  "mocked_integrations": {
+    "Chrome tabs API": "Web preview uses mock data via useMockTabs.js hook - all tab/window/group data is simulated"
+  },
+
+  "features_verified": {
+    "1_show_more_tabs": "PASS - TAB_LIMIT=5, 'Show X more tabs' button expands all",
+    "2_toolbar_hidden_for_panels": "PASS - QuickActions hidden for Notes/Settings/etc panels",
+    "3_toolbar_visible_for_tab_views": "PASS - Visible for normal view, Heatmap, Focus",
+    "4_stats_bar_styling": "PASS - No yellow, 10px font, emerald/rose/primary colors",
+    "5_speaker_icon_single": "PASS - Only mute button, no audio badge duplicate",
+    "6_heatmap_scaling": "PASS - Day 0.15x, Week 1x, Month 4x scaling works",
+    "7_sidebar_collapse": "PASS - PanelLeftClose/Open toggle, 0px collapsed width",
+    "8_preview_position": "PASS - 8px gap from sidebar right edge",
+    "9_duplicate_banner": "PASS - Shorter text with overflow handling"
+  }
+}

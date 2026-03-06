@@ -18,6 +18,7 @@ export function WindowGroup({
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [showAllTabs, setShowAllTabs] = useState(false);
   const [dragOverIdx, setDragOverIdx] = useState(null);
 
   const isFocused = win.focused;
@@ -212,7 +213,29 @@ export function WindowGroup({
 
         <CollapsibleContent>
           <div className="pb-0.5 pl-5">
-            {renderElements()}
+            {(() => {
+              const allElements = renderElements();
+              const TAB_LIMIT = 5;
+              if (allElements.length <= TAB_LIMIT || showAllTabs) {
+                return allElements;
+              }
+              const visible = allElements.slice(0, TAB_LIMIT);
+              const remaining = allElements.length - TAB_LIMIT;
+              return (
+                <>
+                  {visible}
+                  <button
+                    data-testid={`show-more-${win.id}`}
+                    onClick={() => setShowAllTabs(true)}
+                    className="flex items-center gap-1 w-full px-2 py-1 text-[10px] text-primary/70
+                      hover:text-primary hover:bg-primary/[0.04] transition-colors font-body"
+                  >
+                    <ChevronRight size={10} strokeWidth={2} />
+                    Show {remaining} more tab{remaining > 1 ? 's' : ''}
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </CollapsibleContent>
       </div>

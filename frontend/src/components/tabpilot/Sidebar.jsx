@@ -260,7 +260,10 @@ export function Sidebar() {
               </Tooltip>
             ))}
           </div>
-          <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel} />
+          {/* Only show toolbar when viewing tabs (no active panel or heatmap/focus which are tab-related) */}
+          {(!activePanel || activePanel === 'heatmap' || activePanel === 'focus') && (
+            <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel} />
+          )}
         </div>
 
         {/* Content */}

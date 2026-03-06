@@ -29,17 +29,20 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
   const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   const domainColor = DOMAIN_COLORS[domain] || '#6b7280';
 
-  // Position the preview card at the right edge of sidebar, aligned with the hovered tab
+  // Position the preview right at the sidebar's right edge, aligned with the hovered tab
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!anchorRect) return;
     const previewH = 200;
     const previewW = 240;
-    let top = anchorRect.top;
 
-    // Place at the right edge of the anchor's container (sidebar boundary)
-    let left = anchorRect.right + 12;
+    // Find the sidebar container to anchor preview at its right edge
+    const sidebar = document.querySelector('[data-testid="sidebar-container"]');
+    const sidebarRight = sidebar ? sidebar.getBoundingClientRect().right : anchorRect.right;
+
+    let top = anchorRect.top;
+    let left = sidebarRight + 8; // Just past the sidebar edge
 
     // Keep within viewport vertically
     if (top + previewH > window.innerHeight) {
@@ -47,9 +50,9 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
     }
     if (top < 8) top = 8;
 
-    // If goes off right edge, flip to left of sidebar
+    // If goes off right edge, flip left of sidebar
     if (left + previewW > window.innerWidth) {
-      left = anchorRect.left - previewW - 12;
+      left = (sidebar ? sidebar.getBoundingClientRect().left : anchorRect.left) - previewW - 8;
     }
 
     setPosition({ top, left });

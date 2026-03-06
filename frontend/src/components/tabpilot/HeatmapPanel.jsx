@@ -123,11 +123,12 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
   const [customTo, setCustomTo] = useState('');
 
   const domainTimeData = useMemo(() => {
+    const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
     return Object.entries(DOMAIN_TIME_SPENT)
-      .map(([, data]) => ({ domain: data.label, hours: data.hours }))
+      .map(([, data]) => ({ domain: data.label, hours: parseFloat((data.hours * scale).toFixed(1)) }))
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 8);
-  }, []);
+  }, [timeFilter]);
 
   const maxDomainHours = domainTimeData[0]?.hours || 1;
 

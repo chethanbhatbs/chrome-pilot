@@ -119,19 +119,6 @@ export function TabItem({
                 <TooltipContent side="top" className="text-[10px]">Duplicate — open in multiple tabs</TooltipContent>
               </Tooltip>
             )}
-            {(isAudible || isMuted) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="p-0.5" data-testid={`audio-badge-${tab.id}`}>
-                    {isMuted
-                      ? <VolumeX size={9} className="text-muted-foreground/60" strokeWidth={2} />
-                      : <Volume2 size={9} className="text-tp-audible" strokeWidth={2} />
-                    }
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">{isMuted ? 'Muted' : 'Playing audio'}</TooltipContent>
-              </Tooltip>
-            )}
             {hasNote && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -147,14 +134,19 @@ export function TabItem({
           {/* Hover actions: close + mute (mute only for audible/muted tabs) */}
           <div className="flex items-center gap-0 shrink-0">
             {(isAudible || isMuted) && (
-              <button
-                data-testid={`tab-mute-${tab.id}`}
-                onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-                className="p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
-                  text-muted-foreground/60 opacity-0 group-hover:opacity-100"
-              >
-                {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    data-testid={`tab-mute-${tab.id}`}
+                    onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
+                    className={`p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                      ${isAudible ? 'text-tp-audible' : 'text-muted-foreground/60'}`}
+                  >
+                    {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px]">{isMuted ? 'Unmute tab' : 'Mute tab'}</TooltipContent>
+              </Tooltip>
             )}
             <button
               data-testid={`tab-close-${tab.id}`}
