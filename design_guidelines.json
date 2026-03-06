@@ -1,0 +1,151 @@
+{
+  "identity": {
+    "name": "TabPilot",
+    "persona": "E1: The Anti-AI Designer",
+    "mission": "Create a high-density, terminal-inspired tab management cockpit for power users. Reject generic 'browser grey' in favor of deep navy void and neon precision.",
+    "emotional_tone": "Precise, Technical, Stealth, Kinetic",
+    "archetype": "The Performance Pro (Elite Athleticism & Precision) mixed with Retro-Futurism"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "JetBrains Mono, monospace",
+      "body": "Manrope, sans-serif",
+      "code": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "xs": "text-xs tracking-wide",
+      "sm": "text-sm leading-tight",
+      "base": "text-base font-medium",
+      "lg": "text-lg font-bold tracking-tight",
+      "xl": "text-xl font-black tracking-tighter",
+      "2xl": "text-2xl font-black tracking-tighter"
+    },
+    "pairing_strategy": "The 'Old Money Tech' - Technical Mono Headers + Humanist Sans Body for readability in dense lists."
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#1a1a2e",
+        "foreground": "#e6e6e6"
+      },
+      "secondary": {
+        "DEFAULT": "#16213e",
+        "foreground": "#e6e6e6"
+      },
+      "accent": {
+        "DEFAULT": "#0f3460",
+        "foreground": "#ffffff"
+      },
+      "highlight": {
+        "DEFAULT": "#4cc9f0",
+        "foreground": "#000000"
+      },
+      "muted": {
+        "DEFAULT": "rgba(255, 255, 255, 0.05)",
+        "foreground": "rgba(255, 255, 255, 0.6)"
+      },
+      "destructive": {
+        "DEFAULT": "#ff4d4d",
+        "foreground": "#ffffff"
+      },
+      "background": "#1a1a2e",
+      "foreground": "#e6e6e6",
+      "card": "#16213e",
+      "border": "rgba(255, 255, 255, 0.1)"
+    },
+    "usage_rules": {
+      "background": "Use #1a1a2e for the main app background (The Void).",
+      "surface": "Use #16213e for cards, sidebars, and panels (The Cockpit).",
+      "active_state": "Use #0f3460 for active tabs or selected items.",
+      "critical_action": "Use #4cc9f0 (Electric Cyan) for primary CTAs and focus indicators. NO TEAL.",
+      "text": "Never use pure white #ffffff for body text. Use #e6e6e6 or #cccccc to reduce eye strain in the dark theme.",
+      "gradients": "Avoid large gradients. Use subtle radial gradients for 'glow' effects behind active elements only."
+    }
+  },
+  "layout": {
+    "spacing_system": "Compact Density",
+    "grid_strategy": "Bento Grid Mode B (High Density)",
+    "container_padding": {
+      "sidebar": "p-2",
+      "card": "p-3",
+      "section": "py-4 px-2"
+    },
+    "tab_item_height": "h-9",
+    "border_radius": "rounded-md",
+    "depth": "Use distinct z-indices. Sidebar is z-50. Modals z-100."
+  },
+  "components": {
+    "TabItem": {
+      "style": "Flex row, dense. Favicon 16px. Text truncate. Hover reveal actions.",
+      "states": {
+        "default": "bg-transparent text-muted-foreground hover:bg-white/5",
+        "active": "bg-accent text-white border-l-2 border-highlight",
+        "pinned": "bg-secondary/50 text-foreground"
+      },
+      "interaction": "Drag handle on left (dots). Close button on right (opacity-0 group-hover:opacity-100)."
+    },
+    "WindowGroup": {
+      "style": "Collapsible accordion. Header has distinct background (lighter than bg).",
+      "border": "border-b border-border/50"
+    },
+    "SearchBar": {
+      "style": "Sticky top. Input styling: bg-secondary border-none ring-1 ring-white/10 focus:ring-highlight placeholder:text-muted-foreground.",
+      "icon": "Search icon (Lucide) absolute left-3."
+    },
+    "StatsBar": {
+      "style": "Fixed bottom. Terminal aesthetic. Monospace font. Text-xs.",
+      "content": "Tab Count | Window Count | Memory Usage (simulated)"
+    },
+    "SessionCard": {
+        "style": "Card component. Flex col. Date on top right. Tab count badge. Restore button.",
+        "bg": "bg-card border border-white/5 hover:border-highlight/50 transition-colors"
+    },
+    "Button": {
+        "primary": "bg-highlight text-highlight-foreground hover:bg-highlight/90 shadow-[0_0_10px_rgba(76,201,240,0.3)]",
+        "ghost": "hover:bg-white/10 text-foreground"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Use backdrop-blur-md for sticky headers and overlays. bg-background/80.",
+    "borders": "1px solid rgba(255,255,255,0.08). Sharp and technical.",
+    "shadows": "shadow-lg for floating elements. Drop shadow for drag preview.",
+    "textures": "Subtle noise overlay on the main background to reduce banding (optional, CSS radial gradient)."
+  },
+  "motion": {
+    "library": "framer-motion",
+    "transitions": {
+      "hover": "duration-200 ease-out",
+      "drag": "type: 'spring', stiffness: 300, damping: 30",
+      "list_reorder": "layout transition"
+    },
+    "micro_interactions": {
+      "tab_hover": "Slight brightness increase, no movement.",
+      "button_click": "scale-95 duration-75",
+      "modal_enter": "opacity-0 scale-95 -> opacity-100 scale-100"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure text-muted-foreground is legible against #1a1a2e (min 4.5:1).",
+    "keyboard_nav": "Focus ring must be #4cc9f0 (Cyan). 2px solid.",
+    "screen_readers": "Aria-labels on all icon-only buttons (Close, Pin, Mute)."
+  },
+  "assets": {
+    "icons": "Lucide React (already available). Use stroke-width={1.5} for elegance.",
+    "images": [
+       {
+           "category": "marketing_hero",
+           "url": "https://images.unsplash.com/photo-1731579884309-ecb947ca6144?crop=entropy&cs=srgb&fm=jpg&q=85",
+           "description": "Abstract tech background for web preview hero section."
+       }
+    ]
+  },
+  "universal_guidelines": [
+    "Do not use generic 'Inter' for headings. Use 'JetBrains Mono'.",
+    "Dark mode is the default and primary experience. Light mode is secondary.",
+    "Use 'sonner' for toast notifications.",
+    "Implement Drag & Drop using native HTML5 API first, as requested.",
+    "Keep the sidebar width flexible but optimize for 350px-400px.",
+    "Data-testid attributes on ALL interactive elements."
+  ],
+  "instructions_to_main_agent": "1. Set up the Tailwind config with the specified Navy palette immediately. 2. Create the 'TabItem' component with extreme attention to density (p-1 or p-2 padding). 3. Use the 'WindowGroup' component to wrap tabs. 4. Ensure the Search Bar is sticky at the top. 5. Build the Web Preview page as a showcase of the extension's UI."
+}
