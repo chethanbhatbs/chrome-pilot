@@ -1,0 +1,35 @@
+/* ── TabPilot left-sidebar injection ──────────────────────────────────────── */
+
+#__tabpilot_root__ {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 400px !important;
+  height: 100vh !important;
+  z-index: 2147483646 !important;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.6) !important;
+  border-right: 1px solid #30363d !important;
+  background: #0d1117 !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+}
+
+#__tabpilot_root__.tabpilot--open {
+  transform: translateX(0) !important;
+}
+
+#__tabpilot_iframe__ {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: block !important;
+  background: transparent !important;
+}
+
+/* Push page content right when sidebar is open */
+html.tabpilot-active body {
+  margin-left: 400px !important;
+  transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+}
