@@ -13,7 +13,8 @@ export function WindowGroup({
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
-  suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote
+  suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
+  onHoverEnter, onHoverLeave
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -86,6 +87,7 @@ export function WindowGroup({
     onDragStart: handleDragStart, onDragOver: handleDragOver,
     onDrop: handleDrop, onDragEnd: handleDragEnd,
     onSuspend, onUnsuspend, onAddNote,
+    onHoverEnter, onHoverLeave,
   };
 
   if (filteredTabs.length === 0) return null;

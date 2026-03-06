@@ -1,90 +1,65 @@
-// TabPilot Background Service Worker
-// Handles: side panel opening, badge updates, keyboard shortcuts, duplicate detection
-
-// Open side panel on action click
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+/**
+ * TabPilot - Background Service Worker
+ * Handles badge updates, tab monitoring, and message passing to sidepanel.
+ */
 
 // Update badge with tab count
 async function updateBadge() {
   try {
     const tabs = await chrome.tabs.query({});
-    chrome.action.setBadgeText({ text: String(tabs.length) });
-    chrome.action.setBadgeBackgroundColor({ color: '#0f3460' });
+    const count = tabs.length;
+    chrome.action.setBadgeText({ text: count.toString() });
+    chrome.action.setBadgeBackgroundColor({
+      color: count > 20 ? '#f28b82' : count > 10 ? '#fdd663' : '#81c995'
+    });
   } catch (e) {
     console.error('Badge update error:', e);
   }
 }
 
-// Close duplicate tabs
-async function closeDuplicateTabs() {
-  try {
-    const tabs = await chrome.tabs.query({});
-    const urlMap = {};
-    const toClose = [];
-    for (const tab of tabs) {
-      if (tab.url.startsWith('chrome://')) continue;
-      try {
-        const u = new URL(tab.url);
-        const normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
-        if (urlMap[normalized]) {
-          toClose.push(tab.id);
-        } else {
-          urlMap[normalized] = tab.id;
-        }
-      } catch { /* skip invalid URLs */ }
-    }
-    if (toClose.length > 0) {
-      await chrome.tabs.remove(toClose);
-    }
-    return toClose.length;
-  } catch (e) {
-    console.error('Close duplicates error:', e);
-    return 0;
-  }
+// Notify sidepanel of tab changes
+function notifySidepanel() {
+  chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {
+    // Sidepanel not open, ignore
+  });
+  updateBadge();
 }
 
-// Keyboard shortcut handler
-chrome.commands.onCommand.addListener((command) => {
-  if (command === 'search-tabs') {
-    chrome.runtime.sendMessage({ action: 'focus-search' });
-  }
-  if (command === 'close-duplicates') {
-    closeDuplicateTabs().then(count => {
-      chrome.runtime.sendMessage({ action: 'duplicates-closed', count });
-    });
+// Listen for tab events
+chrome.tabs.onCreated.addListener(notifySidepanel);
+chrome.tabs.onRemoved.addListener(notifySidepanel);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status || changeInfo.title || changeInfo.url || changeInfo.audible !== undefined || changeInfo.mutedInfo) {
+    notifySidepanel();
   }
 });
+chrome.tabs.onMoved.addListener(notifySidepanel);
+chrome.tabs.onActivated.addListener(notifySidepanel);
+chrome.tabs.onAttached.addListener(notifySidepanel);
+chrome.tabs.onDetached.addListener(notifySidepanel);
 
-// Tab event listeners for badge updates
-chrome.tabs.onCreated.addListener(updateBadge);
-chrome.tabs.onRemoved.addListener(updateBadge);
+// Listen for window events
+chrome.windows.onCreated.addListener(notifySidepanel);
+chrome.windows.onRemoved.addListener(notifySidepanel);
+chrome.windows.onFocusChanged.addListener(notifySidepanel);
 
-// Notify side panel of tab changes
-function notifyTabsUpdated() {
-  chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {
-    // Side panel might not be open
-  });
-}
-
-chrome.tabs.onCreated.addListener(notifyTabsUpdated);
-chrome.tabs.onRemoved.addListener(notifyTabsUpdated);
-chrome.tabs.onUpdated.addListener(notifyTabsUpdated);
-chrome.tabs.onMoved.addListener(notifyTabsUpdated);
-chrome.tabs.onActivated.addListener(notifyTabsUpdated);
-chrome.tabs.onDetached.addListener(notifyTabsUpdated);
-chrome.tabs.onAttached.addListener(notifyTabsUpdated);
-chrome.windows.onCreated.addListener(notifyTabsUpdated);
-chrome.windows.onRemoved.addListener(notifyTabsUpdated);
-chrome.windows.onFocusChanged.addListener(notifyTabsUpdated);
-
-// Tab group change listeners
+// Tab group events
 try {
-  chrome.tabGroups.onCreated.addListener(notifyTabsUpdated);
-  chrome.tabGroups.onUpdated.addListener(notifyTabsUpdated);
-  chrome.tabGroups.onRemoved.addListener(notifyTabsUpdated);
-} catch (e) {
-  // tabGroups API might not be available
+  chrome.tabGroups.onCreated.addListener(notifySidepanel);
+  chrome.tabGroups.onUpdated.addListener(notifySidepanel);
+  chrome.tabGroups.onRemoved.addListener(notifySidepanel);
+} catch {
+  // tabGroups might not be available in all Chrome versions
 }
+
+// Open sidepanel on action click
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    await chrome.sidePanel.open({ tabId: tab.id });
+  } catch {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+  }
+});
 
 // Initial badge update
 updateBadge();

@@ -2,15 +2,13 @@
   "manifest_version": 3,
   "name": "TabPilot",
   "version": "1.0.0",
-  "description": "Manage all your Chrome windows and tabs from a powerful sidebar",
+  "description": "A powerful sidebar-based tab and window manager for Chrome",
   "permissions": [
     "tabs",
-    "windows",
+    "tabGroups",
     "sidePanel",
     "storage",
-    "sessions",
-    "tabGroups",
-    "favicon"
+    "activeTab"
   ],
   "side_panel": {
     "default_path": "sidepanel/index.html"
@@ -19,25 +17,20 @@
     "service_worker": "background.js"
   },
   "action": {
+    "default_title": "Open TabPilot",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    },
-    "default_title": "Open TabPilot"
+    }
   },
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Ctrl+Shift+E", "mac": "Command+Shift+E" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
       "description": "Toggle TabPilot sidebar"
-    },
-    "search-tabs": {
-      "suggested_key": { "default": "Ctrl+Shift+F", "mac": "Command+Shift+F" },
-      "description": "Focus tab search"
-    },
-    "close-duplicates": {
-      "suggested_key": { "default": "Ctrl+Shift+D", "mac": "Command+Shift+D" },
-      "description": "Close duplicate tabs"
     }
   },
   "icons": {

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar } from 'lucide-react';
+import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -16,19 +16,29 @@ import { CommandPalette } from './CommandPalette';
 import { TabNotesPanel } from './TabNotesPanel';
 import { WorkspaceManager } from './WorkspaceManager';
 import { TabTimeline } from './TabTimeline';
+import { AutoClosePanel } from './AutoClosePanel';
+import { TabPreview, useTabPreview } from './TabPreview';
 import { StatsBar } from './StatsBar';
+import { isExtensionContext } from '@/utils/chromeAdapter';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
 import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { toast } from 'sonner';
 
+// Dynamically pick the right hook
+function useTabsAdapter() {
+  // Always use mock in web preview; the Chrome hook is for the extension sidepanel only
+  return useMockTabs();
+}
+
 export function Sidebar() {
-  const tabs = useMockTabs();
+  const tabs = useTabsAdapter();
   const search = useSearch(tabs.allTabs);
   const { sessions, saveSession, deleteSession } = useSessions();
   const { settings, updateSetting } = useSettings();
   const searchInputRef = useRef(null);
+  const { preview, showPreview, hidePreview } = useTabPreview();
 
   const [activePanel, setActivePanel] = useState(null);
   const [viewMode, setViewMode] = useState('window');
@@ -102,6 +112,13 @@ export function Sidebar() {
     }
   }, [tabs]);
 
+  const handleHoverEnter = useCallback((tab, event) => {
+    showPreview(tab, event, {
+      suspended: tabs.suspendedTabs.has(tab.id),
+      tabNote: tabs.tabNotes[tab.id],
+    });
+  }, [showPreview, tabs.suspendedTabs, tabs.tabNotes]);
+
   const quickActionHandlers = {
     onNewTab: tabs.createNewTab,
     onNewWindow: tabs.createNewWindow,
@@ -123,7 +140,7 @@ export function Sidebar() {
         setCmdPaletteOpen(prev => !prev);
         return;
       }
-      if (cmdPaletteOpen) return; // Don't handle other keys when palette is open
+      if (cmdPaletteOpen) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedTabIdx(prev => Math.min(prev + 1, tabs.allTabs.length - 1));
@@ -166,17 +183,20 @@ export function Sidebar() {
     onSuspend: tabs.suspendTab,
     onUnsuspend: tabs.unsuspendTab,
     onAddNote: handleAddNote,
+    onHoverEnter: handleHoverEnter,
+    onHoverLeave: hidePreview,
   };
 
   const panelButtons = [
     { id: 'timeline', icon: Calendar, label: 'Timeline', panel: 'timeline' },
     { id: 'notes', icon: StickyNote, label: 'Notes', panel: 'notes' },
     { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
+    { id: 'autoclose', icon: Timer, label: 'Auto-Close', panel: 'autoclose' },
     { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
     { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
   ];
 
-  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline'].includes(activePanel);
+  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline', 'autoclose'].includes(activePanel);
 
   if (activePanel === 'focus') {
     return (
@@ -193,6 +213,17 @@ export function Sidebar() {
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
         <CommandPalette allTabs={tabs.allTabs} onSwitch={handleSwitchTab} isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+
+        {/* Tab Preview tooltip */}
+        {preview && (
+          <TabPreview
+            tab={preview.tab}
+            suspended={preview.suspended}
+            tabNote={preview.tabNote}
+            anchorRect={preview.anchorRect}
+            onClose={hidePreview}
+          />
+        )}
 
         {/* Header */}
         <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10">
@@ -262,6 +293,10 @@ export function Sidebar() {
             </div>
           ) : activePanel === 'timeline' ? (
             <div className="animate-slide-in"><TabTimeline /></div>
+          ) : activePanel === 'autoclose' ? (
+            <div className="animate-slide-in">
+              <AutoClosePanel allTabs={tabs.allTabs} onClose={handleCloseTab} />
+            </div>
           ) : (
             <div>
               {viewMode === 'window' ? (

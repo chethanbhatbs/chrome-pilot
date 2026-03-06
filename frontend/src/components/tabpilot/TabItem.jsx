@@ -16,7 +16,8 @@ export function TabItem({
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
   onSuspend, onUnsuspend, onAddNote,
   windows, currentWindowId, tabNote,
-  onDragStart, onDragOver, onDrop, onDragEnd
+  onDragStart, onDragOver, onDrop, onDragEnd,
+  onHoverEnter, onHoverLeave
 }) {
   const domain = getDomain(tab.url);
   const faviconUrl = showFavicons ? getFaviconUrl(tab.url) : null;
@@ -44,6 +45,8 @@ export function TabItem({
           onDragOver={(e) => onDragOver?.(e, tab)}
           onDrop={(e) => onDrop?.(e, tab)}
           onDragEnd={onDragEnd}
+          onMouseEnter={(e) => onHoverEnter?.(tab, e)}
+          onMouseLeave={() => onHoverLeave?.()}
           onClick={() => {
             if (isSuspended) onUnsuspend?.(tab.id);
             onSwitch(tab.id);

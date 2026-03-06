@@ -10,7 +10,8 @@ export function DomainView({
   highlightText, matchingTabIds,
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
-  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote
+  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
+  onHoverEnter, onHoverLeave
 }) {
   const filteredTabs = matchingTabIds
     ? allTabs.filter(t => matchingTabIds.has(t.id))
@@ -46,6 +47,8 @@ export function DomainView({
           onUnsuspend={onUnsuspend}
           tabNotes={tabNotes}
           onAddNote={onAddNote}
+          onHoverEnter={onHoverEnter}
+          onHoverLeave={onHoverLeave}
         />
       ))}
     </div>
@@ -56,7 +59,8 @@ function DomainGroup({
   domain, tabs, windows, showFavicons, showUrls, compact,
   highlightText, onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
-  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote
+  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
+  onHoverEnter, onHoverLeave
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const faviconUrl = getFaviconUrl(tabs[0]?.url);
@@ -120,6 +124,8 @@ function DomainGroup({
                   onAddNote={onAddNote}
                   windows={windows}
                   currentWindowId={tab.windowId}
+                  onHoverEnter={onHoverEnter}
+                  onHoverLeave={onHoverLeave}
                 />
               </div>
             ))}
