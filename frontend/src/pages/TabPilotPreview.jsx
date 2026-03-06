@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import {
   TreePine, Search, Layers, Flame, Focus, Pause, Keyboard,
   StickyNote, Briefcase, Timer, GripVertical, Zap, Download,
   Monitor, MousePointerClick, ArrowRight, PanelLeftOpen,
-  Shield, Cpu, Clock, Star
+  Shield, Cpu, Clock, Star, Link
 } from 'lucide-react';
 
 export default function TabPilotPreview() {
@@ -65,7 +66,7 @@ export default function TabPilotPreview() {
         )}
       </div>
 
-      {/* Resize handle — only when sidebar is open */}
+      {/* Resize handle — only when sidebar is open, auto-hides after 3s */}
       {!sidebarCollapsed && (
         <div
           data-testid="sidebar-resize-handle"
@@ -74,7 +75,7 @@ export default function TabPilotPreview() {
         >
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-primary/20" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full
-            bg-border/40 group-hover:bg-primary/60 transition-colors duration-150" />
+            bg-border/40 group-hover:bg-primary/60 transition-colors duration-150 resize-handle-dot" />
         </div>
       )}
 
@@ -142,14 +143,26 @@ function HeroSection() {
           Search, organize, and manage every tab from a powerful sidebar. Focus on what matters,
           suspend what doesn't, and never lose a tab again.
         </p>
-        <div className="flex items-center gap-3 mb-8">
-          <button className="flex items-center gap-2 h-10 px-5 rounded-lg bg-primary text-primary-foreground
-            font-heading font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20
-            active:scale-[0.98]" data-testid="download-extension-btn">
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => { navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com'); toast.success('Link copied!', { duration: 2000 }); }}
+            className="cursor-pointer flex items-center gap-2 h-10 px-5 rounded-lg bg-primary text-primary-foreground
+              font-heading font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20
+              active:scale-[0.98]"
+            data-testid="download-extension-btn"
+          >
             <Download size={16} strokeWidth={2} />
             Add to Chrome
           </button>
-          <span className="text-xs text-muted-foreground/40 font-body">Free &middot; No account required</span>
+          <button
+            onClick={() => { navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com'); toast.success('Install link copied!', { duration: 2000 }); }}
+            className="cursor-pointer flex items-center gap-1.5 h-10 px-4 rounded-lg border border-border/40 text-foreground/60
+              text-sm font-body hover:border-primary/40 hover:text-foreground transition-all"
+            data-testid="copy-install-link-btn"
+          >
+            <Link size={14} strokeWidth={1.5} />
+            Copy install link
+          </button>
         </div>
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/60 border border-border/30 w-fit">
           <ArrowRight size={13} className="text-primary animate-pulse" />

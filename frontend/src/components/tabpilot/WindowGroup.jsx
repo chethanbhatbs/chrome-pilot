@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { ChevronRight, Minus, X, Monitor } from 'lucide-react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { ChevronRight, Minus, X, Monitor, Plus } from 'lucide-react';
 import { TabItem } from './TabItem';
 import { TabGroupHeader } from './TabGroupHeader';
 import { TAB_GROUP_COLORS } from '@/utils/mockData';
@@ -13,6 +13,7 @@ export function WindowGroup({
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
+  onCreateTabInWindow, onRenameWindow,
   suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
   onHoverEnter, onHoverLeave
 }) {
@@ -20,6 +21,9 @@ export function WindowGroup({
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [showAllTabs, setShowAllTabs] = useState(false);
   const [dragOverIdx, setDragOverIdx] = useState(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef(null);
 
   const isFocused = win.focused;
   const tabCount = win.tabs.length;
@@ -91,13 +95,26 @@ export function WindowGroup({
 
   const tabItemProps = {
     showFavicons, showUrls, compact, highlightText,
-    onSwitch, onClose, onPin, onMute, onDuplicate,
+    onSwitch, onClose, onPin, onMute,
+    onDuplicate: (tabId) => { setShowAllTabs(true); onDuplicate(tabId); toast.success('Tab duplicated', { duration: 1500 }); },
     onMoveToNewWindow, onMoveToWindow: (tabId, winId) => onMoveTab(tabId, winId),
     onCloseOthers, onCloseToRight, windows, currentWindowId: win.id,
     onDragStart: handleDragStart, onDragOver: handleDragOver,
     onDrop: handleDrop, onDragEnd: handleDragEnd,
     onSuspend, onUnsuspend, onAddNote,
     onHoverEnter, onHoverLeave,
+  };
+
+  const handleStartRename = () => {
+    setRenameValue(win.name || `Window ${win.id}`);
+    setIsRenaming(true);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+
+  const handleSaveRename = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && onRenameWindow) onRenameWindow(win.id, trimmed || `Window ${win.id}`);
+    setIsRenaming(false);
   };
 
   if (filteredTabs.length === 0) return null;
@@ -175,15 +192,36 @@ export function WindowGroup({
               <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-heading font-semibold tracking-tight">
-                    Window {win.id}
-                  </span>
+                  {isRenaming ? (
+                    <input
+                      ref={renameInputRef}
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={handleSaveRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.stopPropagation(); handleSaveRename(); }
+                        if (e.key === 'Escape') setIsRenaming(false);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[11px] font-heading font-semibold bg-card/60 border border-primary/40 rounded px-1 w-[110px] outline-none text-foreground"
+                      data-testid={`window-rename-input-${win.id}`}
+                    />
+                  ) : (
+                    <span
+                      className="text-[11px] font-heading font-semibold tracking-tight cursor-text"
+                      onDoubleClick={(e) => { e.stopPropagation(); handleStartRename(); }}
+                      title="Double-click to rename"
+                      data-testid={`window-name-${win.id}`}
+                    >
+                      {win.name || `Window ${win.id}`}
+                    </span>
+                  )}
                   <span className="text-[9px] text-muted-foreground/40 font-mono">{tabCount}</span>
                   {isFocused && (
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}
                 </div>
-                <div className="text-[9px] text-muted-foreground/40 font-body italic truncate max-w-[200px]">
+                <div className="text-[9px] text-muted-foreground/40 font-body italic truncate max-w-[180px]">
                   {windowSummary}
                 </div>
               </div>
@@ -193,17 +231,26 @@ export function WindowGroup({
               onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
               onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
             >
+              {/* Add tab to this window */}
+              <button
+                data-testid={`window-add-tab-${win.id}`}
+                onClick={(e) => { e.stopPropagation(); onCreateTabInWindow && onCreateTabInWindow(win.id); }}
+                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                title="New tab in this window"
+              >
+                <Plus size={10} strokeWidth={1.5} />
+              </button>
               <button
                 data-testid={`window-minimize-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onMinimizeWindow(win.id); }}
-                className="p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
+                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
               >
                 <Minus size={10} strokeWidth={1.5} />
               </button>
               <button
                 data-testid={`window-close-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onCloseWindow(win.id); }}
-                className="p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <X size={10} strokeWidth={1.5} />
               </button>

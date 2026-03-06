@@ -141,6 +141,30 @@ export function useMockTabs() {
     });
   }, []);
 
+  const createTabInWindow = useCallback((windowId) => {
+    setWindows(prev => {
+      const targetWin = prev.find(w => w.id === windowId);
+      if (!targetWin) return prev;
+      const newTab = {
+        id: nextTabId++, windowId,
+        index: targetWin.tabs.length,
+        title: 'New Tab', url: 'chrome://newtab',
+        active: true, pinned: false, audible: false,
+        mutedInfo: { muted: false }, status: 'complete', groupId: -1,
+      };
+      return prev.map(w => {
+        if (w.id === windowId) {
+          return { ...w, focused: true, tabs: [...w.tabs.map(t => ({ ...t, active: false })), newTab] };
+        }
+        return { ...w, focused: false, tabs: w.tabs.map(t => ({ ...t, active: false })) };
+      });
+    });
+  }, []);
+
+  const renameWindow = useCallback((windowId, name) => {
+    setWindows(prev => prev.map(w => w.id === windowId ? { ...w, name } : w));
+  }, []);
+
   const createNewWindow = useCallback(() => {
     const newWinId = nextWindowId++;
     const newTab = {
@@ -260,7 +284,8 @@ export function useMockTabs() {
     windows, tabGroups, allTabs, suspendedTabs, tabNotes,
     switchToTab, closeTab, pinTab, muteTab, duplicateTab,
     moveTab, moveTabToNewWindow, closeWindow, minimizeWindow,
-    createNewTab, createNewWindow, muteAll, unmuteAll, closeDuplicates,
+    createNewTab, createNewWindow, createTabInWindow, renameWindow,
+    muteAll, unmuteAll, closeDuplicates,
     reorderTab, closeOtherTabs, closeTabsToRight,
     suspendTab, unsuspendTab, suspendInactive, unsuspendAll,
     setTabNote,

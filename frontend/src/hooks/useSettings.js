@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   showFavicons: true,
   showUrls: true,
   confirmCloseWindow: true,
+  confirmActions: false,
   autoCloseDuplicates: false,
   showTabCountBadge: true,
   compactMode: false,

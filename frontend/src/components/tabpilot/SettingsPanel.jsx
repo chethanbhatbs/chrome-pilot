@@ -71,6 +71,13 @@ export function SettingsPanel({ settings, onUpdate }) {
           testId="setting-confirm-close"
         />
         <SettingToggle
+          label="Ask before tab/window actions"
+          description="Confirm create, close & switch"
+          checked={settings.confirmActions}
+          onChange={(v) => onUpdate('confirmActions', v)}
+          testId="setting-confirm-actions"
+        />
+        <SettingToggle
           label="Auto-close duplicates"
           description="Close new duplicate tabs"
           checked={settings.autoCloseDuplicates}

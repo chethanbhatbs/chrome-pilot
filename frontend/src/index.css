@@ -120,3 +120,17 @@ code {
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
+
+/* Resize handle: show on load for 3s, then hide (hover always works) */
+@keyframes handle-flash {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.resize-handle-dot {
+  animation: handle-flash 3s ease-out forwards;
+}
+.group:hover .resize-handle-dot {
+  animation: none;
+  opacity: 1 !important;
+}

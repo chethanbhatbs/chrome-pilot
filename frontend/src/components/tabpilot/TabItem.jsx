@@ -51,7 +51,7 @@ export function TabItem({
             if (isSuspended) onUnsuspend?.(tab.id);
             onSwitch(tab.id);
           }}
-          className={`group flex items-center gap-1.5 cursor-pointer transition-all duration-100 select-none relative
+          className={`group flex items-center gap-1.5 cursor-default transition-all duration-100 select-none relative
             ${compact ? 'px-2 py-[3px]' : 'px-2 py-[5px]'}
             ${isActive
               ? 'bg-primary/[0.08] text-foreground'
@@ -151,7 +151,7 @@ export function TabItem({
             <button
               data-testid={`tab-close-${tab.id}`}
               onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-              className="p-0.5 rounded-[3px] text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10
+              className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10
                 opacity-0 group-hover:opacity-100 transition-all duration-100"
             >
               <X size={11} strokeWidth={1.5} />

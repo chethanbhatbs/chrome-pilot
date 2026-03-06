@@ -19,11 +19,13 @@ import { TabTimeline } from './TabTimeline';
 import { AutoClosePanel } from './AutoClosePanel';
 import { TabPreview, useTabPreview } from './TabPreview';
 import { StatsBar } from './StatsBar';
+import { TourGuide, shouldShowTour } from './TourGuide';
 import { isExtensionContext } from '@/utils/chromeAdapter';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
 import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
+import { WORKSPACE_PRESETS } from '@/utils/mockData';
 import { toast } from 'sonner';
 
 // Dynamically pick the right hook
@@ -45,8 +47,15 @@ export function Sidebar({ onCollapse }) {
   const [selectedTabIdx, setSelectedTabIdx] = useState(-1);
   const [visitCounts, setVisitCounts] = useState({});
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  const [showTour, setShowTour] = useState(() => shouldShowTour());
+  const [confirmPending, setConfirmPending] = useState(null);
 
   const duplicateTabIds = useMemo(() => getDuplicateTabIds(tabs.allTabs), [tabs.allTabs]);
+
+  const withConfirm = useCallback((message, action) => {
+    if (!settings.confirmActions) { action(); return; }
+    setConfirmPending({ message, action });
+  }, [settings.confirmActions]);
 
   const handleSwitchTab = useCallback((tabId) => {
     hidePreview();
@@ -57,9 +66,11 @@ export function Sidebar({ onCollapse }) {
   }, [tabs, hidePreview]);
 
   const handleCloseTab = useCallback((tabId) => {
-    tabs.closeTab(tabId);
-    toast.success('Tab closed', { duration: 1000 });
-  }, [tabs]);
+    withConfirm('Close this tab?', () => {
+      tabs.closeTab(tabId);
+      toast.success('Tab closed', { duration: 1000 });
+    });
+  }, [tabs, withConfirm]);
 
   const handleCloseDuplicates = useCallback(() => {
     const count = tabs.closeDuplicates();
@@ -124,8 +135,8 @@ export function Sidebar({ onCollapse }) {
   }, [showPreview, tabs.suspendedTabs, tabs.tabNotes]);
 
   const quickActionHandlers = {
-    onNewTab: tabs.createNewTab,
-    onNewWindow: tabs.createNewWindow,
+    onNewTab: () => withConfirm('Open a new tab?', tabs.createNewTab),
+    onNewWindow: () => withConfirm('Open a new window?', tabs.createNewWindow),
     onCloseDuplicates: handleCloseDuplicates,
     onMuteAll: () => { tabs.muteAll(); toast.success('All tabs muted'); },
     onUnmuteAll: handleUnmuteAll,
@@ -142,6 +153,20 @@ export function Sidebar({ onCollapse }) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCmdPaletteOpen(prev => !prev);
+        return;
+      }
+      // Workspace shortcuts: Cmd/Ctrl + 1-4
+      if ((e.metaKey || e.ctrlKey) && ['1', '2', '3', '4'].includes(e.key) && !e.shiftKey) {
+        e.preventDefault();
+        const idx = parseInt(e.key) - 1;
+        if (idx < WORKSPACE_PRESETS.length) {
+          const ws = WORKSPACE_PRESETS[idx];
+          toast.success(`Workspace: ${ws.name}`, { duration: 2000 });
+          ws.tabIds.forEach(tabId => {
+            const tab = tabs.allTabs.find(t => t.id === tabId);
+            if (tab) tabs.switchToTab(tab.id);
+          });
+        }
         return;
       }
       if (cmdPaletteOpen) return;
@@ -161,7 +186,7 @@ export function Sidebar({ onCollapse }) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedTabIdx, tabs.allTabs, handleSwitchTab, handleCloseTab, cmdPaletteOpen]);
+  }, [selectedTabIdx, tabs.allTabs, handleSwitchTab, handleCloseTab, cmdPaletteOpen, tabs]);
 
   const sharedTabProps = {
     showFavicons: settings.showFavicons,
@@ -218,6 +243,38 @@ export function Sidebar({ onCollapse }) {
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
         <CommandPalette allTabs={tabs.allTabs} onSwitch={handleSwitchTab} isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
 
+        {/* First-time tour */}
+        {showTour && <TourGuide onComplete={() => setShowTour(false)} />}
+
+        {/* Confirm action dialog */}
+        {confirmPending && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50" onClick={() => setConfirmPending(null)}>
+            <div
+              className="bg-popover border border-border rounded-2xl p-5 shadow-2xl w-[280px] space-y-4 animate-slide-in"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="confirm-dialog"
+            >
+              <p className="text-[13px] font-body text-foreground leading-relaxed">{confirmPending.message}</p>
+              <div className="flex gap-2">
+                <button
+                  data-testid="confirm-action-btn"
+                  onClick={() => { confirmPending.action(); setConfirmPending(null); }}
+                  className="cursor-pointer flex-1 h-8 text-[11px] font-heading font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Confirm
+                </button>
+                <button
+                  data-testid="cancel-action-btn"
+                  onClick={() => setConfirmPending(null)}
+                  className="cursor-pointer flex-1 h-8 text-[11px] font-heading text-muted-foreground border border-border rounded-lg hover:text-foreground hover:bg-white/[0.05] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab Preview tooltip */}
         {preview && (
           <TabPreview
@@ -230,7 +287,7 @@ export function Sidebar({ onCollapse }) {
         )}
 
         {/* Header */}
-        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10">
+        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
           <div className="flex items-center gap-1">
             <span className="text-[13px] font-heading font-bold text-primary tracking-tight px-1 shrink-0">TabPilot</span>
             <div className="flex-1 min-w-0">
@@ -282,7 +339,7 @@ export function Sidebar({ onCollapse }) {
 
         {/* Content */}
         <ScrollArea className="flex-1">
-          <div className="pr-3 w-full">
+          <div className="pr-3 w-full" data-testid="sidebar-scroll-content">
           {showBackButton && (
             <button
               data-testid={`back-from-${activePanel}`}
@@ -325,7 +382,10 @@ export function Sidebar({ onCollapse }) {
                 tabs.windows.map(win => (
                   <WindowGroup
                     key={win.id} window={win} tabGroups={tabs.tabGroups}
-                    onCloseWindow={tabs.closeWindow} onMinimizeWindow={tabs.minimizeWindow}
+                    onCloseWindow={(winId) => withConfirm('Close this window and all its tabs?', () => tabs.closeWindow(winId))}
+                    onMinimizeWindow={tabs.minimizeWindow}
+                    onCreateTabInWindow={tabs.createTabInWindow}
+                    onRenameWindow={tabs.renameWindow}
                     {...sharedTabProps}
                   />
                 ))

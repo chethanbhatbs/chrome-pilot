@@ -66,14 +66,35 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
       onMouseLeave={onClose}
       data-testid={`tab-preview-${tab.id}`}
     >
-      {/* Visual preview header — domain-colored gradient */}
-      <div className="h-16 relative" style={{ background: `linear-gradient(135deg, ${domainColor}40, ${domainColor}15)` }}>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <img src={faviconUrl} alt="" className="w-8 h-8 rounded-lg shadow-lg"
-            onError={(e) => { e.target.style.display = 'none'; }} />
+      {/* Visual preview — mock browser screenshot */}
+      <div className="relative overflow-hidden" style={{ height: '90px', background: `linear-gradient(135deg, ${domainColor}60, ${domainColor}20)` }}>
+        {/* Mock browser chrome bar */}
+        <div className="absolute top-0 left-0 right-0 h-5 bg-black/30 backdrop-blur-sm flex items-center gap-1.5 px-2">
+          <div className="flex gap-0.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
+            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+          </div>
+          <div className="flex-1 h-2.5 bg-white/10 rounded-sm flex items-center px-1">
+            <span className="text-[5px] text-white/50 truncate">{tab.url}</span>
+          </div>
+        </div>
+        {/* Main content area */}
+        <div className="absolute inset-0 top-5 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-1.5">
+            <img src={faviconUrl} alt="" className="w-8 h-8 rounded-lg shadow-lg"
+              onError={(e) => { e.target.style.display = 'none'; }} />
+            <span className="text-[8px] text-white/60 font-mono">{domain}</span>
+          </div>
+          {/* Subtle content lines */}
+          <div className="absolute bottom-3 left-3 right-3 space-y-0.5">
+            <div className="h-0.5 bg-white/10 rounded-full w-full" />
+            <div className="h-0.5 bg-white/10 rounded-full w-4/5" />
+            <div className="h-0.5 bg-white/10 rounded-full w-3/5" />
+          </div>
         </div>
         {/* Status badges */}
-        <div className="absolute top-1.5 right-1.5 flex gap-0.5">
+        <div className="absolute top-6 right-1.5 flex gap-0.5">
           {tab.pinned && (
             <div className="p-0.5 rounded bg-black/30 backdrop-blur-sm">
               <Pin size={8} className="text-tp-pinned" strokeWidth={2} />
