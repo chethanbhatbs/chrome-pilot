@@ -8,43 +8,51 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Backend:** FastAPI (Python) — sessions & suggestions endpoints
 - **Database:** MongoDB (sessions, suggestions)
 - **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
-- **Dev strategy:** Web preview with mock data for rapid iteration
+- **Chrome API adapter:** Auto-detects extension vs web context; uses real APIs in extension, mock data in preview
 
-## All Features Implemented (all tested, 100% pass)
+## All Features (all tested, 100% pass across 7 iterations)
 
-### Core
-- Real-Time Tab Tree View with window/domain grouping
-- Global Fuzzy Search with live suggestions dropdown + Cmd+K hint in placeholder
-- Chrome Tab Groups with colored headers + colored left borders on grouped tabs
-- Duplicate Tab Detection with inline ring indicators + descriptive "Fix All" banner
+### Core Tab Management
+- Tab Tree View with window/domain grouping
+- Global Fuzzy Search with live suggestions + Cmd+K hint
+- Chrome Tab Groups with colored headers + colored left borders
+- Duplicate Detection with inline ring indicators + descriptive banner
 - Drag & Drop with visible grip handles on hover
 - Session Save & Restore via API
 - Context Menu with visual grouping (navigation, state, organization, destructive)
 
-### Advanced
-- Activity Heatmap: Day/Week/Month/Custom filters, time in hours + visit counts
-- Tab Timeline: GitHub-contributions-style grid (7 days x 18 hours) with click detail
-- Focus Mode with timer
-- Tab Suspension (suspend/unsuspend/unsuspend all)
-- Tab Notes with CRUD via context menu + dedicated panel
-- Smart Workspaces (4 presets: Deep Work, Meetings, Research, Break Time)
-- Command Palette (Cmd+K spotlight-style quick switch)
-- Help panel with tips, keyboard shortcuts, suggestion form, privacy disclaimer
+### Advanced Features
+- **Activity Heatmap**: Day/Week/Month/Custom filters, hours + visits
+- **Tab Timeline**: GitHub-contributions-style 7-day x 18-hour grid with click detail
+- **Focus Mode** with timer
+- **Tab Suspension** + Unsuspend All
+- **Tab Notes** — CRUD via context menu + dedicated panel
+- **Smart Workspaces** — 4 presets + full custom CRUD (localStorage)
+- **Auto-Close Rules** — Timer presets (15/30/60/120min/custom), domain whitelist, at-risk preview
+- **Tab Previews** — Hover card (350ms delay) with domain color, stats, note
+- **Command Palette** (Cmd+K) — Spotlight-style quick switch
+- **Help & Privacy** — Usage tips, keyboard shortcuts, suggestion form, privacy disclaimer
+
+### Chrome API Integration
+- `/app/frontend/src/utils/chromeAdapter.js` — detects extension context, wraps chrome.tabs/windows/tabGroups
+- `/app/frontend/src/hooks/useChromeTabs.js` — real-time hook with event listeners + 2s polling
+- Extension manifest with permissions: tabs, tabGroups, sidePanel, storage, activeTab
+- Background service worker with badge updates and tab event monitoring
 
 ### UX Polish
 - Toolbar icons with text labels + logical grouping with dividers
-- Higher contrast header icons
-- Tab state badges: pin icon, note icon, duplicate ring, suspended opacity
-- Window headers with domain summaries and bigger chevrons
-- Labeled status bar: "Tabs: 14 | Mem: 2.5G | CPU: 4.5% | Audio: 2 | Dupes: 1"
-- Resizable sidebar with subtle drag handle (280px-700px)
-- Dark theme (default), mute on hover for all tabs
+- Consistent tab alignment (single favicon column, no indent shifting)
+- Tab state badges: pin, note, duplicate ring, suspended
+- Window headers with domain summaries
+- Labeled status bar
+- Resizable sidebar (280–700px)
+- Dark theme default
 
 ## API Endpoints
-- `POST /api/sessions` — Save a session
+- `POST /api/sessions` — Save session
 - `GET /api/sessions` — List sessions
-- `DELETE /api/sessions/{id}` — Delete a session
-- `POST /api/suggestions` — Submit user suggestion
+- `DELETE /api/sessions/{id}` — Delete session
+- `POST /api/suggestions` — Submit suggestion
 
 ## Status: Feature Complete
-All user-requested features implemented and tested (iterations 1-6: 100%).
+All features implemented and tested (iterations 1-7: 100%).
