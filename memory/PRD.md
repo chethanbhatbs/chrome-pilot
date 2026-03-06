@@ -10,7 +10,7 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
 - **Chrome API adapter:** Auto-detects extension vs web context; uses real APIs in extension, mock data in preview
 
-## All Features (all tested, 100% pass across 8 iterations)
+## All Features (all tested, 100% pass across 9 iterations)
 
 ### Core Tab Management
 - Tab Tree View with window/domain grouping
@@ -27,11 +27,12 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Focus Mode** with timer
 - **Tab Suspension** + Unsuspend All
 - **Tab Notes** — CRUD via context menu + dedicated panel
-- **Smart Workspaces** — 4 presets + full custom CRUD (localStorage)
+- **Smart Workspaces** — 4 presets + full custom CRUD (localStorage) + contextual help
 - **Auto-Close Rules** — Timer presets (15/30/60/120min/custom), domain whitelist, at-risk preview
-- **Tab Previews** — Hover card (350ms delay) with domain color, stats, note
+- **Tab Previews** — Hover card (350ms delay) with domain color, stats, note. Dismisses instantly on click
 - **Command Palette** (Cmd+K) — Spotlight-style quick switch
 - **Help & Privacy** — Usage tips, keyboard shortcuts, suggestion form, privacy disclaimer
+- **Session Manager** — Save/restore browser state snapshots + contextual help
 
 ### Chrome API Integration
 - `/app/frontend/src/utils/chromeAdapter.js` — detects extension context, wraps chrome.tabs/windows/tabGroups
@@ -39,16 +40,19 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - Extension manifest with permissions: tabs, tabGroups, sidePanel, storage, activeTab
 - Background service worker with badge updates and tab event monitoring
 
-### UX Polish (Iteration 8 — March 2026)
-- **Overflow toolbar**: Primary actions (New Tab, Window, Domain, Heatmap, Focus) always visible; secondary actions (Suspend, Resume, Mute, Unmute, Dupes, Save Session) in "More" dropdown
+### UX Polish (Iterations 8-9 — March 2026)
+- **GitHub Dark theme**: Exact #0d1117 background, #161b22 cards, #c9d1d9 text, #30363d borders
+- **Tab indentation**: 20px (pl-5) indent for tabs under windows, colored group borders visible
+- **Overflow toolbar**: Primary actions always visible; secondary in "More" dropdown
+- **Heatmap/Domain mutual exclusion**: Toggling one deactivates the other
+- **Speaker icon**: Only shows for tabs with active audio, not on hover for all tabs
+- **Chrome-matching font sizes**: 13px tab titles, 13px window headers, 11px group headers
 - **Mixed-case group labels**: Semibold mixed-case instead of ALL CAPS
-- **Top-right icon contrast**: Increased from muted-foreground/60 to foreground/50 with size 13 and strokeWidth 1.8
-- **Tab status badge tooltips**: Pin ("Pinned tab"), Duplicate ("Duplicate — open in multiple tabs"), Audio ("Playing audio" / "Muted"), Note (shows note text)
+- **Tab status badge tooltips**: Pin, Duplicate, Audio, Note all have descriptive tooltips
 - **Window domain summaries**: Top 2 domains + "+X more" in italic
-- **Homepage overhaul**: Hero section, Quick Start (4 cards), Features (12 cards with icons, titles, descriptions), Keyboard Shortcuts section
-- Consistent tab alignment (single favicon column, no indent shifting)
+- **Preview dismiss on click**: Tab preview vanishes instantly when tab is clicked
+- **Homepage**: "Add to Chrome" landing page with hero, stats, 12 feature cards, how-it-works, shortcuts, CTA
 - Resizable sidebar (280–700px)
-- Dark theme default
 
 ## API Endpoints
 - `POST /api/sessions` — Save session
@@ -62,5 +66,5 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Live tab thumbnail previews via chrome.tabs.captureVisibleTab
 - **P2**: Export session/heatmap data as JSON/CSV
 
-## Status: Feature Complete + UX Polished
-All features implemented and tested (iterations 1-8: 100%).
+## Status: Feature Complete + Launch-Ready UX
+All features implemented and tested (iterations 1-9: 100%).
