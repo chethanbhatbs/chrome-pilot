@@ -6,8 +6,10 @@
   "permissions": [
     "tabs",
     "tabGroups",
+    "windows",
     "sidePanel",
     "storage",
+    "sessions",
     "activeTab"
   ],
   "side_panel": {
@@ -33,9 +35,18 @@
       "description": "Toggle TabPilot sidebar"
     }
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google.com; connect-src 'self'"
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sidepanel/*", "sidepanel/static/*", "icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

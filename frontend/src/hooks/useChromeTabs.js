@@ -3,24 +3,35 @@ import {
   isExtensionContext, chromeGetAllWindows, chromeGetTabGroups,
   chromeSwitchToTab, chromeCloseTab, chromePinTab, chromeMuteTab,
   chromeDuplicateTab, chromeMoveTab, chromeMoveTabToNewWindow,
-  chromeCreateNewTab, chromeCreateNewWindow, chromeCloseWindow,
-  chromeMinimizeWindow, chromeMuteAll, chromeUnmuteAll, chromeCloseDuplicates,
-  chromeDiscardTab, chromeOnTabsUpdated
+  chromeCreateNewTab, chromeCreateTabInWindow, chromeCreateNewWindow,
+  chromeCloseWindow, chromeMinimizeWindow, chromeMuteAll, chromeUnmuteAll,
+  chromeCloseDuplicates, chromeDiscardTab, chromeOnTabsUpdated,
+  chromeUndoCloseTab, chromeStorageGet, chromeStorageSet,
 } from '@/utils/chromeAdapter';
-import { INITIAL_TAB_NOTES } from '@/utils/mockData';
 
 /**
- * Hook that connects to real Chrome APIs when running as extension,
- * otherwise falls back to mock data via useMockTabs.
+ * Hook that connects to real Chrome APIs when running as extension.
+ * Returns empty/no-op state when called from web preview context.
  */
 export function useChromeTabs() {
   const [windows, setWindows] = useState([]);
   const [tabGroups, setTabGroups] = useState([]);
   const [suspendedTabs, setSuspendedTabs] = useState(new Set());
-  const [tabNotes, setTabNotes] = useState(INITIAL_TAB_NOTES);
+  const [tabNotes, setTabNotes] = useState({});
+  const [windowNames, setWindowNames] = useState({});
   const refreshRef = useRef(null);
 
+  // Load persisted data from chrome.storage on mount
+  useEffect(() => {
+    if (!isExtensionContext()) return;
+    chromeStorageGet(['tabNotes', 'windowNames']).then(data => {
+      if (data.tabNotes) setTabNotes(data.tabNotes);
+      if (data.windowNames) setWindowNames(data.windowNames);
+    });
+  }, []);
+
   const refresh = useCallback(async () => {
+    if (!isExtensionContext()) return;
     try {
       const wins = await chromeGetAllWindows();
       setWindows(wins);
@@ -34,20 +45,22 @@ export function useChromeTabs() {
   refreshRef.current = refresh;
 
   useEffect(() => {
+    if (!isExtensionContext()) return;
     refresh();
-    // Listen for tab changes
     const cleanup = chromeOnTabsUpdated(() => refreshRef.current?.());
-    // Poll every 2s as safety net
     const interval = setInterval(() => refreshRef.current?.(), 2000);
-    return () => {
-      cleanup();
-      clearInterval(interval);
-    };
+    return () => { cleanup(); clearInterval(interval); };
   }, [refresh]);
 
+  // Merge stored window names into windows
+  const windowsWithNames = useMemo(() =>
+    windows.map(w => ({ ...w, name: windowNames[w.id] || null })),
+    [windows, windowNames]
+  );
+
   const allTabs = useMemo(() =>
-    windows.flatMap(w => (w.tabs || []).map(t => ({ ...t, windowId: w.id }))),
-    [windows]
+    windowsWithNames.flatMap(w => (w.tabs || []).map(t => ({ ...t, windowId: w.id }))),
+    [windowsWithNames]
   );
 
   const switchToTab = useCallback(async (tabId) => {
@@ -57,6 +70,10 @@ export function useChromeTabs() {
 
   const closeTab = useCallback(async (tabId) => {
     await chromeCloseTab(tabId);
+  }, []);
+
+  const undoCloseTab = useCallback(async () => {
+    return await chromeUndoCloseTab();
   }, []);
 
   const pinTab = useCallback(async (tabId) => {
@@ -86,16 +103,29 @@ export function useChromeTabs() {
   }, []);
 
   const minimizeWindow = useCallback(async (windowId) => {
-    await chromeMinimizeWindow(windowId);
-  }, []);
+    const win = windows.find(w => w.id === windowId);
+    await chromeMinimizeWindow(windowId, win?.state);
+  }, [windows]);
 
   const createNewTab = useCallback(async () => {
     const focused = windows.find(w => w.focused);
     await chromeCreateNewTab(focused?.id);
   }, [windows]);
 
+  const createTabInWindow = useCallback(async (windowId) => {
+    await chromeCreateTabInWindow(windowId);
+  }, []);
+
   const createNewWindow = useCallback(async () => {
     await chromeCreateNewWindow();
+  }, []);
+
+  const renameWindow = useCallback((windowId, name) => {
+    setWindowNames(prev => {
+      const updated = { ...prev, [windowId]: name };
+      chromeStorageSet({ windowNames: updated });
+      return updated;
+    });
   }, []);
 
   const muteAll = useCallback(async () => {
@@ -135,7 +165,6 @@ export function useChromeTabs() {
   }, []);
 
   const unsuspendTab = useCallback(async (tabId) => {
-    // Switching to a discarded tab reloads it
     const tab = allTabs.find(t => t.id === tabId);
     if (tab) await chromeSwitchToTab(tabId, tab.windowId);
     setSuspendedTabs(prev => { const n = new Set(prev); n.delete(tabId); return n; });
@@ -159,20 +188,20 @@ export function useChromeTabs() {
 
   const setTabNote = useCallback((tabId, note) => {
     setTabNotes(prev => {
-      if (!note || !note.trim()) {
-        const next = { ...prev };
-        delete next[tabId];
-        return next;
-      }
-      return { ...prev, [tabId]: note.trim() };
+      const updated = { ...prev };
+      if (!note || !note.trim()) delete updated[tabId];
+      else updated[tabId] = note.trim();
+      chromeStorageSet({ tabNotes: updated });
+      return updated;
     });
   }, []);
 
   return {
-    windows, tabGroups, allTabs, suspendedTabs, tabNotes,
-    switchToTab, closeTab, pinTab, muteTab, duplicateTab,
+    windows: windowsWithNames, tabGroups, allTabs, suspendedTabs, tabNotes,
+    switchToTab, closeTab, undoCloseTab, pinTab, muteTab, duplicateTab,
     moveTab, moveTabToNewWindow, closeWindow, minimizeWindow,
-    createNewTab, createNewWindow, muteAll, unmuteAll, closeDuplicates,
+    createNewTab, createTabInWindow, createNewWindow, renameWindow,
+    muteAll, unmuteAll, closeDuplicates,
     reorderTab, closeOtherTabs, closeTabsToRight,
     suspendTab, unsuspendTab, suspendInactive, unsuspendAll,
     setTabNote, refresh,

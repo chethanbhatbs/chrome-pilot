@@ -22,16 +22,18 @@ import { StatsBar } from './StatsBar';
 import { TourGuide, shouldShowTour } from './TourGuide';
 import { isExtensionContext } from '@/utils/chromeAdapter';
 import { useMockTabs } from '@/hooks/useMockTabs';
+import { useChromeTabs } from '@/hooks/useChromeTabs';
 import { useSearch } from '@/hooks/useSearch';
 import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { WORKSPACE_PRESETS } from '@/utils/mockData';
 import { toast } from 'sonner';
 
-// Dynamically pick the right hook
+// Adaptive hook: both always called (React rules of hooks), Chrome one used in extension context
 function useTabsAdapter() {
-  // Always use mock in web preview; the Chrome hook is for the extension sidepanel only
-  return useMockTabs();
+  const mockTabs = useMockTabs();
+  const chromeTabs = useChromeTabs();
+  return isExtensionContext() ? chromeTabs : mockTabs;
 }
 
 export function Sidebar({ onCollapse }) {

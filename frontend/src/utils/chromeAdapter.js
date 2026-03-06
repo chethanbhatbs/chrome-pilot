@@ -58,6 +58,10 @@ export async function chromeCreateNewTab(windowId) {
   await chrome.tabs.create({ windowId });
 }
 
+export async function chromeCreateTabInWindow(windowId) {
+  await chrome.tabs.create({ windowId, index: 0 });
+}
+
 export async function chromeCreateNewWindow() {
   await chrome.windows.create({});
 }
@@ -66,8 +70,31 @@ export async function chromeCloseWindow(windowId) {
   await chrome.windows.remove(windowId);
 }
 
-export async function chromeMinimizeWindow(windowId) {
-  await chrome.windows.update(windowId, { state: 'minimized' });
+export async function chromeMinimizeWindow(windowId, currentState) {
+  const newState = currentState === 'minimized' ? 'normal' : 'minimized';
+  await chrome.windows.update(windowId, { state: newState });
+}
+
+export async function chromeUndoCloseTab() {
+  try {
+    const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 1 });
+    if (sessions.length > 0) {
+      const sessionId = sessions[0].tab?.sessionId || sessions[0].window?.sessionId;
+      if (sessionId) { await chrome.sessions.restore(sessionId); return true; }
+    }
+  } catch { /* sessions API unavailable */ }
+  return false;
+}
+
+// Storage helpers for persisting notes and window names
+export function chromeStorageGet(keys) {
+  if (!IS_EXTENSION) return Promise.resolve({});
+  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+}
+
+export function chromeStorageSet(data) {
+  if (!IS_EXTENSION) return;
+  chrome.storage.local.set(data);
 }
 
 export async function chromeMuteAll() {
