@@ -1,12 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
 import { QuickActions } from './QuickActions';
 import { WindowGroup } from './WindowGroup';
 import { DomainView } from './DomainView';
-import { DuplicatePanel } from './DuplicatePanel';
+import { DuplicatePanel, getDuplicateTabIds } from './DuplicatePanel';
 import { SessionManager } from './SessionManager';
 import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
@@ -15,6 +15,7 @@ import { HelpPanel } from './HelpPanel';
 import { CommandPalette } from './CommandPalette';
 import { TabNotesPanel } from './TabNotesPanel';
 import { WorkspaceManager } from './WorkspaceManager';
+import { TabTimeline } from './TabTimeline';
 import { StatsBar } from './StatsBar';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
@@ -34,6 +35,8 @@ export function Sidebar() {
   const [selectedTabIdx, setSelectedTabIdx] = useState(-1);
   const [visitCounts, setVisitCounts] = useState({});
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+
+  const duplicateTabIds = useMemo(() => getDuplicateTabIds(tabs.allTabs), [tabs.allTabs]);
 
   const handleSwitchTab = useCallback((tabId) => {
     tabs.switchToTab(tabId);
@@ -113,15 +116,14 @@ export function Sidebar() {
     onUnsuspendAll: handleUnsuspendAll,
   };
 
-  // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
-      // Cmd+K / Ctrl+K for command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCmdPaletteOpen(prev => !prev);
         return;
       }
+      if (cmdPaletteOpen) return; // Don't handle other keys when palette is open
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedTabIdx(prev => Math.min(prev + 1, tabs.allTabs.length - 1));
@@ -138,7 +140,7 @@ export function Sidebar() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedTabIdx, tabs.allTabs, handleSwitchTab, handleCloseTab]);
+  }, [selectedTabIdx, tabs.allTabs, handleSwitchTab, handleCloseTab, cmdPaletteOpen]);
 
   const sharedTabProps = {
     showFavicons: settings.showFavicons,
@@ -149,6 +151,7 @@ export function Sidebar() {
     windows: tabs.windows,
     suspendedTabs: tabs.suspendedTabs,
     tabNotes: tabs.tabNotes,
+    duplicateTabIds,
     onSwitch: handleSwitchTab,
     onClose: handleCloseTab,
     onPin: tabs.pinTab,
@@ -165,19 +168,21 @@ export function Sidebar() {
     onAddNote: handleAddNote,
   };
 
-  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces'].includes(activePanel);
+  const panelButtons = [
+    { id: 'timeline', icon: Calendar, label: 'Timeline', panel: 'timeline' },
+    { id: 'notes', icon: StickyNote, label: 'Notes', panel: 'notes' },
+    { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
+    { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
+    { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
+  ];
 
-  // Focus mode renders a completely different layout
+  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline'].includes(activePanel);
+
   if (activePanel === 'focus') {
     return (
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
-          <FocusMode
-            allTabs={tabs.allTabs}
-            visitCounts={visitCounts}
-            onSwitch={handleSwitchTab}
-            onExit={() => setActivePanel(null)}
-          />
+          <FocusMode allTabs={tabs.allTabs} visitCounts={visitCounts} onSwitch={handleSwitchTab} onExit={() => setActivePanel(null)} />
           <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
         </div>
       </TooltipProvider>
@@ -187,44 +192,30 @@ export function Sidebar() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
-        {/* Command Palette */}
-        <CommandPalette
-          allTabs={tabs.allTabs}
-          onSwitch={handleSwitchTab}
-          isOpen={cmdPaletteOpen}
-          onClose={() => setCmdPaletteOpen(false)}
-        />
+        <CommandPalette allTabs={tabs.allTabs} onSwitch={handleSwitchTab} isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
 
         {/* Header */}
         <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-1">
-            <span className="text-[11px] font-heading font-bold text-primary tracking-tight px-1">TabPilot</span>
-            <div className="flex-1">
+            <span className="text-[11px] font-heading font-bold text-primary tracking-tight px-1 shrink-0">TabPilot</span>
+            <div className="flex-1 min-w-0">
               <SearchBar
-                query={search.query}
-                setQuery={search.setQuery}
-                resultCount={search.resultCount}
-                clearSearch={search.clearSearch}
-                inputRef={searchInputRef}
-                suggestions={search.suggestions}
+                query={search.query} setQuery={search.setQuery}
+                resultCount={search.resultCount} clearSearch={search.clearSearch}
+                inputRef={searchInputRef} suggestions={search.suggestions}
                 onSwitchTab={handleSwitchTab}
               />
             </div>
-            {[
-              { id: 'notes', icon: StickyNote, label: 'Tab Notes', panel: 'notes' },
-              { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
-              { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
-              { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
-            ].map(({ id, icon: Icon, label, panel }) => (
+            {panelButtons.map(({ id, icon: Icon, label, panel }) => (
               <Tooltip key={id}>
                 <TooltipTrigger asChild>
                   <button
                     data-testid={`${id}-toggle-btn`}
                     onClick={() => setActivePanel(activePanel === panel ? null : panel)}
-                    className={`p-1 rounded-md transition-all duration-150
+                    className={`p-1.5 rounded-md transition-all duration-150
                       ${activePanel === panel
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06]'
+                        ? 'text-primary bg-primary/15'
+                        : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.08]'
                       } active:scale-95`}
                   >
                     <Icon size={12} strokeWidth={1.5} />
@@ -269,16 +260,15 @@ export function Sidebar() {
             <div className="animate-slide-in">
               <WorkspaceManager allTabs={tabs.allTabs} onSwitch={handleSwitchTab} />
             </div>
+          ) : activePanel === 'timeline' ? (
+            <div className="animate-slide-in"><TabTimeline /></div>
           ) : (
             <div>
               {viewMode === 'window' ? (
                 tabs.windows.map(win => (
                   <WindowGroup
-                    key={win.id}
-                    window={win}
-                    tabGroups={tabs.tabGroups}
-                    onCloseWindow={tabs.closeWindow}
-                    onMinimizeWindow={tabs.minimizeWindow}
+                    key={win.id} window={win} tabGroups={tabs.tabGroups}
+                    onCloseWindow={tabs.closeWindow} onMinimizeWindow={tabs.minimizeWindow}
                     {...sharedTabProps}
                   />
                 ))
@@ -290,7 +280,6 @@ export function Sidebar() {
           )}
         </ScrollArea>
 
-        {/* Footer */}
         <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
       </div>
     </TooltipProvider>

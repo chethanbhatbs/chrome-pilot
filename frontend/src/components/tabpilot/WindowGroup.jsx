@@ -1,13 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ChevronRight, Minus, X, Monitor } from 'lucide-react';
 import { TabItem } from './TabItem';
 import { TabGroupHeader } from './TabGroupHeader';
+import { TAB_GROUP_COLORS } from '@/utils/mockData';
+import { getDomain } from '@/utils/grouping';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 
 export function WindowGroup({
   window: win, tabGroups, showFavicons, showUrls, compact,
-  highlightText, matchingTabIds, windows,
+  highlightText, matchingTabIds, windows, duplicateTabIds,
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
@@ -24,6 +26,20 @@ export function WindowGroup({
   const filteredTabs = matchingTabIds
     ? win.tabs.filter(t => matchingTabIds.has(t.id))
     : win.tabs;
+
+  // Window summary: most common domains
+  const windowSummary = useMemo(() => {
+    const domains = {};
+    win.tabs.forEach(t => {
+      const d = getDomain(t.url);
+      domains[d] = (domains[d] || 0) + 1;
+    });
+    return Object.entries(domains)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([d]) => d.replace(/^www\./, ''))
+      .join(', ');
+  }, [win.tabs]);
 
   const handleDragStart = useCallback((e, tab) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ tabId: tab.id, windowId: win.id }));
@@ -82,10 +98,11 @@ export function WindowGroup({
       const group = windowTabGroups.find(g => g.id === tab.groupId);
 
       if (group) {
+        const color = TAB_GROUP_COLORS[group.color] || TAB_GROUP_COLORS.grey;
         if (!renderedGroupHeaders.has(group.id)) {
           renderedGroupHeaders.add(group.id);
           elements.push(
-            <div key={`gh-${group.id}`} className="mt-0.5 mb-0.5">
+            <div key={`gh-${group.id}`} className="mt-0.5">
               <TabGroupHeader
                 group={group}
                 collapsed={collapsedGroups[group.id]}
@@ -98,9 +115,12 @@ export function WindowGroup({
           elements.push(
             <div
               key={tab.id}
-              className={`pl-2 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+              className={`animate-slide-in border-l-2 ml-3 ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-t-primary' : ''}`}
+              style={{ borderLeftColor: color.bg + '40' }}
             >
-              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} tabNote={tabNotes?.[tab.id]} {...tabItemProps} />
+              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
+                tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+                {...tabItemProps} />
             </div>
           );
         }
@@ -110,7 +130,9 @@ export function WindowGroup({
             key={tab.id}
             className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
           >
-            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} tabNote={tabNotes?.[tab.id]} {...tabItemProps} />
+            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)}
+              tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+              {...tabItemProps} />
           </div>
         );
       }
@@ -126,26 +148,31 @@ export function WindowGroup({
         data-testid={`window-group-${win.id}`}
       >
         <CollapsibleTrigger asChild>
-          <div className={`flex items-center justify-between px-3 py-1.5 cursor-pointer
+          <div className={`flex items-center justify-between px-2.5 py-1.5 cursor-pointer
             hover:bg-white/[0.03] transition-colors
             ${isFocused ? 'bg-primary/[0.04]' : ''}`}
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <ChevronRight
-                size={10}
-                className={`text-muted-foreground/40 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                strokeWidth={2.5}
+                size={13}
+                className={`text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                strokeWidth={2}
               />
-              <Monitor size={11} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
-              <span className="text-[11px] font-heading font-semibold tracking-tight">
-                Window {win.id}
-              </span>
-              <span className="text-[9px] text-muted-foreground/40 font-mono">
-                {tabCount}
-              </span>
-              {isFocused && (
-                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
-              )}
+              <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-heading font-semibold tracking-tight">
+                    Window {win.id}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground/40 font-mono">{tabCount}</span>
+                  {isFocused && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
+                  )}
+                </div>
+                <div className="text-[9px] text-muted-foreground/30 font-body truncate max-w-[180px]">
+                  {windowSummary}
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-0.5"
               style={{ opacity: 0 }}

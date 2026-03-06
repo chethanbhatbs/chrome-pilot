@@ -1,10 +1,12 @@
-import { Monitor, FileText, Volume2, Pin, AlertTriangle, HardDrive, Cpu, Pause } from 'lucide-react';
+import { FileText, HardDrive, Cpu, Volume2, Pause, AlertTriangle } from 'lucide-react';
+import {
+  Tooltip, TooltipContent, TooltipTrigger
+} from '@/components/ui/tooltip';
 import { TAB_METRICS } from '@/utils/mockData';
 
 export function StatsBar({ windows, allTabs, suspendedCount = 0 }) {
   const tabCount = allTabs.length;
   const audibleCount = allTabs.filter(t => t.audible && !t.mutedInfo?.muted).length;
-  const pinnedCount = allTabs.filter(t => t.pinned).length;
 
   const totalMemory = allTabs.reduce((sum, t) => sum + (TAB_METRICS[t.id]?.memory || 80), 0);
   const avgCpu = allTabs.length > 0
@@ -24,37 +26,32 @@ export function StatsBar({ windows, allTabs, suspendedCount = 0 }) {
 
   const memoryStr = totalMemory >= 1024 ? `${(totalMemory / 1024).toFixed(1)}G` : `${totalMemory}M`;
 
+  const stats = [
+    { icon: FileText, label: 'Tabs', value: tabCount, color: 'text-foreground/60', always: true },
+    { icon: HardDrive, label: 'Mem', value: memoryStr, color: totalMemory > 2000 ? 'text-amber-400' : 'text-muted-foreground', always: true },
+    { icon: Cpu, label: 'CPU', value: `${avgCpu}%`, color: parseFloat(avgCpu) > 10 ? 'text-amber-400' : 'text-muted-foreground', always: true },
+    { icon: Volume2, label: 'Audio', value: audibleCount, color: audibleCount > 0 ? 'text-green-400' : 'text-muted-foreground', always: true },
+    { icon: Pause, label: 'Paused', value: suspendedCount, color: 'text-blue-400', always: suspendedCount > 0 },
+    { icon: AlertTriangle, label: 'Dupes', value: dupCount, color: dupCount > 0 ? 'text-amber-400' : 'text-muted-foreground', always: true },
+  ];
+
   return (
     <div
-      className="flex items-center justify-between px-2.5 py-1.5 border-t border-border bg-card/50 text-[9px] font-mono"
+      className="flex items-center justify-between px-2 py-1 border-t border-border bg-card/50 text-[8px] font-mono"
       data-testid="stats-bar"
     >
-      <div className="flex items-center gap-0.5 text-foreground/60">
-        <FileText size={9} strokeWidth={1.5} />
-        <span>{tabCount}</span>
-      </div>
-      <div className={`flex items-center gap-0.5 ${totalMemory > 2000 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-        <HardDrive size={9} strokeWidth={1.5} />
-        <span>{memoryStr}</span>
-      </div>
-      <div className={`flex items-center gap-0.5 ${parseFloat(avgCpu) > 10 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-        <Cpu size={9} strokeWidth={1.5} />
-        <span>{avgCpu}%</span>
-      </div>
-      <div className={`flex items-center gap-0.5 ${audibleCount > 0 ? 'text-green-400' : 'text-muted-foreground'}`}>
-        <Volume2 size={9} strokeWidth={1.5} />
-        <span>{audibleCount}</span>
-      </div>
-      {suspendedCount > 0 && (
-        <div className="flex items-center gap-0.5 text-blue-400">
-          <Pause size={9} strokeWidth={1.5} />
-          <span>{suspendedCount}</span>
-        </div>
-      )}
-      <div className={`flex items-center gap-0.5 ${dupCount > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-        <AlertTriangle size={9} strokeWidth={1.5} />
-        <span>{dupCount}</span>
-      </div>
+      {stats.filter(s => s.always).map(({ icon: Icon, label, value, color }) => (
+        <Tooltip key={label}>
+          <TooltipTrigger asChild>
+            <div className={`flex items-center gap-0.5 ${color} cursor-default`} data-testid={`stat-${label.toLowerCase()}`}>
+              <Icon size={8} strokeWidth={1.5} />
+              <span className="opacity-50">{label}:</span>
+              <span>{value}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px] font-body">{label}: {value}</TooltipContent>
+        </Tooltip>
+      ))}
     </div>
   );
 }

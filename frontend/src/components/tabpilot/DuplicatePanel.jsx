@@ -1,7 +1,8 @@
 import { findDuplicates } from '@/utils/grouping';
-import { AlertTriangle, X, Trash2 } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { getFaviconUrl, getDomain } from '@/utils/grouping';
 import { useState } from 'react';
 
 export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
@@ -16,18 +17,24 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="mx-2 my-1.5 rounded-md border border-tp-duplicate/30 bg-tp-duplicate/5" data-testid="duplicate-panel">
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between px-2.5 py-1.5 cursor-pointer hover:bg-tp-duplicate/10 transition-colors rounded-md">
+          <div className="flex items-center justify-between px-2.5 py-2 cursor-pointer hover:bg-tp-duplicate/10 transition-colors rounded-md">
             <div className="flex items-center gap-1.5">
               <AlertTriangle size={12} className="text-tp-duplicate" strokeWidth={2} />
-              <span className="text-xs font-body text-tp-duplicate font-medium">
-                {totalDupes} duplicate{totalDupes !== 1 ? 's' : ''}
-              </span>
+              <div>
+                <span className="text-[11px] font-body text-tp-duplicate font-semibold">
+                  {totalDupes} duplicate{totalDupes !== 1 ? 's' : ''} found
+                </span>
+                <p className="text-[9px] text-tp-duplicate/60">
+                  {duplicates.length} URL{duplicates.length !== 1 ? 's' : ''} open in multiple tabs.
+                  "Fix All" closes the extra copies, keeping one of each.
+                </p>
+              </div>
             </div>
             <button
               data-testid="close-all-duplicates-btn"
               onClick={(e) => { e.stopPropagation(); onCloseDuplicates(); }}
               className="text-[10px] font-heading font-semibold text-tp-duplicate hover:text-foreground
-                bg-tp-duplicate/20 hover:bg-tp-duplicate/30 px-2 py-0.5 rounded transition-colors"
+                bg-tp-duplicate/20 hover:bg-tp-duplicate/30 px-2.5 py-1 rounded transition-colors shrink-0 ml-2"
             >
               Fix All
             </button>
@@ -36,31 +43,67 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
 
         <CollapsibleContent>
           <div className="px-2.5 pb-2 space-y-1.5">
-            {duplicates.map(({ url, tabs }) => (
-              <div key={url} className="rounded bg-background/50 p-1.5">
-                <div className="text-[10px] text-muted-foreground truncate mb-1 font-mono">{url}</div>
-                {tabs.map((tab, i) => (
-                  <div key={tab.id} className="flex items-center justify-between py-0.5 pl-2">
-                    <span className="text-[11px] text-foreground/70 truncate flex-1">
-                      {i === 0 && <Badge variant="outline" className="text-[8px] mr-1 py-0 px-1 border-tp-audible/50 text-tp-audible">keep</Badge>}
-                      Window {tab.windowId}
-                    </span>
-                    {i > 0 && (
-                      <button
-                        data-testid={`close-dupe-${tab.id}`}
-                        onClick={() => onCloseTab(tab.id)}
-                        className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X size={10} strokeWidth={1.5} />
-                      </button>
-                    )}
+            {duplicates.map(({ url, tabs }) => {
+              const domain = getDomain(url);
+              const favicon = getFaviconUrl(url);
+              return (
+                <div key={url} className="rounded-md bg-background/50 p-2">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={e => e.target.style.display = 'none'} />
+                    <span className="text-[10px] text-muted-foreground truncate font-body">{domain}</span>
+                    <span className="text-[8px] font-mono text-tp-duplicate ml-auto">{tabs.length}x open</span>
                   </div>
-                ))}
-              </div>
-            ))}
+                  {tabs.map((tab, i) => (
+                    <div key={tab.id} className="flex items-center justify-between py-0.5 pl-6">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        {i === 0 && (
+                          <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-audible/50 text-tp-audible shrink-0">
+                            keep
+                          </Badge>
+                        )}
+                        {i > 0 && (
+                          <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-duplicate/50 text-tp-duplicate shrink-0">
+                            extra
+                          </Badge>
+                        )}
+                        <span className="text-[10px] text-foreground/60 truncate">Window {tab.windowId}</span>
+                      </div>
+                      {i > 0 && (
+                        <button
+                          data-testid={`close-dupe-${tab.id}`}
+                          onClick={() => onCloseTab(tab.id)}
+                          className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors shrink-0 ml-1"
+                        >
+                          <X size={10} strokeWidth={1.5} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </CollapsibleContent>
       </div>
     </Collapsible>
   );
+}
+
+// Helper to compute duplicate tab IDs set for inline marking
+export function getDuplicateTabIds(allTabs) {
+  const urlMap = {};
+  const duplicateIds = new Set();
+  allTabs.forEach(t => {
+    try {
+      const u = new URL(t.url);
+      const normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
+      if (urlMap[normalized]) {
+        duplicateIds.add(t.id);
+        duplicateIds.add(urlMap[normalized]);
+      } else {
+        urlMap[normalized] = t.id;
+      }
+    } catch { /* skip */ }
+  });
+  return duplicateIds;
 }

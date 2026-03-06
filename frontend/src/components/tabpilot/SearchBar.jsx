@@ -25,7 +25,6 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
     return () => window.removeEventListener('keydown', handler);
   }, [query, clearSearch, ref]);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -73,7 +72,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); setSelectedIdx(-1); }}
         onFocus={() => setShowSuggestions(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Search tabs..."
+        placeholder="Search tabs... (Cmd+K)"
         className="w-full h-7 pl-7 pr-16 text-[11px] bg-white/[0.04] border-none rounded-md
           ring-1 ring-white/[0.06] focus:ring-primary/50 focus:outline-none
           placeholder:text-muted-foreground/40 text-foreground font-body"
@@ -81,9 +80,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
         {query && (
           <>
-            <span className="text-[9px] text-muted-foreground/50 font-mono">
-              {resultCount}
-            </span>
+            <span className="text-[9px] text-muted-foreground/50 font-mono">{resultCount}</span>
             <button
               data-testid="search-clear-btn"
               onClick={() => { clearSearch(); setShowSuggestions(false); }}
@@ -95,7 +92,6 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         )}
       </div>
 
-      {/* Suggestions dropdown */}
       {hasSuggestions && (
         <div
           className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden"
@@ -106,12 +102,8 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
               key={s.id}
               data-testid={`search-suggestion-${s.id}`}
               onClick={() => {
-                if (s.type === 'tab' && onSwitchTab) {
-                  onSwitchTab(s.id);
-                  setShowSuggestions(false);
-                } else if (s.type === 'domain') {
-                  setQuery(s.domain);
-                }
+                if (s.type === 'tab' && onSwitchTab) { onSwitchTab(s.id); setShowSuggestions(false); }
+                else if (s.type === 'domain') setQuery(s.domain);
               }}
               className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors
                 ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-white/[0.04]'}
