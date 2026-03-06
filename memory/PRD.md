@@ -78,11 +78,17 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Keyboard workspace switching (Cmd+1/2/3)
 - **P3**: Live tab thumbnail previews, Export data
 
-### Bug Fixes (Feb 2026)
-- **Search bar visibility**: Fixed `bg-white/[0.04]` dark-only styling → now uses `bg-input/60 border border-border/60` (works in both light & dark themes)
-- **TabPilot text color**: Changed from `text-primary` (blue) to `text-foreground` (dark in light mode, light in dark mode)
-- **Note shown twice**: Hover note button is now hidden when a note badge is already showing (`!hasNote` condition)
-- **Mute/unmute icon bug**: Fixed `muteTab` to store `wasAudible` in `mutedInfo` when muting; restores original audible state on unmute so icon persists correctly
+### Bug Fixes (Feb 2026) — Batch 2
+- **Search bar character input**: `pr-16` (64px) reduced to `pr-7` — now shows full text input
+- **Search bar visibility**: Fixed dark-only transparent bg to use `bg-input/60 border border-border/60`
+- **TabPilot text color**: Split "Tab"=foreground + "Pilot"=primary in sidebar — matches homepage
+- **Note shown twice**: Hover note button hidden when note badge is already showing
+- **Mute/unmute icon bug**: `wasAudible` stored in mutedInfo; restored on unmute
+- **DomainView cursor**: Added `cursor-pointer` to domain tab close button
+- **New tab position**: Now prepends to top of tab list instead of bottom
+- **Toast duration**: All notifications capped at 3s (Toaster default + explicit fixes)
+- **Stats strip**: "Accounts needed" → "Data collected"
+- **Tour**: Removed emojis/icons from all steps; heading increased to 18px
 
 ## Status: Feature Complete + Launch-Ready UX
 All features implemented and tested (iterations 1-11: 100%). Latest bug fixes applied Feb 2026.

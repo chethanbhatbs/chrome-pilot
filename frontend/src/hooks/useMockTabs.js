@@ -169,7 +169,7 @@ export function useMockTabs() {
       };
       return prev.map(w => {
         if (w.id === focusedWindow.id) {
-          return { ...w, tabs: [...w.tabs.map(t => ({ ...t, active: false })), newTab] };
+          return { ...w, tabs: [newTab, ...w.tabs.map(t => ({ ...t, active: false }))] };
         }
         return { ...w, tabs: w.tabs.map(t => ({ ...t, active: false })) };
       });
@@ -189,7 +189,7 @@ export function useMockTabs() {
       };
       return prev.map(w => {
         if (w.id === windowId) {
-          return { ...w, focused: true, tabs: [...w.tabs.map(t => ({ ...t, active: false })), newTab] };
+          return { ...w, focused: true, tabs: [newTab, ...w.tabs.map(t => ({ ...t, active: false }))] };
         }
         return { ...w, focused: false, tabs: w.tabs.map(t => ({ ...t, active: false })) };
       });

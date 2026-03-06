@@ -6,7 +6,6 @@ const TOUR_KEY = 'tabpilot_tour_done_v2';
 const STEPS = [
   {
     id: 'welcome',
-    icon: '⚡',
     badge: 'Welcome',
     title: 'You just upgraded your browser',
     description: 'TabPilot gives you complete control over your Chrome tabs. This 30-second tour will show you everything.',
@@ -16,7 +15,6 @@ const STEPS = [
   {
     id: 'tabs',
     selector: '[data-testid="sidebar-scroll-content"]',
-    icon: '📑',
     badge: 'Tab List',
     title: 'All your tabs, organized',
     description: 'Windows and tabs are listed here. Click to switch, hover for a live preview, right-click for options like duplicate, note, move, or suspend.',
@@ -26,7 +24,6 @@ const STEPS = [
   {
     id: 'toolbar',
     selector: '[data-testid="quick-actions"]',
-    icon: '🔧',
     badge: 'Toolbar',
     title: 'Quick Actions at your fingertips',
     description: 'Create tabs, toggle Domain view (groups by website), activate Focus Mode to block distractions, or open the Heatmap to see your browsing patterns.',
@@ -36,7 +33,6 @@ const STEPS = [
   {
     id: 'features',
     selector: '[data-testid="sidebar-header"]',
-    icon: '✨',
     badge: 'Panels',
     title: 'Six powerful panels',
     description: 'Timeline, Notes, Workspaces, Auto-Close, Help, and Settings. Each icon opens a full panel. Try Workspaces to save tab sets for different contexts.',
@@ -46,7 +42,6 @@ const STEPS = [
   {
     id: 'stats',
     selector: '[data-testid="stats-bar"]',
-    icon: '📊',
     badge: 'Live Stats',
     title: 'Real-time browser health',
     description: 'Memory, CPU, audio tabs, and duplicates — updated every second. If dupes appear, hit "Fix All" to instantly clean up.',
@@ -55,10 +50,9 @@ const STEPS = [
   },
   {
     id: 'done',
-    icon: '🎯',
     badge: "You're ready",
     title: 'TabPilot is all yours',
-    description: 'Press ⌘K (or Ctrl+K) for the command palette. Double-click any window name to rename it. Close tabs — use Undo if you change your mind.',
+    description: 'Press Cmd+K (or Ctrl+K) for the command palette. Double-click any window name to rename it. Close tabs — use Undo if you change your mind.',
     center: true,
     cta: "Let's go!",
   },
@@ -216,16 +210,9 @@ export function TourGuide({ onComplete }) {
         <div className="p-5">
           {/* Header row */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              {/* Icon */}
-              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg shrink-0">
-                {current.icon}
-              </div>
-              {/* Badge */}
-              <div>
-                <span className="text-[9px] font-mono text-primary/70 uppercase tracking-widest">{current.badge}</span>
-                <div className="text-[9px] text-muted-foreground/50 font-mono">{step + 1} / {total}</div>
-              </div>
+            <div>
+              <span className="text-[9px] font-mono text-primary/70 uppercase tracking-widest">{current.badge}</span>
+              <div className="text-[9px] text-muted-foreground/50 font-mono">{step + 1} / {total}</div>
             </div>
             {/* Skip */}
             <button
@@ -238,7 +225,7 @@ export function TourGuide({ onComplete }) {
           </div>
 
           {/* Content */}
-          <h3 className="text-[14px] font-heading font-bold text-foreground leading-snug mb-2">
+          <h3 className="text-[18px] font-heading font-bold text-foreground leading-snug mb-2">
             {current.title}
           </h3>
           <p className="text-[11px] text-muted-foreground font-body leading-relaxed mb-3">

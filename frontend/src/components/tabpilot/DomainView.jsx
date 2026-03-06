@@ -138,7 +138,7 @@ function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspend
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-        className="p-0.5 rounded-[3px] text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10
+        className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10
           opacity-0 group-hover:opacity-100 transition-all duration-100 shrink-0"
       >
         <X size={10} strokeWidth={1.5} />

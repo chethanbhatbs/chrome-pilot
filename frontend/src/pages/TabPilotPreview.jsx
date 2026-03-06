@@ -50,7 +50,7 @@ export default function TabPilotPreview() {
 
   return (
     <div className="h-screen bg-background text-foreground flex" data-testid="tabpilot-preview">
-      <Toaster richColors position="bottom-right" />
+      <Toaster richColors position="bottom-right" toastOptions={{ duration: 3000 }} />
 
       {/* Sidebar */}
       <div
@@ -192,7 +192,7 @@ function HeroSection() {
 function StatsStrip() {
   const stats = [
     { value: '16+', label: 'Features' },
-    { value: '0', label: 'Accounts needed' },
+    { value: '0', label: 'Data collected' },
     { value: '<1MB', label: 'Extension size' },
     { value: 'MV3', label: 'Manifest V3' },
   ];
