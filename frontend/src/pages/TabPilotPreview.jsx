@@ -3,8 +3,9 @@ import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import {
   TreePine, Search, Layers, Flame, Focus, Pause, Keyboard,
-  StickyNote, Briefcase, Timer, GripVertical, Zap, ArrowRight,
-  Monitor, MousePointerClick
+  StickyNote, Briefcase, Timer, GripVertical, Zap, Download,
+  Monitor, MousePointerClick, ArrowRight, ChevronRight,
+  Shield, Cpu, Clock, Star
 } from 'lucide-react';
 
 export default function TabPilotPreview() {
@@ -68,29 +69,33 @@ export default function TabPilotPreview() {
           bg-border/40 group-hover:bg-primary/60 transition-colors duration-150" />
       </div>
 
-      {/* Main content area — Feature Showcase */}
-      <div className="flex-1 overflow-y-auto bg-card/30" data-testid="homepage-content">
-        <HomePage />
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto" data-testid="homepage-content">
+        <LandingPage />
       </div>
     </div>
   );
 }
 
-function HomePage() {
+function LandingPage() {
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10">
-      {/* Hero */}
+    <div className="min-h-full">
+      {/* Hero Section */}
       <HeroSection />
-      {/* Quick Start */}
-      <QuickStartSection />
-      {/* Feature Showcase */}
-      <FeatureShowcase />
+      {/* Stats Bar */}
+      <StatsStrip />
+      {/* Feature Grid */}
+      <FeatureGrid />
+      {/* How it works */}
+      <HowItWorks />
       {/* Keyboard Shortcuts */}
       <ShortcutsSection />
+      {/* CTA Bottom */}
+      <BottomCTA />
       {/* Footer */}
-      <footer className="text-center pt-8 pb-4 border-t border-border/30">
-        <p className="text-[10px] text-muted-foreground/40 font-mono">
-          Manifest V3 &middot; React 18 &middot; Tailwind CSS
+      <footer className="text-center py-6 border-t border-border/20">
+        <p className="text-[11px] text-muted-foreground/30 font-mono">
+          TabPilot v1.0 &middot; Manifest V3 &middot; React 18 &middot; Open Source
         </p>
       </footer>
     </div>
@@ -99,51 +104,73 @@ function HomePage() {
 
 function HeroSection() {
   return (
-    <div className="mb-10" data-testid="hero-section">
-      <div className="flex items-start gap-4 mb-5">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20
-          flex items-center justify-center shrink-0">
-          <span className="text-xl font-heading font-black text-primary">T</span>
+    <div className="relative overflow-hidden" data-testid="hero-section">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-transparent to-transparent" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+
+      <div className="relative max-w-2xl mx-auto px-8 pt-16 pb-10">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/20
+            flex items-center justify-center shadow-lg shadow-primary/10">
+            <span className="text-2xl font-heading font-black text-primary">T</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-heading font-black tracking-tight leading-none">
+              <span className="text-foreground">Tab</span><span className="text-primary">Pilot</span>
+            </h1>
+            <p className="text-xs text-muted-foreground/50 font-mono mt-0.5">Tab & Window Manager for Chrome</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-heading font-black tracking-tight leading-tight">
-            <span className="text-foreground">Tab</span><span className="text-primary">Pilot</span>
-          </h1>
-          <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">Chrome Tab & Window Manager</p>
+
+        {/* Headline */}
+        <h2 className="text-lg font-heading font-bold text-foreground/90 leading-snug mb-3 max-w-md">
+          Your browser, under control.
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-lg mb-6">
+          Search, organize, and manage every tab from a powerful sidebar. Focus on what matters,
+          suspend what doesn't, and never lose a tab again.
+        </p>
+
+        {/* CTA Buttons */}
+        <div className="flex items-center gap-3 mb-8">
+          <button className="flex items-center gap-2 h-10 px-5 rounded-lg bg-primary text-primary-foreground
+            font-heading font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20
+            active:scale-[0.98]" data-testid="download-extension-btn">
+            <Download size={16} strokeWidth={2} />
+            Add to Chrome
+          </button>
+          <span className="text-xs text-muted-foreground/40 font-body">Free &middot; No account required</span>
         </div>
-      </div>
-      <p className="text-sm text-muted-foreground font-body leading-relaxed max-w-lg">
-        Take control of your browser. TabPilot gives you a powerful sidebar to search, organize,
-        monitor, and manage every tab and window — all without leaving your current page.
-      </p>
-      <div className="flex items-center gap-3 mt-4">
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
-          <ArrowRight size={12} /> Try it now — the sidebar on the left is fully interactive
-        </span>
+
+        {/* Try it prompt */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/60 border border-border/30 w-fit">
+          <ArrowRight size={13} className="text-primary animate-pulse" />
+          <span className="text-[12px] text-muted-foreground font-body">
+            The sidebar on the left is a <span className="text-foreground font-medium">live interactive demo</span> — try it now
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
-function QuickStartSection() {
-  const steps = [
-    { icon: MousePointerClick, text: 'Click any tab in the sidebar to switch to it' },
-    { icon: Search, text: 'Use the search bar or press Cmd+K for quick switch' },
-    { icon: GripVertical, text: 'Drag tabs to reorder or move between windows' },
-    { icon: Monitor, text: 'Right-click any tab for advanced actions' },
+function StatsStrip() {
+  const stats = [
+    { value: '16+', label: 'Features' },
+    { value: '0', label: 'Accounts needed' },
+    { value: '<1MB', label: 'Extension size' },
+    { value: 'MV3', label: 'Manifest V3' },
   ];
 
   return (
-    <div className="mb-10" data-testid="quick-start-section">
-      <SectionLabel>Quick Start</SectionLabel>
-      <div className="grid grid-cols-2 gap-2">
-        {steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-2.5 py-2.5 px-3 rounded-lg bg-card border border-border/40
-            hover:border-primary/30 transition-colors">
-            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-              <step.icon size={12} className="text-primary" strokeWidth={1.5} />
-            </div>
-            <span className="text-[11px] text-foreground/80 font-body leading-snug">{step.text}</span>
+    <div className="border-y border-border/20 bg-card/30" data-testid="stats-strip">
+      <div className="max-w-2xl mx-auto px-8 py-4 flex items-center justify-between">
+        {stats.map((s, i) => (
+          <div key={i} className="text-center">
+            <div className="text-lg font-heading font-black text-foreground">{s.value}</div>
+            <div className="text-[10px] text-muted-foreground/50 font-body">{s.label}</div>
           </div>
         ))}
       </div>
@@ -151,119 +178,132 @@ function QuickStartSection() {
   );
 }
 
-function FeatureShowcase() {
+function FeatureGrid() {
   const features = [
     {
-      icon: TreePine,
+      icon: TreePine, color: 'text-emerald-400', bg: 'bg-emerald-400/10',
       title: 'Tab Tree View',
-      description: 'See all open windows and tabs in a collapsible tree. Grouped tabs show with colored borders matching their Chrome group color.',
-      color: 'text-chart-2',
-      bgColor: 'bg-chart-2/10',
+      desc: 'See all windows and tabs in a collapsible tree. Grouped tabs show with colored borders matching their Chrome group.',
     },
     {
-      icon: Search,
-      title: 'Fuzzy Search & Command Palette',
-      description: 'Instantly find any tab by title or URL. Press Cmd+K for a Spotlight-style quick switcher with real-time results.',
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      icon: Search, color: 'text-primary', bg: 'bg-primary/10',
+      title: 'Fuzzy Search + Cmd+K',
+      desc: 'Find any tab instantly by title or URL. The command palette gives you Spotlight-style quick switching.',
     },
     {
-      icon: Flame,
+      icon: Flame, color: 'text-rose-400', bg: 'bg-rose-400/10',
       title: 'Activity Heatmap',
-      description: 'Visualize your browsing patterns. See which tabs consume the most time and memory with day, week, or month views.',
-      color: 'text-chart-5',
-      bgColor: 'bg-chart-5/10',
+      desc: 'Visualize browsing patterns. See which tabs consume the most time and memory across day, week, or month.',
     },
     {
-      icon: Focus,
+      icon: Focus, color: 'text-violet-400', bg: 'bg-violet-400/10',
       title: 'Focus Mode',
-      description: 'Hide distractions. Pick a set of tabs to focus on, start a timer, and everything else fades away until you\'re done.',
-      color: 'text-chart-4',
-      bgColor: 'bg-chart-4/10',
+      desc: 'Pick your focus tabs, start a timer, and everything else fades away. Distraction-free deep work.',
     },
     {
-      icon: Pause,
+      icon: Pause, color: 'text-amber-400', bg: 'bg-amber-400/10',
       title: 'Tab Suspension',
-      description: 'Reclaim memory by suspending inactive tabs. They stay in your tree but free up resources. Resume them with one click.',
-      color: 'text-chart-3',
-      bgColor: 'bg-chart-3/10',
+      desc: 'Reclaim memory by suspending inactive tabs. They stay in your tree but free up system resources.',
     },
     {
-      icon: Layers,
+      icon: Layers, color: 'text-orange-400', bg: 'bg-orange-400/10',
       title: 'Duplicate Detection',
-      description: 'Spots URLs open in multiple tabs, highlights them with a badge, and lets you close extras with one click — keeping one of each.',
-      color: 'text-tp-duplicate',
-      bgColor: 'bg-tp-duplicate/10',
+      desc: 'Spots URLs open in multiple tabs and highlights them. Close extras with one click, keeping one of each.',
     },
     {
-      icon: Briefcase,
+      icon: Briefcase, color: 'text-sky-400', bg: 'bg-sky-400/10',
       title: 'Smart Workspaces',
-      description: 'Save and restore groups of tabs as workspaces. Comes with presets (Dev, Research, Media) or create your own custom collections.',
-      color: 'text-chart-1',
-      bgColor: 'bg-chart-1/10',
+      desc: 'Save tab collections as workspaces. Switch between "Dev", "Research", or your own custom presets.',
     },
     {
-      icon: Timer,
+      icon: Timer, color: 'text-teal-400', bg: 'bg-teal-400/10',
       title: 'Auto-Close Rules',
-      description: 'Set timers to automatically close tabs after 15, 30, or 60 minutes of inactivity. Whitelist important domains to keep them safe.',
-      color: 'text-chart-3',
-      bgColor: 'bg-chart-3/10',
+      desc: 'Set timers to close idle tabs after 15, 30, or 60 min. Whitelist domains to keep important tabs safe.',
     },
     {
-      icon: StickyNote,
+      icon: StickyNote, color: 'text-primary/70', bg: 'bg-primary/5',
       title: 'Tab Notes',
-      description: 'Attach quick notes to any tab via right-click. Notes persist across sessions and show as a badge on the tab.',
-      color: 'text-primary/70',
-      bgColor: 'bg-primary/5',
+      desc: 'Right-click any tab to attach a note. Notes persist and show as a badge so you never forget context.',
     },
     {
-      icon: Keyboard,
-      title: 'Keyboard-First Navigation',
-      description: 'Arrow keys to browse, Enter to switch, Delete to close, Cmd+K to search. Full keyboard control without touching the mouse.',
-      color: 'text-foreground/70',
-      bgColor: 'bg-foreground/5',
-    },
-    {
-      icon: GripVertical,
+      icon: GripVertical, color: 'text-muted-foreground', bg: 'bg-muted-foreground/10',
       title: 'Drag & Drop',
-      description: 'Reorder tabs within a window or drag them between windows. Grip handles appear on hover for precise control.',
-      color: 'text-muted-foreground',
-      bgColor: 'bg-muted-foreground/10',
+      desc: 'Reorder tabs within a window or drag between windows. Grip handles appear on hover for precision.',
     },
     {
-      icon: Zap,
+      icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-400/10',
       title: 'Session Manager',
-      description: 'Save your current tab layout as a named session. Restore it later to pick up right where you left off.',
-      color: 'text-tp-pinned',
-      bgColor: 'bg-tp-pinned/10',
+      desc: 'Snapshot your entire browser state. Name it, save it, restore it later to pick up right where you left off.',
+    },
+    {
+      icon: Keyboard, color: 'text-foreground/60', bg: 'bg-foreground/5',
+      title: 'Keyboard-First',
+      desc: 'Arrow keys to browse, Enter to switch, Delete to close, Cmd+K to search. Full control, no mouse needed.',
     },
   ];
 
   return (
-    <div className="mb-10" data-testid="feature-showcase">
-      <SectionLabel>Features</SectionLabel>
-      <div className="space-y-2">
+    <div className="max-w-2xl mx-auto px-8 py-10" data-testid="feature-showcase">
+      <SectionHeader title="Everything you need" subtitle="Built for power users who live in their browser" />
+      <div className="grid grid-cols-2 gap-3">
         {features.map((f) => (
-          <FeatureCard key={f.title} {...f} />
+          <div
+            key={f.title}
+            className="group p-3.5 rounded-xl bg-card/50 border border-border/30 hover:border-primary/20
+              transition-all duration-200"
+            data-testid={`feature-card-${f.title.toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            <div className={`w-8 h-8 rounded-lg ${f.bg} flex items-center justify-center mb-2.5
+              group-hover:scale-110 transition-transform duration-200`}>
+              <f.icon size={16} className={f.color} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-[13px] font-heading font-bold text-foreground leading-tight mb-1">{f.title}</h3>
+            <p className="text-[11px] text-muted-foreground/60 font-body leading-relaxed">{f.desc}</p>
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-function FeatureCard({ icon: Icon, title, description, color, bgColor }) {
+function HowItWorks() {
+  const steps = [
+    {
+      num: '1',
+      icon: Download,
+      title: 'Install the extension',
+      desc: 'One click from the Chrome Web Store. No sign-up, no configuration needed.',
+    },
+    {
+      num: '2',
+      icon: Monitor,
+      title: 'Open the sidebar',
+      desc: 'Click the TabPilot icon or use a keyboard shortcut to open the sidebar panel.',
+    },
+    {
+      num: '3',
+      icon: MousePointerClick,
+      title: 'Take control',
+      desc: 'Search, organize, suspend, and manage all your tabs from one place.',
+    },
+  ];
+
   return (
-    <div className="flex items-start gap-3 py-3 px-3.5 rounded-lg bg-card border border-border/40
-      hover:border-border/70 transition-all duration-200 group"
-      data-testid={`feature-card-${title.toLowerCase().replace(/\s+/g, '-')}`}
-    >
-      <div className={`w-7 h-7 rounded-lg ${bgColor} flex items-center justify-center shrink-0 mt-0.5
-        group-hover:scale-110 transition-transform duration-200`}>
-        <Icon size={14} className={color} strokeWidth={1.5} />
-      </div>
-      <div className="min-w-0">
-        <h3 className="text-[12px] font-heading font-semibold text-foreground leading-tight">{title}</h3>
-        <p className="text-[11px] text-muted-foreground/70 font-body leading-relaxed mt-0.5">{description}</p>
+    <div className="bg-card/30 border-y border-border/20" data-testid="how-it-works">
+      <div className="max-w-2xl mx-auto px-8 py-10">
+        <SectionHeader title="Get started in seconds" subtitle="No configuration required" />
+        <div className="grid grid-cols-3 gap-4">
+          {steps.map((s) => (
+            <div key={s.num} className="text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center
+                mx-auto mb-3">
+                <span className="text-sm font-heading font-black text-primary">{s.num}</span>
+              </div>
+              <h3 className="text-[13px] font-heading font-bold text-foreground mb-1">{s.title}</h3>
+              <p className="text-[11px] text-muted-foreground/60 font-body leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -271,22 +311,22 @@ function FeatureCard({ icon: Icon, title, description, color, bgColor }) {
 
 function ShortcutsSection() {
   const shortcuts = [
-    ['Cmd+K', 'Quick switch — find and jump to any tab'],
+    ['Cmd+K', 'Quick switch to any tab'],
     ['Ctrl+Shift+F', 'Focus the search bar'],
     ['\u2191 \u2193', 'Navigate through the tab list'],
-    ['Enter', 'Switch to the selected tab'],
-    ['Delete', 'Close the selected tab'],
-    ['Right-click', 'Open the context menu for any tab'],
+    ['Enter', 'Switch to selected tab'],
+    ['Delete', 'Close selected tab'],
+    ['Right-click', 'Context menu for any tab'],
   ];
 
   return (
-    <div className="mb-10" data-testid="shortcuts-section">
-      <SectionLabel>Keyboard Shortcuts</SectionLabel>
-      <div className="space-y-1">
+    <div className="max-w-2xl mx-auto px-8 py-10" data-testid="shortcuts-section">
+      <SectionHeader title="Keyboard shortcuts" subtitle="Navigate without touching your mouse" />
+      <div className="grid grid-cols-2 gap-1.5">
         {shortcuts.map(([key, desc]) => (
-          <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-card border border-border/40">
-            <span className="text-[11px] text-muted-foreground/80 font-body">{desc}</span>
-            <kbd className="text-[9px] font-mono bg-secondary/80 px-2 py-0.5 rounded text-foreground/60 border border-border/40 ml-3 shrink-0">
+          <div key={key} className="flex items-center justify-between py-2 px-3 rounded-lg bg-card/50 border border-border/30">
+            <span className="text-[12px] text-muted-foreground/70 font-body">{desc}</span>
+            <kbd className="text-[10px] font-mono bg-background px-2 py-0.5 rounded border border-border/50 text-foreground/50 ml-3 shrink-0">
               {key}
             </kbd>
           </div>
@@ -296,10 +336,38 @@ function ShortcutsSection() {
   );
 }
 
-function SectionLabel({ children }) {
+function BottomCTA() {
   return (
-    <h2 className="text-[10px] font-heading font-semibold text-muted-foreground/50 uppercase tracking-wider mb-2.5">
-      {children}
-    </h2>
+    <div className="bg-gradient-to-t from-primary/[0.04] to-transparent" data-testid="bottom-cta">
+      <div className="max-w-2xl mx-auto px-8 py-12 text-center">
+        <h2 className="text-lg font-heading font-bold text-foreground mb-2">Ready to take control?</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Join thousands of power users who manage their browser like pros.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button className="flex items-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground
+            font-heading font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20
+            active:scale-[0.98]" data-testid="download-extension-btn-bottom">
+            <Download size={16} strokeWidth={2} />
+            Add to Chrome — It's Free
+          </button>
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-4 text-[11px] text-muted-foreground/40">
+          <span className="flex items-center gap-1"><Shield size={11} /> Privacy-first</span>
+          <span className="flex items-center gap-1"><Cpu size={11} /> Lightweight</span>
+          <span className="flex items-center gap-1"><Clock size={11} /> Setup in 10s</span>
+          <span className="flex items-center gap-1"><Star size={11} /> Open source</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, subtitle }) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-base font-heading font-bold text-foreground">{title}</h2>
+      {subtitle && <p className="text-[12px] text-muted-foreground/50 font-body mt-0.5">{subtitle}</p>}
+    </div>
   );
 }

@@ -127,6 +127,11 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
         )}
       </div>
 
+      {/* Contextual help */}
+      <div className="px-2.5 py-2 rounded-lg bg-primary/[0.04] border border-primary/10 text-[11px] text-muted-foreground leading-relaxed" data-testid="workspace-help">
+        Save groups of tabs as named workspaces. Switch between "Dev", "Research", or "Media" collections with one click. Create your own or use the presets below.
+      </div>
+
       {/* Create/Edit form */}
       {creating && (
         <div className="rounded-lg border border-primary/30 bg-card p-3 space-y-2.5" data-testid="workspace-form">

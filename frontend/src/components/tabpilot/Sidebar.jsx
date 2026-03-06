@@ -49,11 +49,12 @@ export function Sidebar() {
   const duplicateTabIds = useMemo(() => getDuplicateTabIds(tabs.allTabs), [tabs.allTabs]);
 
   const handleSwitchTab = useCallback((tabId) => {
+    hidePreview();
     tabs.switchToTab(tabId);
     setVisitCounts(prev => ({ ...prev, [tabId]: (prev[tabId] || 0) + 1 }));
     const tab = tabs.allTabs.find(t => t.id === tabId);
     if (tab) toast.info(`Switched to: ${tab.title}`, { duration: 1500 });
-  }, [tabs]);
+  }, [tabs, hidePreview]);
 
   const handleCloseTab = useCallback((tabId) => {
     tabs.closeTab(tabId);
@@ -72,14 +73,17 @@ export function Sidebar() {
 
   const handleToggleGrouping = useCallback(() => {
     setViewMode(prev => prev === 'window' ? 'domain' : 'window');
-  }, []);
+    if (activePanel === 'heatmap' || activePanel === 'focus') setActivePanel(null);
+  }, [activePanel]);
 
   const handleToggleHeatmap = useCallback(() => {
     setActivePanel(prev => prev === 'heatmap' ? null : 'heatmap');
+    setViewMode('window');
   }, []);
 
   const handleToggleFocus = useCallback(() => {
     setActivePanel(prev => prev === 'focus' ? null : 'focus');
+    setViewMode('window');
   }, []);
 
   const handleSuspendInactive = useCallback(() => {

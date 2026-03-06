@@ -14,9 +14,14 @@ export function SessionManager({ sessions, onSave, onDelete, onRestore, windows 
 
   return (
     <div className="p-2 space-y-3" data-testid="session-manager">
-      <div className="flex items-center gap-1.5 mb-2">
+      <div className="flex items-center gap-1.5 mb-1">
         <Save size={13} className="text-primary" strokeWidth={1.5} />
         <span className="text-xs font-heading font-bold">Sessions</span>
+      </div>
+
+      {/* Contextual help */}
+      <div className="px-2.5 py-2 rounded-lg bg-primary/[0.04] border border-primary/10 text-[11px] text-muted-foreground leading-relaxed mb-2" data-testid="session-help">
+        Snapshot all your current windows and tabs. Restore a session later to reopen everything exactly as it was — like bookmarking your entire browser state.
       </div>
 
       <div className="flex gap-1.5">

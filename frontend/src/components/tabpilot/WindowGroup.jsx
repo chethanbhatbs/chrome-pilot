@@ -166,10 +166,10 @@ export function WindowGroup({
               <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-heading font-semibold tracking-tight">
+                  <span className="text-[13px] font-heading font-semibold tracking-tight">
                     Window {win.id}
                   </span>
-                  <span className="text-[9px] text-muted-foreground/40 font-mono">{tabCount}</span>
+                  <span className="text-[10px] text-muted-foreground/40 font-mono">{tabCount}</span>
                   {isFocused && (
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}
@@ -203,7 +203,7 @@ export function WindowGroup({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="pb-0.5">
+          <div className="pb-0.5 pl-5">
             {renderElements()}
           </div>
         </CollapsibleContent>

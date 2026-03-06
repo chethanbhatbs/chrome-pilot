@@ -88,11 +88,11 @@ export function TabItem({
 
           {/* Title + URL */}
           <div className="flex-1 min-w-0">
-            <div className={`font-body leading-tight truncate ${compact ? 'text-[11px]' : 'text-[11.5px]'}`}>
+            <div className={`font-body leading-tight truncate ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
               {highlightText ? highlightText(tab.title) : tab.title}
             </div>
             {showUrls && !compact && (
-              <div className="text-[10px] text-muted-foreground/40 truncate leading-tight mt-0.5">
+              <div className="text-[11px] text-muted-foreground/40 truncate leading-tight mt-0.5">
                 {highlightText ? highlightText(domain) : domain}
               </div>
             )}
@@ -145,19 +145,18 @@ export function TabItem({
             )}
           </div>
 
-          {/* Hover actions: close */}
+          {/* Hover actions: close + mute (mute only for audible/muted tabs) */}
           <div className="flex items-center gap-0 shrink-0">
-            <button
-              data-testid={`tab-mute-${tab.id}`}
-              onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-              className={`p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
-                ${isAudible || isMuted
-                  ? 'text-muted-foreground/60 opacity-0 group-hover:opacity-100'
-                  : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100'
-                }`}
-            >
-              {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
-            </button>
+            {(isAudible || isMuted) && (
+              <button
+                data-testid={`tab-mute-${tab.id}`}
+                onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
+                className="p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                  text-muted-foreground/60 opacity-0 group-hover:opacity-100"
+              >
+                {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
+              </button>
+            )}
             <button
               data-testid={`tab-close-${tab.id}`}
               onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
