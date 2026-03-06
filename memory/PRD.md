@@ -9,13 +9,13 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Database:** MongoDB (sessions, suggestions)
 - **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
 
-## All Features (tested, 100% pass across 12 iterations)
+## All Features (tested, 100% pass across 13 iterations)
 
 ### Core Tab Management
 - Tab Tree View with window/domain grouping, "Show more" for windows >5 tabs
 - Global Fuzzy Search with live suggestions + Cmd+K hint
 - Chrome Tab Groups with colored headers + colored left borders
-- Duplicate Detection with badge icon, improved banner text
+- Duplicate Detection with badge icon, Fix All banner (always visible at any sidebar width)
 - Drag & Drop with grip handles on hover
 - Session Save & Restore via API with contextual help
 - Context Menu with visual grouping
@@ -32,10 +32,10 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Command Palette** (Cmd+K)
 - **Domain View** — Collapsible domain groups with favicon, name, tab count
 
-### UX Polish (Iterations 8-12)
+### UX Polish (Iterations 8-13)
 - **GitHub Dark theme**: #0d1117 palette
 - **Chrome system font**: -apple-system, BlinkMacSystemFont, Segoe UI
-- **Sidebar collapse/expand**: Collapse button in header row (no overlap), floating expand button
+- **Sidebar collapse/expand**: Collapse button in header row (no overlap), floating expand button, min 320px
 - **Conditional toolbar**: Hidden for non-tab panels (notes, help, workspaces, etc.)
 - **Show more tabs**: Windows >5 tabs show first 5 + "Show X more" expand
 - **Single speaker icon**: Audio mute button only (no duplicate badge)
@@ -43,13 +43,18 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Preview anchored to sidebar**: Uses container boundary, not tab position
 - **Overflow toolbar**: Primary actions visible; secondary in "More" dropdown (icon-only More button)
 - **Heatmap/Domain mutual exclusion**
-- **Domain summaries**: Shortened + "+X more"
-- **No yellow/amber text**: Duplicate color changed from amber to red (#ef4444)
+- **Domain mode clarity**: Button label changes Domain↔Windows, Window button hidden in domain mode
+- **No yellow/amber text**: Duplicate color is red (#ef4444)
 - **Whitelisted domains**: Show website favicon in Auto-Close panel
 - **Help panel**: Pill-style tab switcher, left-border tips, clean keyboard shortcuts
 - **Workspace Activate/Deactivate**: Active workspace shows Deactivate button
 - **Timeline date format**: "Sat, Feb 28 · 6:00 AM" — clear and readable
-- **Duplicate banner**: overflow-hidden, no clipping of Fix All button
+- **Tab highlighting**: ONLY focused window's active tab highlighted; non-focused windows' active tabs transparent
+- **Group text labels**: text-foreground/65 for readable group names (Work/Media/Shopping)
+- **TabPilot text**: text-[13px] for better visibility
+- **Collapse icon**: Consistent opacity with other header icons
+- **Homepage vs sidebar color**: bg-card on homepage, bg-background on sidebar — visual separation
+- **Scrollbar fix (CRITICAL)**: pr-3 content wrapper + Radix CSS override prevents text from crossing scrollbar
 
 ## API Endpoints
 - `POST /api/sessions` — Save session
