@@ -1,28 +1,60 @@
-# TabPilot - Chrome Tab & Window Manager Extension
+# TabPilot - Chrome Extension Tab & Window Manager
 
 ## Original Problem Statement
-Build a Chrome Extension called "TabPilot" - a sidebar-based tab and window manager.
+Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window manager using Manifest V3, React 18, and Tailwind CSS.
 
-## What's Been Implemented (2026-03-06)
-### Iteration 1 - MVP: All 11 core features
-### Iteration 2 - UI overhaul, sidebar to left, memory/CPU stats, heatmap
-### Iteration 3 - Major polish & new features:
-- GitHub-dark theme (#0d1117 family) as default
-- Chrome system font (-apple-system, Segoe UI, system-ui)
-- Window dividers replaced with spacing (no ugly lines)
-- Tab alignment fixed (consistent px-3 padding, proper pl-4/pl-5 group indentation)
-- Heatmap: SVG line chart (weekly activity) + bar chart (visits by domain) + clear "312 visits" labels + legend
-- Focus Mode: Distraction-free view with timer + top 5 workflow tabs
-- Tab Suspension: Suspend inactive tabs to save memory, suspended tabs appear dimmed with "(suspended)"
-- Quick actions expanded with Pause (suspend) and Focus buttons
+## Core Requirements
+1. Real-Time Tab Tree View
+2. Global Tab Search (fuzzy)
+3. Group by Domain toggle
+4. Duplicate Tab Detection
+5. Drag & Drop tab reordering
+6. Session Save & Restore
+7. Quick Actions & Stats Bars
+8. Context Menu & Keyboard Shortcuts
+9. Chrome Tab Groups support
+10. Activity Heatmap with time tracking
+11. Focus Mode
+12. Tab Suspension
+13. Help & Feedback panel
+14. Privacy disclaimer
+15. Resizable sidebar
 
-## Prioritized Backlog
-### P1
-- [ ] Package extension as downloadable ZIP
-- [ ] Persist visit/suspension data across reloads
-- [ ] Tab suspension memory savings display
+## Architecture
+- **Frontend:** React 18 + Tailwind CSS, component-based with custom hooks
+- **Backend:** FastAPI (Python) — sessions & suggestions endpoints
+- **Database:** MongoDB (sessions, suggestions)
+- **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
+- **Dev strategy:** Web preview with mock data for rapid iteration
 
-### P2
-- [ ] Chrome Web Store listing
-- [ ] Multi-device session sync
-- [ ] Tab analytics dashboard over time
+## What's Been Implemented
+- Complete UI preview with all 15 features working
+- Tab tree view with window/domain grouping
+- Fuzzy search, duplicate detection, drag & drop
+- Session management (save/restore/delete via API)
+- Activity Heatmap with Day/Week/Month/Custom time filters
+- Time-based tracking (hours per app/domain)
+- Focus Mode with timer
+- Tab Suspension (suspend/unsuspend inactive tabs)
+- Chrome Tab Groups with colored headers (blue, green, red, yellow)
+- Help panel with usage tips + suggestion form
+- Privacy disclaimer (no passwords/browser data stored)
+- Resizable sidebar (280px–700px drag handle)
+- Keyboard shortcuts
+- Context menus
+- Dark theme (default)
+- Stats bar with memory/CPU/tab count
+
+## API Endpoints
+- `POST /api/sessions` — Save a session
+- `GET /api/sessions` — List sessions
+- `DELETE /api/sessions/{id}` — Delete a session
+- `POST /api/suggestions` — Submit user suggestion
+
+## Tech Stack
+- React 18, Tailwind CSS, Shadcn/UI
+- FastAPI, Motor (async MongoDB)
+- Manifest V3 Chrome Extension
+
+## Status: Feature Complete
+All user-requested features implemented and tested.
