@@ -73,6 +73,26 @@ async def delete_session(session_id: str):
     return {"status": "deleted"}
 
 
+# --- Suggestions ---
+class SuggestionCreate(BaseModel):
+    name: str = ""
+    message: str
+
+class Suggestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = ""
+    message: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+@api_router.post("/suggestions", response_model=Suggestion, status_code=201)
+async def create_suggestion(input_data: SuggestionCreate):
+    suggestion = Suggestion(name=input_data.name, message=input_data.message)
+    doc = suggestion.model_dump()
+    await db.suggestions.insert_one(doc)
+    return suggestion
+
+
 # Include router
 app.include_router(api_router)
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Settings, ArrowLeft } from 'lucide-react';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Settings, ArrowLeft, HelpCircle } from 'lucide-react';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
 import { QuickActions } from './QuickActions';
@@ -11,6 +11,7 @@ import { SessionManager } from './SessionManager';
 import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
 import { FocusMode } from './FocusMode';
+import { HelpPanel } from './HelpPanel';
 import { StatsBar } from './StatsBar';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
@@ -129,7 +130,7 @@ export function Sidebar() {
     onUnsuspend: tabs.unsuspendTab,
   };
 
-  const showBackButton = activePanel === 'settings' || activePanel === 'sessions' || activePanel === 'heatmap';
+  const showBackButton = ['settings', 'sessions', 'heatmap', 'help'].includes(activePanel);
 
   // Focus mode renders a completely different layout
   if (activePanel === 'focus') {
@@ -153,7 +154,7 @@ export function Sidebar() {
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
         {/* Header */}
         <div className="px-2 pt-2 pb-1.5 space-y-1.5 bg-background/90 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <div className="flex-1">
               <SearchBar
                 query={search.query}
@@ -163,17 +164,38 @@ export function Sidebar() {
                 inputRef={searchInputRef}
               />
             </div>
-            <button
-              data-testid="settings-toggle-btn"
-              onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-              className={`p-1.5 rounded-md transition-all duration-150
-                ${activePanel === 'settings'
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
-                } active:scale-95`}
-            >
-              <Settings size={13} strokeWidth={1.5} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  data-testid="help-toggle-btn"
+                  onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
+                  className={`p-1.5 rounded-md transition-all duration-150
+                    ${activePanel === 'help'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
+                    } active:scale-95`}
+                >
+                  <HelpCircle size={13} strokeWidth={1.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px] font-body">Help & Feedback</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  data-testid="settings-toggle-btn"
+                  onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
+                  className={`p-1.5 rounded-md transition-all duration-150
+                    ${activePanel === 'settings'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
+                    } active:scale-95`}
+                >
+                  <Settings size={13} strokeWidth={1.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px] font-body">Settings</TooltipContent>
+            </Tooltip>
           </div>
           <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel} />
         </div>
@@ -211,6 +233,10 @@ export function Sidebar() {
                 visitCounts={visitCounts}
                 onSwitch={handleSwitchTab}
               />
+            </div>
+          ) : activePanel === 'help' ? (
+            <div className="animate-slide-in">
+              <HelpPanel onBack={() => setActivePanel(null)} />
             </div>
           ) : (
             <div>

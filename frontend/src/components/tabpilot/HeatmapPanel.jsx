@@ -1,7 +1,10 @@
-import { Flame, TrendingUp, BarChart3, Clock, Zap } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Flame, TrendingUp, BarChart3, Clock, Zap, Calendar, Filter } from 'lucide-react';
 import { getDomain, getFaviconUrl } from '@/utils/grouping';
-import { TAB_METRICS, ACTIVITY_TIMELINE } from '@/utils/mockData';
-import { useMemo } from 'react';
+import {
+  TAB_METRICS, DOMAIN_TIME_SPENT, TAB_TIME_MINUTES,
+  HOURLY_ACTIVITY, WEEKLY_ACTIVITY, MONTHLY_ACTIVITY,
+} from '@/utils/mockData';
 import { toast } from 'sonner';
 
 function getHeatColor(ratio) {
@@ -18,7 +21,7 @@ function BarChart({ data, maxVal, labelKey, valueKey, unitLabel }) {
   const labelW = 100;
   const chartW = 280;
   const barAreaW = chartW - labelW - 50;
-  const svgH = data.length * (barH + gap) + 20;
+  const svgH = data.length * (barH + gap) + 8;
 
   return (
     <svg viewBox={`0 0 ${chartW} ${svgH}`} className="w-full" data-testid="bar-chart">
@@ -39,7 +42,7 @@ function BarChart({ data, maxVal, labelKey, valueKey, unitLabel }) {
               fill={heat.bar} opacity={0.85} />
             <text x={labelW + barW + 4} y={y + 13}
               className="fill-foreground" style={{ fontSize: '9px', fontWeight: 600, fontFamily: 'inherit' }}>
-              {item[valueKey]} {unitLabel}
+              {item[valueKey]}{unitLabel}
             </text>
           </g>
         );
@@ -48,7 +51,7 @@ function BarChart({ data, maxVal, labelKey, valueKey, unitLabel }) {
   );
 }
 
-function LineChart({ data }) {
+function TimelineChart({ data, xKey, yKey, yLabel }) {
   const w = 280;
   const h = 90;
   const padTop = 10;
@@ -58,18 +61,17 @@ function LineChart({ data }) {
   const chartW = w - padLeft - padRight;
   const chartH = h - padTop - padBot;
 
-  const maxVisits = Math.max(...data.map(d => d.visits));
+  const maxVal = Math.max(...data.map(d => d[yKey]));
   const points = data.map((d, i) => ({
-    x: padLeft + (i / (data.length - 1)) * chartW,
-    y: padTop + chartH - (d.visits / maxVisits) * chartH,
+    x: padLeft + (i / Math.max(data.length - 1, 1)) * chartW,
+    y: padTop + chartH - (d[yKey] / maxVal) * chartH,
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
   const areaPath = linePath + ` L${points[points.length - 1].x},${padTop + chartH} L${points[0].x},${padTop + chartH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" data-testid="line-chart">
-      {/* Grid lines */}
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" data-testid="timeline-chart">
       {[0, 0.5, 1].map(r => {
         const y = padTop + chartH - r * chartH;
         return (
@@ -78,12 +80,11 @@ function LineChart({ data }) {
               className="stroke-border" strokeWidth={0.5} strokeDasharray={r === 0 ? '' : '2 2'} />
             <text x={padLeft - 4} y={y + 3} textAnchor="end"
               className="fill-muted-foreground" style={{ fontSize: '7px', fontFamily: 'inherit' }}>
-              {Math.round(maxVisits * r)}
+              {(maxVal * r).toFixed(yKey === 'hours' ? 1 : 0)}{yLabel}
             </text>
           </g>
         );
       })}
-      {/* Area fill */}
       <path d={areaPath} fill="url(#areaGrad)" />
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -91,19 +92,17 @@ function LineChart({ data }) {
           <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
         </linearGradient>
       </defs>
-      {/* Line */}
       <path d={linePath} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      {/* Dots + labels */}
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={p.x} cy={p.y} r={2.5} className="fill-primary" />
           <text x={p.x} y={h - 4} textAnchor="middle"
             className="fill-muted-foreground" style={{ fontSize: '7px', fontFamily: 'inherit' }}>
-            {data[i].day}
+            {data[i][xKey]}
           </text>
           <text x={p.x} y={p.y - 6} textAnchor="middle"
             className="fill-foreground" style={{ fontSize: '7px', fontWeight: 600, fontFamily: 'inherit' }}>
-            {data[i].visits}
+            {typeof data[i][yKey] === 'number' && yKey === 'hours' ? data[i][yKey].toFixed(1) : data[i][yKey]}
           </text>
         </g>
       ))}
@@ -111,34 +110,63 @@ function LineChart({ data }) {
   );
 }
 
+const TIME_FILTERS = [
+  { id: 'day', label: 'Day' },
+  { id: 'week', label: 'Week' },
+  { id: 'month', label: 'Month' },
+  { id: 'custom', label: 'Custom' },
+];
+
 export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
+  const [timeFilter, setTimeFilter] = useState('week');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  // Domain time data
+  const domainTimeData = useMemo(() => {
+    return Object.entries(DOMAIN_TIME_SPENT)
+      .map(([domain, data]) => ({
+        domain: data.label,
+        hours: data.hours,
+        color: data.color,
+      }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 8);
+  }, []);
+
+  const maxDomainHours = domainTimeData[0]?.hours || 1;
+
+  // Timeline data based on filter
+  const timelineConfig = useMemo(() => {
+    switch (timeFilter) {
+      case 'day':
+        return { data: HOURLY_ACTIVITY, xKey: 'hour', yKey: 'minutes', yLabel: 'm', title: 'Today (active minutes per hour)' };
+      case 'week':
+        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'This Week (hours per day)' };
+      case 'month':
+        return { data: MONTHLY_ACTIVITY, xKey: 'week', yKey: 'hours', yLabel: 'h', title: 'This Month (hours per week)' };
+      case 'custom':
+        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'Custom Range (hours per day)' };
+      default:
+        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'This Week' };
+    }
+  }, [timeFilter]);
+
+  // Tab time spent ranking
   const rankedTabs = useMemo(() => {
     return allTabs.map(tab => ({
       ...tab,
+      timeMinutes: TAB_TIME_MINUTES[tab.id] || 5,
       visits: (visitCounts[tab.id] || 0) + (TAB_METRICS[tab.id]?.visitCount || 0),
       memory: TAB_METRICS[tab.id]?.memory || 80,
-    })).sort((a, b) => b.visits - a.visits);
+    })).sort((a, b) => b.timeMinutes - a.timeMinutes);
   }, [allTabs, visitCounts]);
 
-  const maxVisits = rankedTabs[0]?.visits || 1;
-  const totalVisits = rankedTabs.reduce((s, t) => s + t.visits, 0);
-
-  const domainData = useMemo(() => {
-    const map = {};
-    rankedTabs.forEach(tab => {
-      const d = getDomain(tab.url);
-      if (!map[d]) map[d] = { domain: d, visits: 0, tabs: 0, memory: 0, url: tab.url };
-      map[d].visits += tab.visits;
-      map[d].tabs += 1;
-      map[d].memory += tab.memory;
-    });
-    return Object.values(map).sort((a, b) => b.visits - a.visits).slice(0, 6);
-  }, [rankedTabs]);
-
-  const maxDomainVisits = domainData[0]?.visits || 1;
+  const maxTime = rankedTabs[0]?.timeMinutes || 1;
+  const totalHours = (rankedTabs.reduce((s, t) => s + t.timeMinutes, 0) / 60).toFixed(1);
 
   return (
-    <div className="p-3 space-y-5" data-testid="heatmap-panel">
+    <div className="p-3 space-y-4" data-testid="heatmap-panel">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -146,55 +174,115 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
           <span className="text-sm font-heading font-bold">Activity Heatmap</span>
         </div>
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          Tracks how often you visit each tab. Higher visit counts mean heavier usage.
-          Total: <span className="font-semibold text-foreground">{totalVisits} visits</span> across {rankedTabs.length} tabs.
+          Tracks time you spend on each site in hours.
+          Total: <span className="font-semibold text-foreground">{totalHours}h</span> across {rankedTabs.length} tabs.
         </p>
       </div>
 
-      {/* Activity Timeline - Line Chart */}
+      {/* Time filter pills */}
+      <div data-testid="heatmap-time-filters">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Filter size={10} className="text-muted-foreground/60" strokeWidth={1.5} />
+          <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
+            Time Range
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {TIME_FILTERS.map(f => (
+            <button
+              key={f.id}
+              data-testid={`heatmap-filter-${f.id}`}
+              onClick={() => setTimeFilter(f.id)}
+              className={`flex-1 py-1.5 rounded-md text-[10px] font-body font-medium transition-all duration-150
+                ${timeFilter === f.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {timeFilter === 'custom' && (
+          <div className="flex gap-2 mt-2">
+            <div className="flex-1">
+              <label className="text-[9px] text-muted-foreground block mb-0.5">From</label>
+              <input
+                data-testid="heatmap-custom-from"
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="w-full h-7 px-2 text-[10px] font-body bg-card border border-border rounded-md
+                  text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-[9px] text-muted-foreground block mb-0.5">To</label>
+              <input
+                data-testid="heatmap-custom-to"
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="w-full h-7 px-2 text-[10px] font-body bg-card border border-border rounded-md
+                  text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Activity Timeline Chart */}
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <Clock size={10} className="text-muted-foreground/60" strokeWidth={1.5} />
           <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
-            Weekly Activity (visits per day)
+            {timelineConfig.title}
           </span>
         </div>
         <div className="bg-card rounded-lg border border-border p-2">
-          <LineChart data={ACTIVITY_TIMELINE} />
-        </div>
-      </div>
-
-      {/* Domain Bar Chart */}
-      <div>
-        <div className="flex items-center gap-1.5 mb-2">
-          <BarChart3 size={10} className="text-muted-foreground/60" strokeWidth={1.5} />
-          <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
-            Visits by Domain
-          </span>
-        </div>
-        <div className="bg-card rounded-lg border border-border p-2">
-          <BarChart
-            data={domainData}
-            maxVal={maxDomainVisits}
-            labelKey="domain"
-            valueKey="visits"
-            unitLabel="visits"
+          <TimelineChart
+            data={timelineConfig.data}
+            xKey={timelineConfig.xKey}
+            yKey={timelineConfig.yKey}
+            yLabel={timelineConfig.yLabel}
           />
         </div>
       </div>
 
-      {/* Top Tabs Ranking */}
+      {/* Time Spent by Domain — Horizontal bar chart */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <BarChart3 size={10} className="text-muted-foreground/60" strokeWidth={1.5} />
+          <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
+            Time by App (hours)
+          </span>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-2">
+          <BarChart
+            data={domainTimeData}
+            maxVal={maxDomainHours}
+            labelKey="domain"
+            valueKey="hours"
+            unitLabel="h"
+          />
+        </div>
+      </div>
+
+      {/* Top Tabs by Time */}
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <TrendingUp size={10} className="text-muted-foreground/60" strokeWidth={1.5} />
           <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
-            Most Visited Tabs
+            Most Used Tabs (by time)
           </span>
         </div>
         <div className="space-y-0.5">
           {rankedTabs.slice(0, 6).map((tab, idx) => {
-            const ratio = tab.visits / maxVisits;
+            const ratio = tab.timeMinutes / maxTime;
             const heat = getHeatColor(ratio);
+            const hrs = Math.floor(tab.timeMinutes / 60);
+            const mins = tab.timeMinutes % 60;
+            const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
             return (
               <div
                 key={tab.id}
@@ -222,7 +310,7 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
                       />
                     </div>
                     <span className={`text-[8px] font-mono ${heat.text}`}>
-                      {tab.visits} visits
+                      {timeStr}
                     </span>
                     <span className="text-[8px] font-mono text-muted-foreground">
                       {tab.memory}MB
@@ -242,21 +330,26 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
           <span className="text-[11px] font-heading font-bold text-primary">Suggested Workflow</span>
         </div>
         <p className="text-[10px] text-muted-foreground mb-2.5 leading-relaxed">
-          Based on your most-visited tabs, here's a curated session template:
+          Based on your most-used tabs, here's a curated session template:
         </p>
         <div className="space-y-1 mb-3">
-          {rankedTabs.slice(0, 5).map(tab => (
-            <div key={tab.id} className="flex items-center gap-2 text-[10px]">
-              <img
-                src={getFaviconUrl(tab.url)}
-                alt=""
-                className="w-3 h-3 rounded-[2px]"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-              <span className="truncate text-foreground/80">{tab.title}</span>
-              <span className="text-muted-foreground ml-auto shrink-0">{tab.visits}</span>
-            </div>
-          ))}
+          {rankedTabs.slice(0, 5).map(tab => {
+            const hrs = Math.floor(tab.timeMinutes / 60);
+            const mins = tab.timeMinutes % 60;
+            const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+            return (
+              <div key={tab.id} className="flex items-center gap-2 text-[10px]">
+                <img
+                  src={getFaviconUrl(tab.url)}
+                  alt=""
+                  className="w-3 h-3 rounded-[2px]"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <span className="truncate text-foreground/80">{tab.title}</span>
+                <span className="text-muted-foreground ml-auto shrink-0">{timeStr}</span>
+              </div>
+            );
+          })}
         </div>
         <button
           data-testid="save-suggested-session-btn"

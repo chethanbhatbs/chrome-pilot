@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 const STORAGE_KEY = 'tabpilot_settings';
 
 const DEFAULT_SETTINGS = {
-  theme: 'system',
+  theme: 'dark',
   defaultView: 'window',
   showFavicons: true,
   showUrls: true,

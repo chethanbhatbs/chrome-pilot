@@ -1,8 +1,10 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Monitor, Search, LayoutGrid, Copy, GripVertical, Save,
-  BarChart3, Mouse, Keyboard, Settings, Zap, Download, ArrowRight, ArrowLeft, ExternalLink, Flame
+  BarChart3, Mouse, Keyboard, Settings, Zap, Download, ArrowLeft, ExternalLink, Flame,
+  Focus, Pause, HelpCircle, GripHorizontal
 } from 'lucide-react';
 
 const features = [
@@ -12,18 +14,55 @@ const features = [
   { icon: Copy, title: 'Duplicate Detection', desc: 'Find and close duplicate tabs in one click' },
   { icon: GripVertical, title: 'Drag & Drop', desc: 'Reorder and move tabs between windows' },
   { icon: Save, title: 'Session Manager', desc: 'Save and restore tab sessions' },
-  { icon: Flame, title: 'Activity Heatmap', desc: 'See which tabs you visit most frequently' },
+  { icon: Flame, title: 'Activity Heatmap', desc: 'Time tracking with day/week/month filters' },
   { icon: BarChart3, title: 'Memory & CPU', desc: 'Live memory and CPU usage per tab' },
+  { icon: Focus, title: 'Focus Mode', desc: 'Hide distractions, show only core tabs' },
+  { icon: Pause, title: 'Tab Suspension', desc: 'Free memory by suspending inactive tabs' },
   { icon: Mouse, title: 'Context Menu', desc: 'Right-click for all tab actions' },
   { icon: Keyboard, title: 'Keyboard Shortcuts', desc: 'Navigate and manage with hotkeys' },
+  { icon: HelpCircle, title: 'Help & Feedback', desc: 'Built-in guide and suggestion form' },
 ];
 
 export default function TabPilotPreview() {
+  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(400);
+
+  const handleMouseDown = useCallback((e) => {
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      const delta = e.clientX - startX.current;
+      const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 700);
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground" data-testid="tabpilot-preview">
       <Toaster richColors position="bottom-right" />
 
-      {/* Browser mockup container */}
       <div className="h-screen flex flex-col">
         {/* Fake browser chrome */}
         <div className="bg-card border-b border-border/50 px-3 py-1.5 flex items-center gap-3 shrink-0">
@@ -44,7 +83,11 @@ export default function TabPilotPreview() {
         {/* Main content area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Interactive Sidebar */}
-          <div className="w-[400px] shrink-0 border-r border-border/50 bg-background flex flex-col" data-testid="sidebar-container">
+          <div
+            className="shrink-0 border-r border-border/50 bg-background flex flex-col"
+            style={{ width: `${sidebarWidth}px` }}
+            data-testid="sidebar-container"
+          >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-card/50">
               <span className="text-xs font-heading font-bold text-primary tracking-tight">TabPilot</span>
               <span className="text-[9px] font-mono text-muted-foreground">v1.0.0</span>
@@ -52,6 +95,16 @@ export default function TabPilotPreview() {
             <div className="flex-1 overflow-hidden">
               <Sidebar />
             </div>
+          </div>
+
+          {/* Resize handle */}
+          <div
+            data-testid="sidebar-resize-handle"
+            onMouseDown={handleMouseDown}
+            className="w-1.5 shrink-0 cursor-col-resize group relative flex items-center justify-center
+              hover:bg-primary/20 active:bg-primary/30 transition-colors"
+          >
+            <div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
           </div>
 
           {/* Right: Hero / Marketing content */}
@@ -105,11 +158,11 @@ export default function TabPilotPreview() {
                   <span className="text-sm font-heading font-bold">Interactive Preview</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-body leading-relaxed">
-                  The sidebar on the left is a fully functional preview. Try searching, closing tabs,
-                  right-clicking for context menus, dragging to reorder, and the Activity Heatmap.
+                  The sidebar on the left is a fully functional preview. Drag the edge to resize it.
+                  Try searching, closing tabs, right-clicking for context menus, and exploring the Activity Heatmap.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {['Click tabs', 'Right-click menu', 'Search (Ctrl+Shift+F)', 'Drag & drop', 'Heatmap', 'Save sessions'].map(action => (
+                  {['Click tabs', 'Right-click menu', 'Resize sidebar', 'Tab groups', 'Heatmap', 'Help & Feedback'].map(action => (
                     <span key={action} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
                       {action}
                     </span>

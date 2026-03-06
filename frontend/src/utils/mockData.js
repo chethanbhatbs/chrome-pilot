@@ -50,7 +50,7 @@ export const MOCK_WINDOWS = [
         url: 'https://chat.openai.com/',
         active: false, pinned: false,
         audible: true, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: 2
       },
       {
         id: 107, windowId: 1, index: 6,
@@ -58,7 +58,7 @@ export const MOCK_WINDOWS = [
         url: 'https://docs.google.com/document/d/abc123/edit',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: 2
       },
     ]
   },
@@ -73,7 +73,7 @@ export const MOCK_WINDOWS = [
         url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
         active: true, pinned: false,
         audible: true, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: 3
       },
       {
         id: 202, windowId: 2, index: 1,
@@ -81,7 +81,7 @@ export const MOCK_WINDOWS = [
         url: 'https://www.reddit.com/r/programming/',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: 3
       },
       {
         id: 203, windowId: 2, index: 2,
@@ -104,7 +104,7 @@ export const MOCK_WINDOWS = [
         url: 'https://www.amazon.com/gp/cart/view.html',
         active: true, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: 4
       },
       {
         id: 302, windowId: 3, index: 1,
@@ -135,7 +135,10 @@ export const MOCK_WINDOWS = [
 ];
 
 export const MOCK_TAB_GROUPS = [
-  { id: 1, title: 'Work', color: 'blue', collapsed: false, windowId: 1 }
+  { id: 1, title: 'Work', color: 'blue', collapsed: false, windowId: 1 },
+  { id: 2, title: 'Research', color: 'green', collapsed: false, windowId: 1 },
+  { id: 3, title: 'Media', color: 'red', collapsed: false, windowId: 2 },
+  { id: 4, title: 'Shopping', color: 'yellow', collapsed: false, windowId: 3 },
 ];
 
 export const TAB_GROUP_COLORS = {
@@ -147,9 +150,9 @@ export const TAB_GROUP_COLORS = {
   pink: { bg: '#ff8bcb', text: '#202124' },
   purple: { bg: '#c58af9', text: '#202124' },
   cyan: { bg: '#78d9ec', text: '#202124' },
+  orange: { bg: '#fcad70', text: '#202124' },
 };
 
-// Simulated per-tab metrics
 export const TAB_METRICS = {
   101: { memory: 145, cpu: 2, visitCount: 47 },
   102: { memory: 210, cpu: 5, visitCount: 156 },
@@ -167,14 +170,65 @@ export const TAB_METRICS = {
   304: { memory: 55, cpu: 1, visitCount: 8 },
 };
 
+// Time spent per domain (in hours) — simulated tracking data
+export const DOMAIN_TIME_SPENT = {
+  'github.com': { hours: 4.2, label: 'GitHub', color: '#8ab4f8' },
+  'stackoverflow.com': { hours: 3.1, label: 'Stack Overflow', color: '#f48225' },
+  'mycompany.atlassian.net': { hours: 2.8, label: 'Atlassian', color: '#0052cc' },
+  'mycompany.slack.com': { hours: 2.3, label: 'Slack', color: '#4a154b' },
+  'chat.openai.com': { hours: 1.9, label: 'ChatGPT', color: '#10a37f' },
+  'docs.google.com': { hours: 1.4, label: 'Google Docs', color: '#4285f4' },
+  'www.youtube.com': { hours: 1.1, label: 'YouTube', color: '#ff0000' },
+  'www.reddit.com': { hours: 0.8, label: 'Reddit', color: '#ff4500' },
+  'mail.google.com': { hours: 0.7, label: 'Gmail', color: '#ea4335' },
+  'www.amazon.com': { hours: 0.5, label: 'Amazon', color: '#ff9900' },
+  'x.com': { hours: 0.4, label: 'X / Twitter', color: '#1da1f2' },
+  'www.netflix.com': { hours: 0.3, label: 'Netflix', color: '#e50914' },
+};
 
-export const ACTIVITY_TIMELINE = [
-  { day: 'Mon', visits: 45, memory: 1800 },
-  { day: 'Tue', visits: 72, memory: 2200 },
-  { day: 'Wed', visits: 58, memory: 2400 },
-  { day: 'Thu', visits: 91, memory: 2800 },
-  { day: 'Fri', visits: 83, memory: 2600 },
-  { day: 'Sat', visits: 34, memory: 1400 },
-  { day: 'Sun', visits: 28, memory: 1100 },
+// Per-tab time spent in minutes (for detailed view)
+export const TAB_TIME_MINUTES = {
+  101: 142, 102: 98, 103: 65, 104: 52, 105: 88,
+  106: 114, 107: 38, 201: 66, 202: 48, 203: 42,
+  301: 30, 302: 22, 303: 24, 304: 5,
+};
+
+// Hourly activity breakdown for "today" view
+export const HOURLY_ACTIVITY = [
+  { hour: '6am', minutes: 0 },
+  { hour: '7am', minutes: 12 },
+  { hour: '8am', minutes: 35 },
+  { hour: '9am', minutes: 52 },
+  { hour: '10am', minutes: 48 },
+  { hour: '11am', minutes: 55 },
+  { hour: '12pm', minutes: 20 },
+  { hour: '1pm', minutes: 45 },
+  { hour: '2pm', minutes: 58 },
+  { hour: '3pm', minutes: 50 },
+  { hour: '4pm', minutes: 42 },
+  { hour: '5pm', minutes: 30 },
+  { hour: '6pm', minutes: 15 },
+  { hour: '7pm', minutes: 8 },
 ];
 
+// Weekly activity — hours per day
+export const WEEKLY_ACTIVITY = [
+  { day: 'Mon', hours: 6.2, visits: 45 },
+  { day: 'Tue', hours: 7.8, visits: 72 },
+  { day: 'Wed', hours: 5.9, visits: 58 },
+  { day: 'Thu', hours: 8.4, visits: 91 },
+  { day: 'Fri', hours: 7.1, visits: 83 },
+  { day: 'Sat', hours: 3.2, visits: 34 },
+  { day: 'Sun', hours: 2.1, visits: 28 },
+];
+
+// Monthly activity — hours per week
+export const MONTHLY_ACTIVITY = [
+  { week: 'Week 1', hours: 32.5, visits: 310 },
+  { week: 'Week 2', hours: 38.2, visits: 385 },
+  { week: 'Week 3', hours: 35.8, visits: 348 },
+  { week: 'Week 4', hours: 40.7, visits: 411 },
+];
+
+// Legacy alias
+export const ACTIVITY_TIMELINE = WEEKLY_ACTIVITY;

@@ -1,36 +1,28 @@
 # TabPilot - Chrome Tab & Window Manager Extension
 
 ## Original Problem Statement
-Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window manager. All windows/tabs in a tree view with search, filter, group, reorder, close, pin, mute, move tabs, save sessions, detect duplicates.
-
-## Architecture
-- **Web Preview**: React 18 + Tailwind CSS frontend (port 3000) with interactive sidebar
-- **Chrome Extension**: Manifest V3, vanilla JS side panel with Chrome APIs
-- **Backend**: FastAPI (port 8001) with MongoDB for session persistence
+Build a Chrome Extension called "TabPilot" - a sidebar-based tab and window manager.
 
 ## What's Been Implemented (2026-03-06)
-### Iteration 1 - MVP
-- Full interactive sidebar with mock tab data (14 tabs, 3 windows, 1 tab group)
-- All 11 core features: search, tab tree, domain grouping, duplicates, drag & drop, sessions, quick actions, stats, context menu, tab groups, keyboard shortcuts
-- Chrome Extension source files with Manifest V3
-- Dark/Light/System theme support
-
-### Iteration 2 - UI Overhaul + New Features
-- **Sidebar moved to LEFT** (from right)
-- **UI decluttered**: Removed grip handles, cleaner tab items with absolute accent bar, subtler window headers, better spacing
-- **Memory/CPU stats**: StatsBar shows total memory (2.5 GB), avg CPU (4.5%), tab/audible/pinned/duplicate counts
-- **Tab Activity Heatmap**: Top Domains heat bars (color-coded cold→hot), Most Visited Tabs ranking, Suggested Workflow session template builder
-- **QuickActions expanded**: 7 buttons including Flame heatmap toggle
-- TAB_METRICS data with per-tab memory, CPU, visit counts
+### Iteration 1 - MVP: All 11 core features
+### Iteration 2 - UI overhaul, sidebar to left, memory/CPU stats, heatmap
+### Iteration 3 - Major polish & new features:
+- GitHub-dark theme (#0d1117 family) as default
+- Chrome system font (-apple-system, Segoe UI, system-ui)
+- Window dividers replaced with spacing (no ugly lines)
+- Tab alignment fixed (consistent px-3 padding, proper pl-4/pl-5 group indentation)
+- Heatmap: SVG line chart (weekly activity) + bar chart (visits by domain) + clear "312 visits" labels + legend
+- Focus Mode: Distraction-free view with timer + top 5 workflow tabs
+- Tab Suspension: Suspend inactive tabs to save memory, suspended tabs appear dimmed with "(suspended)"
+- Quick actions expanded with Pause (suspend) and Focus buttons
 
 ## Prioritized Backlog
 ### P1
 - [ ] Package extension as downloadable ZIP
-- [ ] Persist visit counts across page reloads
-- [ ] Tab suspension feature (unload inactive tabs)
+- [ ] Persist visit/suspension data across reloads
+- [ ] Tab suspension memory savings display
 
 ### P2
 - [ ] Chrome Web Store listing
-- [ ] Extension Vite build setup
 - [ ] Multi-device session sync
-- [ ] Tab analytics dashboard
+- [ ] Tab analytics dashboard over time

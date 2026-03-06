@@ -21,15 +21,10 @@ export function WindowGroup({
   const tabCount = win.tabs.length;
 
   const windowTabGroups = tabGroups.filter(g => g.windowId === win.id);
-  const groupedTabIds = new Set(windowTabGroups.flatMap(g =>
-    win.tabs.filter(t => t.groupId === g.id).map(t => t.id)
-  ));
 
   const filteredTabs = matchingTabIds
     ? win.tabs.filter(t => matchingTabIds.has(t.id))
     : win.tabs;
-
-  const ungroupedTabs = filteredTabs.filter(t => !groupedTabIds.has(t.id));
 
   const handleDragStart = useCallback((e, tab) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ tabId: tab.id, windowId: win.id }));
@@ -84,10 +79,55 @@ export function WindowGroup({
 
   if (filteredTabs.length === 0) return null;
 
+  // Build a rendering plan: group consecutive grouped tabs under their header
+  const renderElements = () => {
+    const elements = [];
+    const renderedGroupHeaders = new Set();
+
+    for (const tab of filteredTabs) {
+      const group = windowTabGroups.find(g => g.id === tab.groupId);
+
+      if (group) {
+        if (!renderedGroupHeaders.has(group.id)) {
+          renderedGroupHeaders.add(group.id);
+          elements.push(
+            <div key={`gh-${group.id}`} className="ml-3 mt-1.5">
+              <TabGroupHeader
+                group={group}
+                collapsed={collapsedGroups[group.id]}
+                onToggle={() => setCollapsedGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
+              />
+            </div>
+          );
+        }
+        if (!collapsedGroups[group.id]) {
+          elements.push(
+            <div
+              key={tab.id}
+              className={`ml-5 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+            >
+              <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
+            </div>
+          );
+        }
+      } else {
+        elements.push(
+          <div
+            key={tab.id}
+            className={`ml-3 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+          >
+            <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
+          </div>
+        );
+      }
+    }
+    return elements;
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className="mb-1"
+        className="mb-0.5"
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
         onDrop={handleWindowDrop}
         data-testid={`window-group-${win.id}`}
@@ -139,41 +179,7 @@ export function WindowGroup({
 
         <CollapsibleContent>
           <div className="pb-1">
-            {(() => {
-              const elements = [];
-              const renderedGroupHeaders = new Set();
-              for (const tab of filteredTabs) {
-                const group = windowTabGroups.find(g => g.id === tab.groupId);
-                if (group) {
-                  if (!renderedGroupHeaders.has(group.id)) {
-                    renderedGroupHeaders.add(group.id);
-                    elements.push(
-                      <div key={`gh-${group.id}`} className="pl-5 mt-1">
-                        <TabGroupHeader
-                          group={group}
-                          collapsed={collapsedGroups[group.id]}
-                          onToggle={() => setCollapsedGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
-                        />
-                      </div>
-                    );
-                  }
-                  if (!collapsedGroups[group.id]) {
-                    elements.push(
-                      <div key={tab.id} className={`pl-4 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}>
-                        <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
-                      </div>
-                    );
-                  }
-                } else {
-                  elements.push(
-                    <div key={tab.id} className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}>
-                      <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
-                    </div>
-                  );
-                }
-              }
-              return elements;
-            })()}
+            {renderElements()}
           </div>
         </CollapsibleContent>
       </div>
