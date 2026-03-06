@@ -9,7 +9,7 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Database:** MongoDB (sessions, suggestions)
 - **Extension:** Manifest V3 Chrome Extension (in /app/extension/tabpilot)
 
-## All Features (tested, 100% pass across 11 iterations)
+## All Features (tested, 100% pass across 12 iterations)
 
 ### Core Tab Management
 - Tab Tree View with window/domain grouping, "Show more" for windows >5 tabs
@@ -22,28 +22,34 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 
 ### Advanced Features
 - **Activity Heatmap**: Day/Week/Month filters, ALL charts scale by filter
-- **Tab Timeline**: GitHub-contributions-style grid
+- **Tab Timeline**: GitHub-contributions-style grid, date format "Day, Mon DD · HH:MM AM/PM"
 - **Focus Mode** with timer
 - **Tab Suspension** + Unsuspend All
 - **Tab Notes** — CRUD via context menu + panel
-- **Smart Workspaces** — 4 presets + custom CRUD + contextual help
-- **Auto-Close Rules** — Timer presets, domain whitelist
+- **Smart Workspaces** — 4 presets + custom CRUD, Activate/Deactivate toggle per workspace
+- **Auto-Close Rules** — Timer presets, domain whitelist with favicons
 - **Tab Previews** — Hover card anchored at sidebar edge, dismisses on click
 - **Command Palette** (Cmd+K)
 - **Domain View** — Collapsible domain groups with favicon, name, tab count
 
-### UX Polish (Iterations 8-11)
+### UX Polish (Iterations 8-12)
 - **GitHub Dark theme**: #0d1117 palette
 - **Chrome system font**: -apple-system, BlinkMacSystemFont, Segoe UI
-- **Sidebar collapse/expand**: PanelLeftClose toggle, floating expand button
+- **Sidebar collapse/expand**: Collapse button in header row (no overlap), floating expand button
 - **Conditional toolbar**: Hidden for non-tab panels (notes, help, workspaces, etc.)
 - **Show more tabs**: Windows >5 tabs show first 5 + "Show X more" expand
 - **Single speaker icon**: Audio mute button only (no duplicate badge)
-- **Stats bar**: 10px font, no yellow — uses primary/emerald/rose colors
+- **Stats bar**: No tooltips, no yellow — uses primary/emerald/rose colors
 - **Preview anchored to sidebar**: Uses container boundary, not tab position
-- **Overflow toolbar**: Primary actions visible; secondary in "More" dropdown
+- **Overflow toolbar**: Primary actions visible; secondary in "More" dropdown (icon-only More button)
 - **Heatmap/Domain mutual exclusion**
 - **Domain summaries**: Shortened + "+X more"
+- **No yellow/amber text**: Duplicate color changed from amber to red (#ef4444)
+- **Whitelisted domains**: Show website favicon in Auto-Close panel
+- **Help panel**: Pill-style tab switcher, left-border tips, clean keyboard shortcuts
+- **Workspace Activate/Deactivate**: Active workspace shows Deactivate button
+- **Timeline date format**: "Sat, Feb 28 · 6:00 AM" — clear and readable
+- **Duplicate banner**: overflow-hidden, no clipping of Fix All button
 
 ## API Endpoints
 - `POST /api/sessions` — Save session

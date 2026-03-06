@@ -21,7 +21,7 @@ function generateTimelineData() {
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
       const isWorkHour = h >= 9 && h <= 17;
       const baseActivity = isWeekend ? 0.15 : isWorkHour ? 0.7 : 0.2;
-      const activity = Math.min(1, baseActivity + (Math.random() * 0.4 - 0.2));
+      const activity = Math.max(0, Math.min(1, baseActivity + (Math.random() * 0.4 - 0.2)));
       const minutesActive = Math.round(activity * 55);
 
       // Pick random domains active during this hour
@@ -146,7 +146,7 @@ export function TabTimeline() {
             const day = TIMELINE_DATA[selectedCell.day];
             const hour = day.hours[selectedCell.hour];
             const h = hour.hour;
-            const timeLabel = h <= 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+            const timeLabel = h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`;
             return (
               <>
                 <div className="flex items-center gap-1.5 mb-1.5">
