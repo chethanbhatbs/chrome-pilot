@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 240 28% 14%;
+    --background: 210 17% 95%;
+    --foreground: 210 11% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 240 28% 14%;
+    --card-foreground: 210 11% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 28% 14%;
-    --primary: 194 85% 40%;
+    --popover-foreground: 210 11% 15%;
+    --primary: 212 92% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 240 28% 14%;
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 45%;
-    --accent: 213 50% 92%;
-    --accent-foreground: 213 73% 22%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 210 11% 15%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 14% 46%;
+    --accent: 210 40% 93%;
+    --accent-foreground: 212 92% 35%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 194 85% 50%;
-    --chart-1: 194 85% 50%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 212 92% 45%;
+    --chart-1: 212 92% 45%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
@@ -34,26 +34,26 @@
   }
 
   .dark {
-    --background: 240 28% 14%;
-    --foreground: 0 0% 90%;
-    --card: 222 48% 16%;
-    --card-foreground: 0 0% 90%;
-    --popover: 222 48% 16%;
-    --popover-foreground: 0 0% 90%;
-    --primary: 194 85% 62%;
-    --primary-foreground: 240 28% 8%;
-    --secondary: 222 48% 20%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 222 30% 20%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 213 73% 22%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 100% 65%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 0.08;
-    --input: 0 0% 100% / 0.08;
-    --ring: 194 85% 62%;
-    --chart-1: 194 85% 62%;
+    --background: 220 13% 9%;
+    --foreground: 213 31% 91%;
+    --card: 215 14% 11%;
+    --card-foreground: 213 31% 91%;
+    --popover: 215 14% 11%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 212 100% 67%;
+    --primary-foreground: 220 13% 9%;
+    --secondary: 215 12% 16%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 215 12% 16%;
+    --muted-foreground: 215 11% 56%;
+    --accent: 215 14% 14%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 213 31% 91%;
+    --border: 215 11% 22%;
+    --input: 215 11% 22%;
+    --ring: 212 100% 67%;
+    --chart-1: 212 100% 67%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
@@ -63,13 +63,13 @@
 
 body {
   margin: 0;
-  font-family: 'Manrope', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 @layer base {

@@ -10,7 +10,8 @@ export function WindowGroup({
   highlightText, matchingTabIds, windows,
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
-  onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab
+  onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
+  suspendedTabs, onSuspend, onUnsuspend
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -78,6 +79,7 @@ export function WindowGroup({
     onCloseOthers, onCloseToRight, windows, currentWindowId: win.id,
     onDragStart: handleDragStart, onDragOver: handleDragOver,
     onDrop: handleDrop, onDragEnd: handleDragEnd,
+    onSuspend, onUnsuspend,
   };
 
   if (filteredTabs.length === 0) return null;
@@ -85,7 +87,7 @@ export function WindowGroup({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className="border-b border-border/50"
+        className="mb-1"
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
         onDrop={handleWindowDrop}
         data-testid={`window-group-${win.id}`}
@@ -136,7 +138,7 @@ export function WindowGroup({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="py-0.5">
+          <div className="pb-1">
             {(() => {
               const elements = [];
               const renderedGroupHeaders = new Set();
@@ -146,7 +148,7 @@ export function WindowGroup({
                   if (!renderedGroupHeaders.has(group.id)) {
                     renderedGroupHeaders.add(group.id);
                     elements.push(
-                      <div key={`gh-${group.id}`} className="ml-1">
+                      <div key={`gh-${group.id}`} className="pl-5 mt-1">
                         <TabGroupHeader
                           group={group}
                           collapsed={collapsedGroups[group.id]}
@@ -157,15 +159,15 @@ export function WindowGroup({
                   }
                   if (!collapsedGroups[group.id]) {
                     elements.push(
-                      <div key={tab.id} className={`ml-3 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t-2 border-primary' : ''}`}>
-                        <TabItem tab={tab} isActive={tab.active} {...tabItemProps} />
+                      <div key={tab.id} className={`pl-4 animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}>
+                        <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
                       </div>
                     );
                   }
                 } else {
                   elements.push(
-                    <div key={tab.id} className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t-2 border-primary' : ''}`}>
-                      <TabItem tab={tab} isActive={tab.active} {...tabItemProps} />
+                    <div key={tab.id} className={`animate-slide-in ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}>
+                      <TabItem tab={tab} isActive={tab.active} suspended={suspendedTabs?.has(tab.id)} {...tabItemProps} />
                     </div>
                   );
                 }

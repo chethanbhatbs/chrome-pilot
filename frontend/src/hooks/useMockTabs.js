@@ -7,6 +7,7 @@ let nextWindowId = 4;
 export function useMockTabs() {
   const [windows, setWindows] = useState(MOCK_WINDOWS);
   const [tabGroups] = useState(MOCK_TAB_GROUPS);
+  const [suspendedTabs, setSuspendedTabs] = useState(new Set());
 
   const allTabs = useMemo(() =>
     windows.flatMap(w => w.tabs.map(t => ({ ...t, windowId: w.id }))),
@@ -212,10 +213,20 @@ export function useMockTabs() {
   }, []);
 
   return {
-    windows, tabGroups, allTabs,
+    windows, tabGroups, allTabs, suspendedTabs,
     switchToTab, closeTab, pinTab, muteTab, duplicateTab,
     moveTab, moveTabToNewWindow, closeWindow, minimizeWindow,
     createNewTab, createNewWindow, muteAll, closeDuplicates,
-    reorderTab, closeOtherTabs, closeTabsToRight
+    reorderTab, closeOtherTabs, closeTabsToRight,
+    suspendTab: (tabId) => setSuspendedTabs(prev => new Set([...prev, tabId])),
+    unsuspendTab: (tabId) => setSuspendedTabs(prev => { const n = new Set(prev); n.delete(tabId); return n; }),
+    suspendInactive: () => {
+      const toSuspend = new Set();
+      windows.forEach(w => w.tabs.forEach(t => {
+        if (!t.active && !t.pinned && !t.audible) toSuspend.add(t.id);
+      }));
+      setSuspendedTabs(toSuspend);
+      return toSuspend.size;
+    },
   };
 }

@@ -8,9 +8,9 @@ module.exports = {
   theme: {
         extend: {
                 fontFamily: {
-                        heading: ['JetBrains Mono', 'monospace'],
-                        body: ['Manrope', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
+                        heading: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        body: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        mono: ['SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
                 },
                 borderRadius: {
                         lg: 'var(--radius)',

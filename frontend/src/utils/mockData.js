@@ -167,3 +167,14 @@ export const TAB_METRICS = {
   304: { memory: 55, cpu: 1, visitCount: 8 },
 };
 
+
+export const ACTIVITY_TIMELINE = [
+  { day: 'Mon', visits: 45, memory: 1800 },
+  { day: 'Tue', visits: 72, memory: 2200 },
+  { day: 'Wed', visits: 58, memory: 2400 },
+  { day: 'Thu', visits: 91, memory: 2800 },
+  { day: 'Fri', visits: 83, memory: 2600 },
+  { day: 'Sat', visits: 34, memory: 1400 },
+  { day: 'Sun', visits: 28, memory: 1100 },
+];
+

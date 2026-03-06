@@ -11,9 +11,10 @@ import {
 import { toast } from 'sonner';
 
 export function TabItem({
-  tab, isActive, showFavicons, showUrls, compact,
+  tab, isActive, showFavicons, showUrls, compact, suspended,
   highlightText, onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
+  onSuspend, onUnsuspend,
   windows, currentWindowId,
   onDragStart, onDragOver, onDrop, onDragEnd
 }) {
@@ -23,6 +24,7 @@ export function TabItem({
   const isPinned = tab.pinned;
   const isAudible = tab.audible && !tab.mutedInfo?.muted;
   const isMuted = tab.mutedInfo?.muted;
+  const isSuspended = suspended;
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(tab.url);
@@ -45,13 +47,17 @@ export function TabItem({
           onDragOver={(e) => onDragOver?.(e, tab)}
           onDrop={(e) => onDrop?.(e, tab)}
           onDragEnd={onDragEnd}
-          onClick={() => onSwitch(tab.id)}
-          className={`group flex items-center gap-2 cursor-pointer transition-all duration-150 select-none relative
-            ${compact ? 'px-2.5 py-[3px]' : 'px-3 py-[5px]'}
+          onClick={() => {
+            if (isSuspended) { onUnsuspend?.(tab.id); }
+            onSwitch(tab.id);
+          }}
+          className={`group flex items-center gap-2.5 cursor-pointer transition-all duration-150 select-none relative
+            ${compact ? 'px-3 py-[3px]' : 'px-3 py-1.5'}
             ${isActive
               ? 'bg-primary/[0.08] text-foreground'
-              : 'hover:bg-white/[0.03] text-foreground/75'
+              : 'hover:bg-muted/50 text-foreground/75'
             }
+            ${isSuspended ? 'opacity-40' : ''}
           `}
         >
           {isActive && (
@@ -72,11 +78,12 @@ export function TabItem({
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className={`font-body leading-tight truncate ${compact ? 'text-[11px]' : 'text-xs'}`}>
+            <div className={`font-body leading-tight truncate ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
               {highlightText ? highlightText(tab.title) : tab.title}
+              {isSuspended && <span className="text-[9px] text-muted-foreground ml-1">(suspended)</span>}
             </div>
             {showUrls && !compact && (
-              <div className="text-[10px] text-muted-foreground/70 truncate leading-tight mt-px">
+              <div className="text-[10px] text-muted-foreground/60 truncate leading-tight mt-0.5">
                 {highlightText ? highlightText(domain) : domain}
               </div>
             )}
@@ -121,6 +128,15 @@ export function TabItem({
         <ContextMenuItem onClick={() => onDuplicate(tab.id)} data-testid={`ctx-duplicate-${tab.id}`}>
           Duplicate
         </ContextMenuItem>
+        {isSuspended ? (
+          <ContextMenuItem onClick={() => onUnsuspend?.(tab.id)} data-testid={`ctx-unsuspend-${tab.id}`}>
+            Reload tab
+          </ContextMenuItem>
+        ) : (
+          <ContextMenuItem onClick={() => onSuspend?.(tab.id)} data-testid={`ctx-suspend-${tab.id}`}>
+            Suspend tab
+          </ContextMenuItem>
+        )}
         <ContextMenuSeparator />
         <ContextMenuSub>
           <ContextMenuSubTrigger data-testid={`ctx-move-${tab.id}`}>Move to</ContextMenuSubTrigger>

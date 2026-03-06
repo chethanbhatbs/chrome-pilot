@@ -1,5 +1,5 @@
 import {
-  Plus, Monitor, ClipboardCheck, VolumeX, Save, LayoutGrid, Flame
+  Plus, Monitor, ClipboardCheck, VolumeX, Save, LayoutGrid, Flame, Focus, Pause
 } from 'lucide-react';
 import {
   Tooltip, TooltipContent, TooltipTrigger
@@ -8,6 +8,7 @@ import {
 const leftActions = [
   { id: 'new-tab', icon: Plus, label: 'New Tab', key: 'onNewTab' },
   { id: 'new-window', icon: Monitor, label: 'New Window', key: 'onNewWindow' },
+  { id: 'suspend-inactive', icon: Pause, label: 'Suspend Inactive', key: 'onSuspendInactive' },
 ];
 
 const rightActions = [
@@ -16,6 +17,7 @@ const rightActions = [
   { id: 'save-session', icon: Save, label: 'Save Session', key: 'onSaveSession' },
   { id: 'group-domain', icon: LayoutGrid, label: 'Group by Domain', key: 'onToggleGrouping', toggle: 'domain' },
   { id: 'heatmap', icon: Flame, label: 'Activity Heatmap', key: 'onToggleHeatmap', toggle: 'heatmap' },
+  { id: 'focus-mode', icon: Focus, label: 'Focus Mode', key: 'onToggleFocus', toggle: 'focus' },
 ];
 
 export function QuickActions({ handlers, viewMode, activePanel }) {
@@ -41,7 +43,8 @@ export function QuickActions({ handlers, viewMode, activePanel }) {
       <div className="flex items-center gap-0.5">
         {rightActions.map(({ id, icon: Icon, label, key, toggle }) => {
           const isToggled = (toggle === 'domain' && viewMode === 'domain') ||
-                            (toggle === 'heatmap' && activePanel === 'heatmap');
+                            (toggle === 'heatmap' && activePanel === 'heatmap') ||
+                            (toggle === 'focus' && activePanel === 'focus');
           return (
             <Tooltip key={id}>
               <TooltipTrigger asChild>

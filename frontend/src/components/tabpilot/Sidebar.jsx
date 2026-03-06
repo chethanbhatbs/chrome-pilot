@@ -10,6 +10,7 @@ import { DuplicatePanel } from './DuplicatePanel';
 import { SessionManager } from './SessionManager';
 import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
+import { FocusMode } from './FocusMode';
 import { StatsBar } from './StatsBar';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
@@ -59,6 +60,16 @@ export function Sidebar() {
     setActivePanel(prev => prev === 'heatmap' ? null : 'heatmap');
   }, []);
 
+  const handleToggleFocus = useCallback(() => {
+    setActivePanel(prev => prev === 'focus' ? null : 'focus');
+  }, []);
+
+  const handleSuspendInactive = useCallback(() => {
+    const count = tabs.suspendInactive();
+    if (count > 0) toast.success(`Suspended ${count} inactive tab${count > 1 ? 's' : ''}`);
+    else toast.info('No inactive tabs to suspend');
+  }, [tabs]);
+
   const handleRestoreSession = useCallback((session) => {
     toast.info(`Session "${session.name}" restored (${session.tabCount} tabs)`);
   }, []);
@@ -71,6 +82,8 @@ export function Sidebar() {
     onSaveSession: handleSaveSession,
     onToggleGrouping: handleToggleGrouping,
     onToggleHeatmap: handleToggleHeatmap,
+    onToggleFocus: handleToggleFocus,
+    onSuspendInactive: handleSuspendInactive,
   };
 
   useEffect(() => {
@@ -100,6 +113,7 @@ export function Sidebar() {
     highlightText: search.query ? search.highlightText : null,
     matchingTabIds: search.matchingTabIds,
     windows: tabs.windows,
+    suspendedTabs: tabs.suspendedTabs,
     onSwitch: handleSwitchTab,
     onClose: handleCloseTab,
     onPin: tabs.pinTab,
@@ -111,9 +125,28 @@ export function Sidebar() {
     onCloseToRight: tabs.closeTabsToRight,
     onReorderTab: tabs.reorderTab,
     onMoveTab: tabs.moveTab,
+    onSuspend: tabs.suspendTab,
+    onUnsuspend: tabs.unsuspendTab,
   };
 
   const showBackButton = activePanel === 'settings' || activePanel === 'sessions' || activePanel === 'heatmap';
+
+  // Focus mode renders a completely different layout
+  if (activePanel === 'focus') {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
+          <FocusMode
+            allTabs={tabs.allTabs}
+            visitCounts={visitCounts}
+            onSwitch={handleSwitchTab}
+            onExit={() => setActivePanel(null)}
+          />
+          <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
+        </div>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -205,7 +238,7 @@ export function Sidebar() {
         </ScrollArea>
 
         {/* Footer */}
-        <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} />
+        <StatsBar windows={tabs.windows} allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
       </div>
     </TooltipProvider>
   );
