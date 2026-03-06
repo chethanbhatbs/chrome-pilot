@@ -8,7 +8,7 @@ export function TabGroupHeader({ group, collapsed, onToggle }) {
     <button
       data-testid={`tab-group-header-${group.id}`}
       onClick={onToggle}
-      className="flex items-center gap-1.5 w-full px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider
+      className="flex items-center gap-1.5 w-full px-1.5 py-0.5 text-[10px] font-heading font-semibold tracking-tight
         transition-colors hover:bg-white/[0.03] cursor-pointer"
     >
       <div

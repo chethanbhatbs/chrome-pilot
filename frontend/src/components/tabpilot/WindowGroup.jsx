@@ -28,18 +28,19 @@ export function WindowGroup({
     ? win.tabs.filter(t => matchingTabIds.has(t.id))
     : win.tabs;
 
-  // Window summary: most common domains
+  // Window summary: most common domains with "+X more"
   const windowSummary = useMemo(() => {
     const domains = {};
     win.tabs.forEach(t => {
       const d = getDomain(t.url);
       domains[d] = (domains[d] || 0) + 1;
     });
-    return Object.entries(domains)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 2)
-      .map(([d]) => d.replace(/^www\./, ''))
-      .join(', ');
+    const sorted = Object.entries(domains).sort((a, b) => b[1] - a[1]);
+    const shown = sorted.slice(0, 2).map(([d]) => d.replace(/^www\./, ''));
+    const remaining = sorted.length - shown.length;
+    return remaining > 0
+      ? `${shown.join(', ')} +${remaining} more`
+      : shown.join(', ');
   }, [win.tabs]);
 
   const handleDragStart = useCallback((e, tab) => {
@@ -173,7 +174,7 @@ export function WindowGroup({
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}
                 </div>
-                <div className="text-[9px] text-muted-foreground/30 font-body truncate max-w-[180px]">
+                <div className="text-[9px] text-muted-foreground/40 font-body italic truncate max-w-[200px]">
                   {windowSummary}
                 </div>
               </div>

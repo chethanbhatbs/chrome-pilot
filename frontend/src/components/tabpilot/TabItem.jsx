@@ -99,7 +99,7 @@ export function TabItem({
           </div>
 
           {/* Status badges — always visible when applicable */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0 shrink-0">
             {isPinned && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -107,7 +107,30 @@ export function TabItem({
                     <Pin size={9} className="text-tp-pinned" strokeWidth={2} />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">Pinned</TooltipContent>
+                <TooltipContent side="top" className="text-[10px]">Pinned tab</TooltipContent>
+              </Tooltip>
+            )}
+            {isDuplicate && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-0.5" data-testid={`dupe-badge-${tab.id}`}>
+                    <Copy size={9} className="text-tp-duplicate" strokeWidth={2} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px]">Duplicate — open in multiple tabs</TooltipContent>
+              </Tooltip>
+            )}
+            {(isAudible || isMuted) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-0.5" data-testid={`audio-badge-${tab.id}`}>
+                    {isMuted
+                      ? <VolumeX size={9} className="text-muted-foreground/60" strokeWidth={2} />
+                      : <Volume2 size={9} className="text-tp-audible" strokeWidth={2} />
+                    }
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px]">{isMuted ? 'Muted' : 'Playing audio'}</TooltipContent>
               </Tooltip>
             )}
             {hasNote && (
@@ -122,17 +145,15 @@ export function TabItem({
             )}
           </div>
 
-          {/* Hover actions: mute + close */}
+          {/* Hover actions: close */}
           <div className="flex items-center gap-0 shrink-0">
             <button
               data-testid={`tab-mute-${tab.id}`}
               onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
               className={`p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
-                ${isAudible
-                  ? 'text-tp-audible opacity-100'
-                  : isMuted
-                    ? 'text-muted-foreground opacity-100'
-                    : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100'
+                ${isAudible || isMuted
+                  ? 'text-muted-foreground/60 opacity-0 group-hover:opacity-100'
+                  : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100'
                 }`}
             >
               {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}

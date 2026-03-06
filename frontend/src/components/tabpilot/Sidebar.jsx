@@ -246,10 +246,10 @@ export function Sidebar() {
                     className={`p-1.5 rounded-md transition-all duration-150
                       ${activePanel === panel
                         ? 'text-primary bg-primary/15'
-                        : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.08]'
+                        : 'text-foreground/50 hover:text-foreground hover:bg-white/[0.08]'
                       } active:scale-95`}
                   >
-                    <Icon size={12} strokeWidth={1.5} />
+                    <Icon size={13} strokeWidth={1.8} />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
