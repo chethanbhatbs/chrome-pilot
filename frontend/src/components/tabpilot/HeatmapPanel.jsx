@@ -5,6 +5,7 @@ import {
   TAB_METRICS, DOMAIN_TIME_SPENT, TAB_TIME_MINUTES,
   HOURLY_ACTIVITY, WEEKLY_ACTIVITY, MONTHLY_ACTIVITY,
 } from '@/utils/mockData';
+import { useHistoryData } from '@/hooks/useHistoryData';
 import { toast } from 'sonner';
 
 function getHeatColor(ratio) {
@@ -122,33 +123,40 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
+  // Real Chrome history data (null in web preview → falls back to mock)
+  const historyData = useHistoryData(timeFilter);
+
   const domainTimeData = useMemo(() => {
+    if (historyData) return historyData.topDomains; // real extension data
+    // Mock fallback for web preview
     const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
     return Object.entries(DOMAIN_TIME_SPENT)
       .map(([, data]) => ({ domain: data.label, hours: parseFloat((data.hours * scale).toFixed(1)) }))
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 8);
-  }, [timeFilter]);
+  }, [historyData, timeFilter]);
 
   const maxDomainHours = domainTimeData[0]?.hours || 1;
 
   const timelineConfig = useMemo(() => {
-    switch (timeFilter) {
-      case 'day':
-        return { data: HOURLY_ACTIVITY, xKey: 'hour', yKey: 'minutes', yLabel: 'm', title: 'Today (minutes/hour)' };
-      case 'week':
-        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'This Week (hours/day)' };
-      case 'month':
-        return { data: MONTHLY_ACTIVITY, xKey: 'week', yKey: 'hours', yLabel: 'h', title: 'This Month (hours/week)' };
-      case 'custom':
-        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'Custom Range' };
-      default:
-        return { data: WEEKLY_ACTIVITY, xKey: 'day', yKey: 'hours', yLabel: 'h', title: 'This Week' };
+    if (historyData) {
+      switch (timeFilter) {
+        case 'day':  return { data: historyData.timelineData, xKey: 'hour',  yKey: 'minutes', yLabel: 'm', title: 'Today (minutes/hour)' };
+        case 'week': return { data: historyData.timelineData, xKey: 'day',   yKey: 'hours',   yLabel: 'h', title: 'This Week (hours/day)' };
+        default:     return { data: historyData.timelineData, xKey: 'week',  yKey: 'hours',   yLabel: 'h', title: 'This Month (hours/week)' };
+      }
     }
-  }, [timeFilter]);
+    // Mock fallback
+    switch (timeFilter) {
+      case 'day':    return { data: HOURLY_ACTIVITY,  xKey: 'hour', yKey: 'minutes', yLabel: 'm', title: 'Today (minutes/hour)' };
+      case 'week':   return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'This Week (hours/day)' };
+      case 'month':  return { data: MONTHLY_ACTIVITY, xKey: 'week', yKey: 'hours',   yLabel: 'h', title: 'This Month (hours/week)' };
+      case 'custom': return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'Custom Range' };
+      default:       return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'This Week' };
+    }
+  }, [historyData, timeFilter]);
 
   const rankedTabs = useMemo(() => {
-    // Scale data based on time filter
     const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
     return allTabs.map(tab => ({
       ...tab,
@@ -158,9 +166,15 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
     })).sort((a, b) => b.timeMinutes - a.timeMinutes);
   }, [allTabs, visitCounts, timeFilter]);
 
+  // Stats: use real history totals if available
+  const totalHours = historyData
+    ? historyData.totalHours.toFixed(1)
+    : (rankedTabs.reduce((s, t) => s + t.timeMinutes, 0) / 60).toFixed(1);
+  const totalVisits = historyData
+    ? historyData.totalVisits
+    : rankedTabs.reduce((s, t) => s + t.visits, 0);
+
   const maxTime = rankedTabs[0]?.timeMinutes || 1;
-  const totalHours = (rankedTabs.reduce((s, t) => s + t.timeMinutes, 0) / 60).toFixed(1);
-  const totalVisits = rankedTabs.reduce((s, t) => s + t.visits, 0);
 
   return (
     <div className="p-3 space-y-3.5" data-testid="heatmap-panel">
@@ -169,6 +183,9 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
         <div className="flex items-center gap-2">
           <Flame size={13} className="text-orange-400" strokeWidth={2} />
           <span className="text-[12px] font-heading font-bold">Activity Heatmap</span>
+          {historyData && (
+            <span className="text-[8px] font-mono text-primary/60 bg-primary/10 px-1 py-0.5 rounded">LIVE</span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
           <span>{totalHours}h</span>
