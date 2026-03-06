@@ -2,7 +2,7 @@ import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import {
   Monitor, Search, LayoutGrid, Copy, GripVertical, Save,
-  BarChart3, Mouse, Keyboard, Settings, Zap, Download, ArrowRight, ExternalLink
+  BarChart3, Mouse, Keyboard, Settings, Zap, Download, ArrowRight, ArrowLeft, ExternalLink, Flame
 } from 'lucide-react';
 
 const features = [
@@ -12,10 +12,10 @@ const features = [
   { icon: Copy, title: 'Duplicate Detection', desc: 'Find and close duplicate tabs in one click' },
   { icon: GripVertical, title: 'Drag & Drop', desc: 'Reorder and move tabs between windows' },
   { icon: Save, title: 'Session Manager', desc: 'Save and restore tab sessions' },
-  { icon: BarChart3, title: 'Live Stats', desc: 'Real-time tab, window, and audio stats' },
+  { icon: Flame, title: 'Activity Heatmap', desc: 'See which tabs you visit most frequently' },
+  { icon: BarChart3, title: 'Memory & CPU', desc: 'Live memory and CPU usage per tab' },
   { icon: Mouse, title: 'Context Menu', desc: 'Right-click for all tab actions' },
   { icon: Keyboard, title: 'Keyboard Shortcuts', desc: 'Navigate and manage with hotkeys' },
-  { icon: Settings, title: 'Customizable', desc: 'Theme, density, and display settings' },
 ];
 
 export default function TabPilotPreview() {
@@ -43,7 +43,18 @@ export default function TabPilotPreview() {
 
         {/* Main content area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left: Hero / Marketing content */}
+          {/* Left: Interactive Sidebar */}
+          <div className="w-[400px] shrink-0 border-r border-border/50 bg-background flex flex-col" data-testid="sidebar-container">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-card/50">
+              <span className="text-xs font-heading font-bold text-primary tracking-tight">TabPilot</span>
+              <span className="text-[9px] font-mono text-muted-foreground">v1.0.0</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <Sidebar />
+            </div>
+          </div>
+
+          {/* Right: Hero / Marketing content */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-8 py-16">
               {/* Hero */}
@@ -90,15 +101,15 @@ export default function TabPilotPreview() {
               {/* Interactive hint */}
               <div className="mb-12 p-4 rounded-xl bg-card border border-border/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <ArrowRight size={14} className="text-primary" strokeWidth={2} />
+                  <ArrowLeft size={14} className="text-primary" strokeWidth={2} />
                   <span className="text-sm font-heading font-bold">Interactive Preview</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-body leading-relaxed">
-                  The sidebar on the right is a fully functional preview. Try searching, closing tabs,
-                  right-clicking for context menus, dragging tabs, saving sessions, and toggling settings.
+                  The sidebar on the left is a fully functional preview. Try searching, closing tabs,
+                  right-clicking for context menus, dragging to reorder, and the Activity Heatmap.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {['Click tabs', 'Right-click menu', 'Search (Ctrl+Shift+F)', 'Drag & drop', 'Save sessions'].map(action => (
+                  {['Click tabs', 'Right-click menu', 'Search (Ctrl+Shift+F)', 'Drag & drop', 'Heatmap', 'Save sessions'].map(action => (
                     <span key={action} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
                       {action}
                     </span>
@@ -159,17 +170,6 @@ export default function TabPilotPreview() {
                   Manifest V3 | React | Tailwind CSS
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Right: Interactive Sidebar */}
-          <div className="w-[380px] shrink-0 border-l border-border/50 bg-background flex flex-col" data-testid="sidebar-container">
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-card/50">
-              <span className="text-[11px] font-heading font-bold text-primary tracking-tight">TabPilot</span>
-              <span className="text-[9px] font-mono text-muted-foreground">v1.0.0</span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <Sidebar />
             </div>
           </div>
         </div>

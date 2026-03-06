@@ -1,10 +1,15 @@
-import { Monitor, FileText, Volume2, Pin, AlertTriangle } from 'lucide-react';
+import { Monitor, FileText, Volume2, Pin, AlertTriangle, HardDrive, Cpu } from 'lucide-react';
+import { TAB_METRICS } from '@/utils/mockData';
 
 export function StatsBar({ windows, allTabs }) {
-  const windowCount = windows.length;
   const tabCount = allTabs.length;
   const audibleCount = allTabs.filter(t => t.audible && !t.mutedInfo?.muted).length;
   const pinnedCount = allTabs.filter(t => t.pinned).length;
+
+  const totalMemory = allTabs.reduce((sum, t) => sum + (TAB_METRICS[t.id]?.memory || 80), 0);
+  const avgCpu = allTabs.length > 0
+    ? (allTabs.reduce((sum, t) => sum + (TAB_METRICS[t.id]?.cpu || 1), 0) / allTabs.length).toFixed(1)
+    : 0;
 
   const urlMap = {};
   let dupCount = 0;
@@ -17,25 +22,28 @@ export function StatsBar({ windows, allTabs }) {
     } catch { /* skip */ }
   });
 
-  const stats = [
-    { icon: Monitor, value: windowCount, color: 'text-primary' },
-    { icon: FileText, value: tabCount, color: 'text-foreground/70' },
-    { icon: Volume2, value: audibleCount, color: audibleCount > 0 ? 'text-tp-audible' : 'text-muted-foreground' },
-    { icon: Pin, value: pinnedCount, color: pinnedCount > 0 ? 'text-tp-pinned' : 'text-muted-foreground' },
-    { icon: AlertTriangle, value: dupCount, color: dupCount > 0 ? 'text-tp-duplicate' : 'text-muted-foreground' },
-  ];
+  const memoryStr = totalMemory >= 1024 ? `${(totalMemory / 1024).toFixed(1)} GB` : `${totalMemory} MB`;
 
   return (
     <div
-      className="flex items-center justify-between px-3 py-1.5 border-t border-border/50 bg-card/80 backdrop-blur-sm"
+      className="grid grid-cols-6 gap-1 px-2 py-1.5 border-t border-border/50 bg-card/50"
       data-testid="stats-bar"
     >
-      {stats.map(({ icon: Icon, value, color }, i) => (
-        <div key={i} className={`flex items-center gap-1 ${color}`}>
-          <Icon size={11} strokeWidth={1.5} />
-          <span className="text-[10px] font-mono font-medium">{value}</span>
-        </div>
-      ))}
+      <StatItem icon={FileText} value={tabCount} label="tabs" color="text-foreground/60" />
+      <StatItem icon={HardDrive} value={memoryStr} color={totalMemory > 2000 ? 'text-tp-duplicate' : 'text-primary/70'} />
+      <StatItem icon={Cpu} value={`${avgCpu}%`} color={parseFloat(avgCpu) > 10 ? 'text-tp-duplicate' : 'text-muted-foreground'} />
+      <StatItem icon={Volume2} value={audibleCount} color={audibleCount > 0 ? 'text-tp-audible' : 'text-muted-foreground/40'} />
+      <StatItem icon={Pin} value={pinnedCount} color={pinnedCount > 0 ? 'text-tp-pinned' : 'text-muted-foreground/40'} />
+      <StatItem icon={AlertTriangle} value={dupCount} color={dupCount > 0 ? 'text-tp-duplicate' : 'text-muted-foreground/40'} />
+    </div>
+  );
+}
+
+function StatItem({ icon: Icon, value, color }) {
+  return (
+    <div className={`flex items-center justify-center gap-1 ${color}`}>
+      <Icon size={10} strokeWidth={1.5} />
+      <span className="text-[9px] font-mono font-medium">{value}</span>
     </div>
   );
 }

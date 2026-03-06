@@ -1,5 +1,5 @@
 import { getDomain, getFaviconUrl } from '@/utils/grouping';
-import { Pin, Volume2, VolumeX, X, Loader2, GripVertical, Copy } from 'lucide-react';
+import { Pin, Volume2, VolumeX, X, Loader2, Copy } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem,
   ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger,
@@ -46,90 +46,63 @@ export function TabItem({
           onDrop={(e) => onDrop?.(e, tab)}
           onDragEnd={onDragEnd}
           onClick={() => onSwitch(tab.id)}
-          className={`group flex items-center gap-1.5 cursor-pointer rounded-md transition-all duration-150 select-none
-            ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1'}
+          className={`group flex items-center gap-2 cursor-pointer transition-all duration-150 select-none relative
+            ${compact ? 'px-2.5 py-[3px]' : 'px-3 py-[5px]'}
             ${isActive
-              ? 'bg-accent border-l-2 border-primary text-accent-foreground'
-              : 'hover:bg-white/5 text-foreground/80 border-l-2 border-transparent'
+              ? 'bg-primary/[0.08] text-foreground'
+              : 'hover:bg-white/[0.03] text-foreground/75'
             }
-            ${isPinned ? 'bg-secondary/50' : ''}
           `}
         >
-          <GripVertical
-            size={10}
-            className="opacity-0 group-hover:opacity-40 shrink-0 cursor-grab text-muted-foreground"
-            strokeWidth={1.5}
-          />
+          {isActive && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3.5 rounded-r-full bg-primary" />
+          )}
 
-          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+          <div className="w-4 h-4 shrink-0 flex items-center justify-center relative">
             {isLoading ? (
-              <Loader2 size={12} className="animate-spin text-primary" strokeWidth={1.5} />
+              <Loader2 size={13} className="animate-spin text-primary" strokeWidth={1.5} />
             ) : faviconUrl ? (
-              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-sm" onError={(e) => { e.target.style.display = 'none'; }} />
+              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" onError={(e) => { e.target.style.display = 'none'; }} />
             ) : (
-              <div className="w-3 h-3 rounded-full bg-muted-foreground/30" />
+              <div className="w-3.5 h-3.5 rounded-[3px] bg-muted-foreground/20" />
+            )}
+            {isPinned && (
+              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-tp-pinned" />
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-body leading-tight truncate">
+            <div className={`font-body leading-tight truncate ${compact ? 'text-[11px]' : 'text-xs'}`}>
               {highlightText ? highlightText(tab.title) : tab.title}
             </div>
-            {showUrls && (
-              <div className="text-[10px] text-muted-foreground truncate leading-tight">
+            {showUrls && !compact && (
+              <div className="text-[10px] text-muted-foreground/70 truncate leading-tight mt-px">
                 {highlightText ? highlightText(domain) : domain}
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-0.5 shrink-0">
-            {isPinned && (
-              <Pin size={10} className="text-tp-pinned" strokeWidth={2} />
-            )}
+          <div className="flex items-center gap-1 shrink-0">
             {(isAudible || isMuted) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    data-testid={`tab-mute-${tab.id}`}
-                    onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-                    className={`p-0.5 rounded transition-colors ${isAudible ? 'text-tp-audible animate-pulse-glow' : 'text-muted-foreground'} hover:bg-white/10`}
-                  >
-                    {isMuted ? <VolumeX size={10} strokeWidth={1.5} /> : <Volume2 size={10} strokeWidth={1.5} />}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="text-[10px]">
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </TooltipContent>
-              </Tooltip>
+              <button
+                data-testid={`tab-mute-${tab.id}`}
+                onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
+                className={`p-0.5 rounded-[3px] transition-colors
+                  ${isAudible ? 'text-tp-audible animate-pulse-glow' : 'text-muted-foreground'}
+                  hover:bg-white/10`}
+              >
+                {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
+              </button>
             )}
 
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {!isPinned && !isAudible && !isMuted && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      data-testid={`tab-pin-${tab.id}`}
-                      onClick={(e) => { e.stopPropagation(); onPin(tab.id); }}
-                      className="p-0.5 rounded text-muted-foreground hover:text-tp-pinned hover:bg-white/10 transition-colors"
-                    >
-                      <Pin size={10} strokeWidth={1.5} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="text-[10px]">Pin</TooltipContent>
-                </Tooltip>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    data-testid={`tab-close-${tab.id}`}
-                    onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-                    className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <X size={10} strokeWidth={1.5} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="text-[10px]">Close</TooltipContent>
-              </Tooltip>
+              <button
+                data-testid={`tab-close-${tab.id}`}
+                onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
+                className="p-0.5 rounded-[3px] text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <X size={11} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Settings, Bookmark, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -9,6 +9,7 @@ import { DomainView } from './DomainView';
 import { DuplicatePanel } from './DuplicatePanel';
 import { SessionManager } from './SessionManager';
 import { SettingsPanel } from './SettingsPanel';
+import { HeatmapPanel } from './HeatmapPanel';
 import { StatsBar } from './StatsBar';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useSearch } from '@/hooks/useSearch';
@@ -26,9 +27,11 @@ export function Sidebar() {
   const [activePanel, setActivePanel] = useState(null);
   const [viewMode, setViewMode] = useState('window');
   const [selectedTabIdx, setSelectedTabIdx] = useState(-1);
+  const [visitCounts, setVisitCounts] = useState({});
 
   const handleSwitchTab = useCallback((tabId) => {
     tabs.switchToTab(tabId);
+    setVisitCounts(prev => ({ ...prev, [tabId]: (prev[tabId] || 0) + 1 }));
     const tab = tabs.allTabs.find(t => t.id === tabId);
     if (tab) toast.info(`Switched to: ${tab.title}`, { duration: 1500 });
   }, [tabs]);
@@ -52,6 +55,10 @@ export function Sidebar() {
     setViewMode(prev => prev === 'window' ? 'domain' : 'window');
   }, []);
 
+  const handleToggleHeatmap = useCallback(() => {
+    setActivePanel(prev => prev === 'heatmap' ? null : 'heatmap');
+  }, []);
+
   const handleRestoreSession = useCallback((session) => {
     toast.info(`Session "${session.name}" restored (${session.tabCount} tabs)`);
   }, []);
@@ -63,6 +70,7 @@ export function Sidebar() {
     onMuteAll: () => { tabs.muteAll(); toast.success('All tabs muted'); },
     onSaveSession: handleSaveSession,
     onToggleGrouping: handleToggleGrouping,
+    onToggleHeatmap: handleToggleHeatmap,
   };
 
   useEffect(() => {
@@ -105,11 +113,13 @@ export function Sidebar() {
     onMoveTab: tabs.moveTab,
   };
 
+  const showBackButton = activePanel === 'settings' || activePanel === 'sessions' || activePanel === 'heatmap';
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
         {/* Header */}
-        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/80 backdrop-blur-md sticky top-0 z-10 border-b border-border/50">
+        <div className="px-2 pt-2 pb-1.5 space-y-1.5 bg-background/90 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-1.5">
             <div className="flex-1">
               <SearchBar
@@ -126,43 +136,47 @@ export function Sidebar() {
               className={`p-1.5 rounded-md transition-all duration-150
                 ${activePanel === 'settings'
                   ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+                  : 'text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
                 } active:scale-95`}
             >
-              <Settings size={14} strokeWidth={1.5} />
+              <Settings size={13} strokeWidth={1.5} />
             </button>
           </div>
-          <QuickActions handlers={quickActionHandlers} viewMode={viewMode} />
+          <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel} />
         </div>
 
         {/* Content */}
         <ScrollArea className="flex-1">
+          {showBackButton && (
+            <button
+              data-testid={`back-from-${activePanel}`}
+              onClick={() => setActivePanel(null)}
+              className="flex items-center gap-1.5 px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <ArrowLeft size={11} strokeWidth={1.5} /> Back to tabs
+            </button>
+          )}
+
           {activePanel === 'settings' ? (
             <div className="animate-slide-in">
-              <button
-                data-testid="back-from-settings"
-                onClick={() => setActivePanel(null)}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft size={12} strokeWidth={1.5} /> Back
-              </button>
               <SettingsPanel settings={settings} onUpdate={updateSetting} />
             </div>
           ) : activePanel === 'sessions' ? (
             <div className="animate-slide-in">
-              <button
-                data-testid="back-from-sessions"
-                onClick={() => setActivePanel(null)}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft size={12} strokeWidth={1.5} /> Back
-              </button>
               <SessionManager
                 sessions={sessions}
                 onSave={saveSession}
                 onDelete={deleteSession}
                 onRestore={handleRestoreSession}
                 windows={tabs.windows}
+              />
+            </div>
+          ) : activePanel === 'heatmap' ? (
+            <div className="animate-slide-in">
+              <HeatmapPanel
+                allTabs={tabs.allTabs}
+                visitCounts={visitCounts}
+                onSwitch={handleSwitchTab}
               />
             </div>
           ) : (

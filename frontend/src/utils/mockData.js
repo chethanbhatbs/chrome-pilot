@@ -148,3 +148,22 @@ export const TAB_GROUP_COLORS = {
   purple: { bg: '#c58af9', text: '#202124' },
   cyan: { bg: '#78d9ec', text: '#202124' },
 };
+
+// Simulated per-tab metrics
+export const TAB_METRICS = {
+  101: { memory: 145, cpu: 2, visitCount: 47 },
+  102: { memory: 210, cpu: 5, visitCount: 156 },
+  103: { memory: 98, cpu: 1, visitCount: 32 },
+  104: { memory: 112, cpu: 1, visitCount: 28 },
+  105: { memory: 320, cpu: 8, visitCount: 89 },
+  106: { memory: 285, cpu: 12, visitCount: 203 },
+  107: { memory: 78, cpu: 1, visitCount: 15 },
+  201: { memory: 410, cpu: 14, visitCount: 312 },
+  202: { memory: 165, cpu: 3, visitCount: 67 },
+  203: { memory: 130, cpu: 2, visitCount: 184 },
+  301: { memory: 195, cpu: 4, visitCount: 23 },
+  302: { memory: 180, cpu: 3, visitCount: 41 },
+  303: { memory: 225, cpu: 6, visitCount: 95 },
+  304: { memory: 55, cpu: 1, visitCount: 8 },
+};
+

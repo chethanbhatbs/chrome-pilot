@@ -91,41 +91,45 @@ export function WindowGroup({
         data-testid={`window-group-${win.id}`}
       >
         <CollapsibleTrigger asChild>
-          <div className={`flex items-center justify-between px-2 py-1.5 cursor-pointer
-            hover:bg-white/5 transition-colors
-            ${isFocused ? 'bg-accent/30' : ''}`}
+          <div className={`flex items-center justify-between px-3 py-2 cursor-pointer
+            hover:bg-white/[0.03] transition-colors
+            ${isFocused ? 'bg-primary/[0.04]' : ''}`}
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <ChevronRight
-                size={12}
-                className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                strokeWidth={2}
+                size={11}
+                className={`text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                strokeWidth={2.5}
               />
-              <Monitor size={13} className={isFocused ? 'text-primary' : 'text-muted-foreground'} strokeWidth={1.5} />
-              <span className="text-xs font-heading font-semibold">
+              <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/50'} strokeWidth={1.5} />
+              <span className="text-[11px] font-heading font-semibold tracking-tight">
                 Window {win.id}
               </span>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                ({tabCount} tab{tabCount !== 1 ? 's' : ''})
+              <span className="text-[10px] text-muted-foreground/50 font-mono">
+                {tabCount}
               </span>
               {isFocused && (
-                <span className="text-[9px] text-primary font-mono uppercase tracking-wider">active</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
               )}
             </div>
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ opacity: undefined }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+            >
               <button
                 data-testid={`window-minimize-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onMinimizeWindow(win.id); }}
-                className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+                className="p-1 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
               >
-                <Minus size={11} strokeWidth={1.5} />
+                <Minus size={10} strokeWidth={1.5} />
               </button>
               <button
                 data-testid={`window-close-${win.id}`}
                 onClick={(e) => { e.stopPropagation(); onCloseWindow(win.id); }}
-                className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="p-1 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
-                <X size={11} strokeWidth={1.5} />
+                <X size={10} strokeWidth={1.5} />
               </button>
             </div>
           </div>

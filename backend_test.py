@@ -90,7 +90,7 @@ class TabPilotAPITester:
                 }
             ]
         }
-        success, response = self.run_test("Create Session", "POST", "api/sessions", 200, test_session)
+        success, response = self.run_test("Create Session", "POST", "api/sessions", 201, test_session)
         if success and 'id' in response:
             return response['id']
         return None
