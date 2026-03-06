@@ -36,6 +36,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', icon: 'code', color: '#8ab4f8', tabIds: [] });
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
 
   useEffect(() => {
     saveCustomWorkspaces(customWorkspaces);
@@ -47,11 +48,17 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
   ];
 
   const handleActivate = (workspace) => {
+    if (activeWorkspaceId === workspace.id) {
+      setActiveWorkspaceId(null);
+      toast.info(`Workspace "${workspace.name}" deactivated`);
+      return;
+    }
     const tabIds = workspace.tabIds || [];
     tabIds.forEach(id => {
       const tab = allTabs.find(t => t.id === id);
       if (tab) onSwitch(tab.id);
     });
+    setActiveWorkspaceId(workspace.id);
     toast.success(`Workspace "${workspace.name}" activated`);
   };
 
@@ -283,10 +290,13 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
               <button
                 data-testid={`activate-workspace-${ws.id}`}
                 onClick={() => handleActivate(ws)}
-                className="w-full h-6 text-[10px] font-heading font-semibold rounded-md
-                  border border-border/50 text-foreground/70 hover:text-foreground hover:bg-white/[0.04] transition-colors"
+                className={`w-full h-6 text-[10px] font-heading font-semibold rounded-md transition-colors
+                  ${activeWorkspaceId === ws.id
+                    ? 'bg-primary/10 border border-primary/40 text-primary hover:bg-primary/5'
+                    : 'border border-border/50 text-foreground/70 hover:text-foreground hover:bg-white/[0.04]'
+                  }`}
               >
-                Activate
+                {activeWorkspaceId === ws.id ? 'Deactivate' : 'Activate'}
               </button>
             </div>
           );

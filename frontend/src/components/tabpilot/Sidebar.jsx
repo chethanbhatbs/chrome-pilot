@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer } from 'lucide-react';
+import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer, PanelLeftClose } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -32,7 +32,7 @@ function useTabsAdapter() {
   return useMockTabs();
 }
 
-export function Sidebar() {
+export function Sidebar({ onCollapse }) {
   const tabs = useTabsAdapter();
   const search = useSearch(tabs.allTabs);
   const { sessions, saveSession, deleteSession } = useSessions();
@@ -259,6 +259,20 @@ export function Sidebar() {
                 <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
               </Tooltip>
             ))}
+            {onCollapse && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    data-testid="collapse-sidebar-btn"
+                    onClick={onCollapse}
+                    className="p-1.5 rounded-md transition-all duration-150 text-foreground/30 hover:text-foreground hover:bg-white/[0.08] active:scale-95"
+                  >
+                    <PanelLeftClose size={13} strokeWidth={1.8} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px] font-body">Collapse</TooltipContent>
+              </Tooltip>
+            )}
           </div>
           {/* Only show toolbar when viewing tabs (no active panel or heatmap/focus which are tab-related) */}
           {(!activePanel || activePanel === 'heatmap' || activePanel === 'focus') && (

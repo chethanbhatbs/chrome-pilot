@@ -36,11 +36,10 @@ export function QuickActions({ handlers, viewMode, activePanel }) {
             <DropdownMenuTrigger asChild>
               <button
                 data-testid="action-more-menu"
-                className="flex flex-col items-center gap-0 px-1.5 py-1 rounded-md transition-all duration-150
-                  text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] active:scale-95 min-w-[30px]"
+                className="flex items-center justify-center p-1.5 rounded-md transition-all duration-150
+                  text-foreground/60 hover:text-foreground hover:bg-white/[0.06] active:scale-95"
               >
-                <MoreHorizontal size={13} strokeWidth={1.5} />
-                <span className="text-[7px] leading-tight mt-0.5 font-body">More</span>
+                <MoreHorizontal size={14} strokeWidth={1.5} />
               </button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -88,7 +87,7 @@ function ActionBtn({ id, icon: Icon, label, handler, active }) {
       className={`flex flex-col items-center gap-0 px-1.5 py-1 rounded-md transition-all duration-150 active:scale-95 min-w-[30px]
         ${active
           ? 'text-primary bg-primary/10'
-          : 'text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06]'
+          : 'text-foreground/60 hover:text-foreground hover:bg-white/[0.06]'
         }
       `}
     >

@@ -1,0 +1,76 @@
+{
+  "summary": "Iteration 12: All 11 UX fixes verified - 100% pass rate. Tested: Settings/Collapse no overlap, Duplicate banner Fix All no overflow, No yellow/amber colors (duplicate is now red #ef4444), Toolbar buttons visible, StatsBar tooltips removed, Whitelist domain favicons, Help panel pill-style tab switcher + left-border tips, Tab Timeline new date format 'Day, Mon DD · HH:MM AM/PM', Workspace Activate/Deactivate toggle, Sidebar collapse/expand, Settings panel no header icon overlap.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "TEST 1: Settings icon (x=317) and Collapse button (x=346) are NOT overlapping - confirmed by bounding box coordinates",
+    "TEST 2: Duplicate banner Fix All button within panel bounds (btn_right=371.5, panel_right=382.5) - no overflow",
+    "TEST 3: No yellow/amber text in duplicate panel - duplicate color confirmed as rgb(239, 68, 68) = #ef4444 RED",
+    "TEST 3: No yellow/amber text in StatsBar - confirmed by computed styles check",
+    "TEST 4: All toolbar buttons present (New Tab, Window, Domain, Heatmap, Focus) with text-foreground/60 color rgba(201, 209, 217, 0.6)",
+    "TEST 5: StatsBar has no Radix tooltip triggers (no data-state attributes), no tooltip popup on hover",
+    "TEST 6: AutoClose whitelist items have favicon imgs using Google S2 favicon API URLs",
+    "TEST 7: Help panel has pill-style tab switcher (class: 'flex gap-1 p-0.5 bg-secondary/50 rounded-lg'), 8 tips with border-l-2 styling",
+    "TEST 7: Help panel Suggest tab switch works, suggestion form visible",
+    "TEST 8: Timeline detail shows 'Sat, Feb 28 · 6:00 AM' format matching 'Day, Mon DD · HH:MM AM/PM' pattern",
+    "TEST 9: Workspace Activate button changes to 'Deactivate' after click, then back to 'Activate' after second click",
+    "TEST 9: Toast notification 'Workspace deactivated' shown correctly",
+    "TEST 10: Sidebar collapses from 380px to 0px width, expand button (TabPilot) appears",
+    "TEST 10: Sidebar re-expands back to 380px when expand button clicked",
+    "TEST 11: Settings panel opens without header icon overlap - collapse (x=346) is right of settings (x=317)",
+    "TAILWIND CONFIG: tp.duplicate confirmed as #ef4444 (not amber #f59e0b)"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_12.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "MINOR: TabTimeline.jsx line 149 - timeLabel bug: `h <= 12 ? ${h}:00 AM` shows noon (12:00) as '12:00 AM' instead of '12:00 PM'. Fix: `h < 12 ? ${h}:00 AM : h === 12 ? '12:00 PM' : ${h - 12}:00 PM`",
+    "MINOR: TabTimeline.jsx generateTimelineData() - activity value can go slightly negative (no Math.max(0,...) guard), causing 'Active: -1m' display in detail. Fix: `Math.max(0, Math.min(1, baseActivity + (Math.random() * 0.4 - 0.2)))`"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% - All 11 UX fixes verified working"
+  },
+
+  "test_credentials": "N/A",
+  "seed_data_creation": "N/A - Using existing mock data via useMockTabs.js",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Iteration 12 UX batch fixes all verified. Key changes tested: (1) Collapse button now in header flex row (not absolute) - no overlap with Settings icon; positions timeline=172, notes=201, workspaces=230, autoclose=259, help=288, settings=317, collapse=346 px. (2) Duplicate color #ef4444 red confirmed. (3) StatsBar plain divs with data-testid=stat-{label} - no tooltips. (4) AutoClose whitelist uses getFaviconUrl from @/utils/grouping. (5) HelpPanel pill tabs with bg-secondary/50 rounded-lg, tips have border-l-2 border-primary/20. (6) TabTimeline dateStr uses toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) format. (7) WorkspaceManager has activeWorkspaceId state for toggle. Tab data MOCKED via useMockTabs.js.",
+
+  "mocked_integrations": {
+    "Chrome tabs API": "Web preview uses mock data via useMockTabs.js hook - all tab/window/group data is simulated"
+  },
+
+  "features_verified": {
+    "1_settings_collapse_no_overlap": "PASS - Collapse (x=346) to right of Settings (x=317), no bounding box overlap",
+    "2_duplicate_banner_no_overflow": "PASS - Fix All button within panel bounds, flex-1 + overflow-hidden working",
+    "3_no_yellow_text": "PASS - Duplicate color rgb(239,68,68)=#ef4444 RED, no amber/yellow anywhere",
+    "4_toolbar_buttons_visible": "PASS - All 5 toolbar buttons (New Tab, Window, Domain, Heatmap, Focus) visible with text-foreground/60",
+    "5_statsbar_no_tooltips": "PASS - No Radix tooltip wrappers, no popup on hover",
+    "6_whitelist_favicons": "PASS - Google S2 favicon API used for mail.google.com, docs.google.com",
+    "7_help_panel_improved": "PASS - Pill tabs (bg-secondary/50 rounded-lg) + 8 border-l-2 tips",
+    "8_timeline_date_format": "PASS - Shows 'Sat, Feb 28 · 6:00 AM' new format",
+    "9_workspace_deactivate": "PASS - Activate↔Deactivate toggle works with toast notification",
+    "10_sidebar_collapse": "PASS - Collapses to 0px, expand button appears, re-expands to 380px",
+    "11_settings_no_overlap": "PASS - Settings panel opens cleanly, icon row unchanged"
+  }
+}

@@ -59,19 +59,19 @@ export function HelpPanel({ onBack }) {
   };
 
   return (
-    <div className="p-3 space-y-4" data-testid="help-panel">
+    <div className="p-3 space-y-3" data-testid="help-panel">
       {/* Tab switcher */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 p-0.5 bg-secondary/50 rounded-lg">
         <button
           data-testid="help-tab-help"
           onClick={() => setView('help')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-body transition-all duration-150
             ${view === 'help'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
             }`}
         >
-          <HelpCircle size={12} strokeWidth={1.5} />
+          <HelpCircle size={11} strokeWidth={1.5} />
           How to Use
         </button>
         <button
@@ -79,11 +79,11 @@ export function HelpPanel({ onBack }) {
           onClick={() => setView('suggest')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-body transition-all duration-150
             ${view === 'suggest'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
             }`}
         >
-          <MessageSquare size={12} strokeWidth={1.5} />
+          <MessageSquare size={11} strokeWidth={1.5} />
           Suggest
         </button>
       </div>
@@ -92,14 +92,14 @@ export function HelpPanel({ onBack }) {
         <div className="space-y-4">
           {/* Tips */}
           <div>
-            <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
+            <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
               Quick Tips
             </span>
-            <div className="mt-2 space-y-1.5">
+            <div className="mt-2 space-y-1">
               {tips.map(({ icon: Icon, text }, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-card border border-border/50">
-                  <Icon size={13} className="text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <span className="text-[11px] text-foreground/80 font-body leading-relaxed">{text}</span>
+                <div key={i} className="flex items-start gap-2 p-2 rounded-md hover:bg-card/60 transition-colors border-l-2 border-primary/20 pl-3">
+                  <Icon size={12} className="text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <span className="text-[11px] text-foreground/70 font-body leading-relaxed">{text}</span>
                 </div>
               ))}
             </div>
@@ -111,15 +111,15 @@ export function HelpPanel({ onBack }) {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Keyboard size={11} className="text-muted-foreground/60" strokeWidth={1.5} />
-              <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
+              <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
                 Keyboard Shortcuts
               </span>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {shortcuts.map(([key, action]) => (
-                <div key={key} className="flex items-center justify-between py-1 px-2 rounded-md bg-card border border-border/50">
-                  <span className="text-[11px] text-muted-foreground font-body">{action}</span>
-                  <kbd className="text-[9px] font-mono bg-secondary px-1.5 py-0.5 rounded text-foreground/70">{key}</kbd>
+                <div key={key} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-card/60 transition-colors">
+                  <span className="text-[11px] text-foreground/60 font-body">{action}</span>
+                  <kbd className="text-[9px] font-mono bg-secondary px-1.5 py-0.5 rounded border border-border/40 text-foreground/60 shrink-0 ml-2">{key}</kbd>
                 </div>
               ))}
             </div>
@@ -135,19 +135,18 @@ export function HelpPanel({ onBack }) {
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               TabPilot runs entirely in your browser. We <strong className="text-foreground">never</strong> collect,
-              store, or transmit any browser data — no passwords, no browsing history, no personal information.
-              All tab management happens locally on your device. Your data stays yours.
+              store, or transmit any browser data. Your data stays yours.
             </p>
           </div>
         </div>
       ) : (
         <div className="space-y-3" data-testid="suggestion-form">
           <div>
-            <span className="text-[10px] font-heading text-muted-foreground uppercase tracking-wider">
-              Send us a suggestion
+            <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
+              Share your ideas
             </span>
             <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-              Have an idea to make TabPilot better? We'd love to hear from you.
+              Help make TabPilot better. We read every suggestion.
             </p>
           </div>
 
@@ -166,7 +165,7 @@ export function HelpPanel({ onBack }) {
           </div>
 
           <div>
-            <label className="text-[10px] text-muted-foreground font-body block mb-1">Your suggestion *</label>
+            <label className="text-[10px] text-muted-foreground font-body block mb-1">Suggestion <span className="text-tp-duplicate">*</span></label>
             <textarea
               data-testid="suggestion-message-input"
               value={message}

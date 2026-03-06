@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/sonner';
 import {
   TreePine, Search, Layers, Flame, Focus, Pause, Keyboard,
   StickyNote, Briefcase, Timer, GripVertical, Zap, Download,
-  Monitor, MousePointerClick, ArrowRight, PanelLeftClose, PanelLeftOpen,
+  Monitor, MousePointerClick, ArrowRight, PanelLeftOpen,
   Shield, Cpu, Clock, Star
 } from 'lucide-react';
 
@@ -24,11 +24,13 @@ export default function TabPilotPreview() {
     document.body.style.userSelect = 'none';
   }, [sidebarWidth, sidebarCollapsed]);
 
+  const handleCollapse = useCallback(() => setSidebarCollapsed(true), []);
+
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
       const delta = e.clientX - startX.current;
-      const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 700);
+      const newWidth = Math.min(Math.max(startWidth.current + delta, 320), 700);
       setSidebarWidth(newWidth);
     };
     const handleMouseUp = () => {
@@ -58,17 +60,7 @@ export default function TabPilotPreview() {
       >
         {!sidebarCollapsed && (
           <div className="flex-1 overflow-hidden relative">
-            <Sidebar />
-            {/* Collapse button pinned to top-right of sidebar */}
-            <button
-              data-testid="collapse-sidebar-btn"
-              onClick={() => setSidebarCollapsed(true)}
-              className="absolute top-2 right-1 z-20 p-1 rounded-md text-muted-foreground/40
-                hover:text-foreground hover:bg-white/[0.08] transition-all"
-              title="Hide sidebar"
-            >
-              <PanelLeftClose size={14} strokeWidth={1.5} />
-            </button>
+            <Sidebar onCollapse={handleCollapse} />
           </div>
         )}
       </div>

@@ -1,7 +1,4 @@
 import { FileText, HardDrive, Cpu, Volume2, Pause, AlertTriangle } from 'lucide-react';
-import {
-  Tooltip, TooltipContent, TooltipTrigger
-} from '@/components/ui/tooltip';
 import { TAB_METRICS } from '@/utils/mockData';
 
 export function StatsBar({ windows, allTabs, suspendedCount = 0 }) {
@@ -41,16 +38,11 @@ export function StatsBar({ windows, allTabs, suspendedCount = 0 }) {
       data-testid="stats-bar"
     >
       {stats.filter(s => s.always).map(({ icon: Icon, label, value, color }) => (
-        <Tooltip key={label}>
-          <TooltipTrigger asChild>
-            <div className={`flex items-center gap-1 ${color} cursor-default`} data-testid={`stat-${label.toLowerCase()}`}>
-              <Icon size={10} strokeWidth={1.5} />
-              <span className="opacity-50">{label}:</span>
-              <span>{value}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px] font-body">{label}: {value}</TooltipContent>
-        </Tooltip>
+        <div key={label} className={`flex items-center gap-1 ${color} cursor-default`} data-testid={`stat-${label.toLowerCase()}`}>
+          <Icon size={10} strokeWidth={1.5} />
+          <span className="opacity-50">{label}:</span>
+          <span>{value}</span>
+        </div>
       ))}
     </div>
   );

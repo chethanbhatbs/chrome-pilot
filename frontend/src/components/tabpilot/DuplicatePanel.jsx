@@ -15,25 +15,20 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="mx-2 my-1.5 rounded-md border border-tp-duplicate/30 bg-tp-duplicate/5" data-testid="duplicate-panel">
+      <div className="mx-2 my-1.5 rounded-md border border-tp-duplicate/30 bg-tp-duplicate/5 overflow-hidden" data-testid="duplicate-panel">
         <CollapsibleTrigger asChild>
-          <div className="flex items-start justify-between gap-2 px-2.5 py-2 cursor-pointer hover:bg-tp-duplicate/10 transition-colors rounded-md">
-            <div className="flex items-start gap-1.5 min-w-0">
-              <AlertTriangle size={12} className="text-tp-duplicate shrink-0 mt-0.5" strokeWidth={2} />
-              <div className="min-w-0">
-                <span className="text-[11px] font-body text-tp-duplicate font-semibold">
-                  {totalDupes} duplicate{totalDupes !== 1 ? 's' : ''} found
-                </span>
-                <p className="text-[9px] text-tp-duplicate/60 leading-relaxed">
-                  {duplicates.length} URL{duplicates.length !== 1 ? 's' : ''} in multiple tabs. Fix All keeps one of each.
-                </p>
-              </div>
+          <div className="flex items-center justify-between gap-2 px-2.5 py-2 cursor-pointer hover:bg-tp-duplicate/10 transition-colors rounded-md">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <AlertTriangle size={12} className="text-tp-duplicate shrink-0" strokeWidth={2} />
+              <span className="text-[11px] font-body text-tp-duplicate font-semibold truncate">
+                {totalDupes} duplicate{totalDupes !== 1 ? 's' : ''} found
+              </span>
             </div>
             <button
               data-testid="close-all-duplicates-btn"
               onClick={(e) => { e.stopPropagation(); onCloseDuplicates(); }}
               className="text-[10px] font-heading font-semibold text-tp-duplicate hover:text-foreground
-                bg-tp-duplicate/20 hover:bg-tp-duplicate/30 px-2.5 py-1 rounded transition-colors shrink-0"
+                bg-tp-duplicate/20 hover:bg-tp-duplicate/30 px-2 py-0.5 rounded transition-colors shrink-0"
             >
               Fix All
             </button>

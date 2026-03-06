@@ -13,7 +13,7 @@ function generateTimelineData() {
     const date = new Date();
     date.setDate(date.getDate() - d);
     const dayName = days[date.getDay()];
-    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     const hours = [];
     for (let h = 6; h <= 23; h++) {
@@ -152,7 +152,7 @@ export function TabTimeline() {
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Clock size={10} className="text-primary" strokeWidth={2} />
                   <span className="text-[11px] font-heading font-semibold">
-                    {day.dayName} {day.dateStr} at {timeLabel}
+                    {day.dayName}, {day.dateStr} &middot; {timeLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mb-2">

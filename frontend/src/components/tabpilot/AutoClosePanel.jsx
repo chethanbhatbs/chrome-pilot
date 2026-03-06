@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Timer, Shield, Trash2, Plus, X, AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { getDomain } from '@/utils/grouping';
+import { getDomain, getFaviconUrl } from '@/utils/grouping';
 
 const PRESETS = [
   { id: '15', label: '15 min', minutes: 15 },
@@ -145,10 +145,18 @@ export function AutoClosePanel({ allTabs, onClose }) {
           {whitelist.map(domain => (
             <div key={domain} className="flex items-center justify-between py-1 px-2 rounded-md bg-card/50 border border-border/30"
               data-testid={`whitelist-${domain}`}>
-              <span className="text-[10px] font-body text-foreground/70">{domain}</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <img
+                  src={getFaviconUrl(`https://${domain}`)}
+                  alt=""
+                  className="w-3.5 h-3.5 rounded-[2px] shrink-0"
+                  onError={e => e.target.style.display = 'none'}
+                />
+                <span className="text-[10px] font-body text-foreground/70 truncate">{domain}</span>
+              </div>
               <button
                 onClick={() => removeWhitelistDomain(domain)}
-                className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors"
+                className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 ml-1"
               >
                 <X size={10} strokeWidth={1.5} />
               </button>
@@ -181,8 +189,8 @@ export function AutoClosePanel({ allTabs, onClose }) {
       {enabled && activeMinutes > 0 && (
         <div className="rounded-lg border border-border/50 bg-card/50 p-2.5" data-testid="at-risk-tabs">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <AlertTriangle size={10} className="text-amber-400" strokeWidth={2} />
-            <span className="text-[10px] font-heading font-semibold text-amber-400">
+            <AlertTriangle size={10} className="text-foreground/60" strokeWidth={2} />
+            <span className="text-[10px] font-heading font-semibold text-foreground/70">
               {atRiskTabs.length} tab{atRiskTabs.length !== 1 ? 's' : ''} subject to auto-close
             </span>
           </div>
@@ -196,7 +204,7 @@ export function AutoClosePanel({ allTabs, onClose }) {
                   </span>
                   <div className="flex-1 h-1 bg-muted/30 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-amber-400/60"
+                      className="h-full rounded-full bg-primary/50"
                       style={{ width: `${(remaining / activeMinutes) * 100}%` }}
                     />
                   </div>

@@ -62,7 +62,7 @@ module.exports = {
                                 highlight: '#4cc9f0',
                                 pinned: '#e2b714',
                                 audible: '#4ade80',
-                                duplicate: '#f59e0b',
+                                duplicate: '#ef4444',
                         },
                         'tab-group': {
                                 grey: '#9aa0a6',
