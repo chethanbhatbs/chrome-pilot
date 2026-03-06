@@ -75,11 +75,16 @@ export function useMockTabs() {
   const muteTab = useCallback((tabId) => {
     setWindows(prev => prev.map(w => ({
       ...w,
-      tabs: w.tabs.map(t =>
-        t.id === tabId
-          ? { ...t, mutedInfo: { muted: !t.mutedInfo.muted }, audible: t.mutedInfo.muted ? t.audible : false }
-          : t
-      )
+      tabs: w.tabs.map(t => {
+        if (t.id !== tabId) return t;
+        if (t.mutedInfo?.muted) {
+          // Unmuting: restore original audible state that was saved when muting
+          return { ...t, mutedInfo: { muted: false }, audible: t.mutedInfo.wasAudible ?? false };
+        } else {
+          // Muting: save current audible state so we can restore it on unmute
+          return { ...t, mutedInfo: { muted: true, wasAudible: t.audible }, audible: false };
+        }
+      })
     })));
   }, []);
 

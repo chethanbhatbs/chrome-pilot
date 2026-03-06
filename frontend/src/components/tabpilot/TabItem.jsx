@@ -133,23 +133,22 @@ export function TabItem({
 
           {/* Hover actions: note + close (+ mute for audible/muted tabs) */}
           <div className="flex items-center gap-0 shrink-0">
-            {/* Note button — always shown on hover, indicates add/edit */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  data-testid={`tab-note-btn-${tab.id}`}
-                  onClick={(e) => { e.stopPropagation(); onAddNote?.(tab.id); }}
-                  className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
-                    opacity-0 group-hover:opacity-100
-                    ${hasNote ? 'text-primary/70' : 'text-muted-foreground/30 hover:text-foreground/60'}`}
-                >
-                  <StickyNote size={11} strokeWidth={1.5} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-[10px] font-body">
-                {hasNote ? `Note: ${tabNote.slice(0, 40)}` : 'Add note'}
-              </TooltipContent>
-            </Tooltip>
+            {/* Note button — only shown on hover when there's no note (badge handles the "has note" case) */}
+            {!hasNote && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    data-testid={`tab-note-btn-${tab.id}`}
+                    onClick={(e) => { e.stopPropagation(); onAddNote?.(tab.id); }}
+                    className="cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                      opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-foreground/60"
+                  >
+                    <StickyNote size={11} strokeWidth={1.5} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px] font-body">Add note</TooltipContent>
+              </Tooltip>
+            )}
             {(isAudible || isMuted) && (
               <Tooltip>
                 <TooltipTrigger asChild>

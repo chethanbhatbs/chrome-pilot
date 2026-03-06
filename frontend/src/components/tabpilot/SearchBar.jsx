@@ -73,8 +73,8 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         onFocus={() => setShowSuggestions(true)}
         onKeyDown={handleKeyDown}
         placeholder="Search tabs... (Cmd+K)"
-        className="w-full h-7 pl-7 pr-16 text-[11px] bg-white/[0.04] border-none rounded-md
-          ring-1 ring-white/[0.06] focus:ring-primary/50 focus:outline-none
+        className="w-full h-7 pl-7 pr-16 text-[11px] bg-input/60 rounded-md
+          border border-border/60 focus:border-primary/50 focus:outline-none
           placeholder:text-muted-foreground/40 text-foreground font-body"
       />
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

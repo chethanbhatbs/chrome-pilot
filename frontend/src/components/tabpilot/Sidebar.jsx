@@ -293,7 +293,7 @@ export function Sidebar({ onCollapse }) {
         {/* Header */}
         <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
           <div className="flex items-center gap-1">
-            <span className="text-[13px] font-heading font-bold text-primary tracking-tight px-1 shrink-0">TabPilot</span>
+            <span className="text-[13px] font-heading font-bold text-foreground tracking-tight px-1 shrink-0">TabPilot</span>
             <div className="flex-1 min-w-0">
               <SearchBar
                 query={search.query} setQuery={search.setQuery}

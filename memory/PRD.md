@@ -78,5 +78,11 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Keyboard workspace switching (Cmd+1/2/3)
 - **P3**: Live tab thumbnail previews, Export data
 
+### Bug Fixes (Feb 2026)
+- **Search bar visibility**: Fixed `bg-white/[0.04]` dark-only styling → now uses `bg-input/60 border border-border/60` (works in both light & dark themes)
+- **TabPilot text color**: Changed from `text-primary` (blue) to `text-foreground` (dark in light mode, light in dark mode)
+- **Note shown twice**: Hover note button is now hidden when a note badge is already showing (`!hasNote` condition)
+- **Mute/unmute icon bug**: Fixed `muteTab` to store `wasAudible` in `mutedInfo` when muting; restores original audible state on unmute so icon persists correctly
+
 ## Status: Feature Complete + Launch-Ready UX
-All features implemented and tested (iterations 1-11: 100%).
+All features implemented and tested (iterations 1-11: 100%). Latest bug fixes applied Feb 2026.
