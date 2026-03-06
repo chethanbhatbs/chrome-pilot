@@ -13,9 +13,11 @@ const DEFAULT_W = 400;
 let isVisible    = false;
 let sidebarWidth = DEFAULT_W;
 
-// ── Load persisted width ──────────────────────────────────────────────────────
-chrome.storage.local.get('tabpilotWidth', (data) => {
+// ── Load persisted state (width + open/closed) ───────────────────────────────
+chrome.storage.local.get(['tabpilotWidth', 'tabpilotOpen'], (data) => {
   if (data.tabpilotWidth) sidebarWidth = data.tabpilotWidth;
+  // Restore sidebar open state when user navigates to a new page
+  if (data.tabpilotOpen) showSidebar();
 });
 
 // ── Apply width (sidebar + body margin) ──────────────────────────────────────
@@ -41,6 +43,10 @@ function setupResizeHandle(handle) {
     startX     = e.clientX;
     startWidth = sidebarWidth;
 
+    // Disable iframe pointer events so mousemove isn't swallowed during drag
+    const iframe = document.getElementById(IFRAME_ID);
+    if (iframe) iframe.style.setProperty('pointer-events', 'none', 'important');
+
     document.documentElement.style.setProperty('cursor', 'col-resize', 'important');
     document.body.style.setProperty('user-select', 'none', 'important');
 
@@ -52,6 +58,10 @@ function setupResizeHandle(handle) {
     };
 
     const onUp = () => {
+      // Restore iframe pointer events after drag ends
+      const iframe = document.getElementById(IFRAME_ID);
+      if (iframe) iframe.style.removeProperty('pointer-events');
+
       document.documentElement.style.removeProperty('cursor');
       document.body.style.removeProperty('user-select');
       chrome.storage.local.set({ tabpilotWidth: sidebarWidth });
@@ -105,6 +115,7 @@ function showSidebar() {
   el.style.setProperty('transform', 'translateX(0)', 'important');
   document.documentElement.classList.add('tabpilot-active');
   isVisible = true;
+  chrome.storage.local.set({ tabpilotOpen: true });
 }
 
 function hideSidebar() {
@@ -112,6 +123,7 @@ function hideSidebar() {
   if (el) el.style.setProperty('transform', `translateX(-${sidebarWidth}px)`, 'important');
   document.documentElement.classList.remove('tabpilot-active');
   isVisible = false;
+  chrome.storage.local.set({ tabpilotOpen: false });
 }
 
 function toggleSidebar() {

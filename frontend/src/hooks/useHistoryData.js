@@ -17,7 +17,9 @@ function processItems(items, timeFilter) {
       const host = new URL(item.url).hostname.replace(/^www\./, '');
       if (host.startsWith('chrome') || host === 'newtab') return;
       if (!domainMap[host]) domainMap[host] = 0;
-      domainMap[host] += item.visitCount || 1;
+      // Use 1 per item — chrome.history.search already filters by the time window,
+      // so each item = one unique URL visited in that period (not all-time visitCount)
+      domainMap[host] += 1;
     } catch { /* invalid URL */ }
   });
 
@@ -63,7 +65,7 @@ function processItems(items, timeFilter) {
     timelineData = weeks.map((week, i) => ({ week, hours: parseFloat(counts[i].toFixed(1)) }));
   }
 
-  const totalVisits = items.reduce((s, i) => s + (i.visitCount || 1), 0);
+  const totalVisits = items.length;
   const totalHours = parseFloat((totalVisits * AVG_MIN_PER_VISIT / 60).toFixed(1));
 
   return { topDomains, timelineData, totalVisits, totalHours };

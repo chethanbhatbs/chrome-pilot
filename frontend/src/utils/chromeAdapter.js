@@ -21,9 +21,10 @@ export async function chromeGetAllWindows() {
   // Step 1: Get ALL tabs from ALL windows — requires only `tabs` permission
   const allTabs = await chrome.tabs.query({});
 
-  // Step 2: Group tabs by windowId
+  // Step 2: Group tabs by windowId (skip tabs with invalid windowId)
   const windowMap = new Map();
   allTabs.forEach(tab => {
+    if (!tab.windowId || tab.windowId === -1) return;
     if (!windowMap.has(tab.windowId)) {
       windowMap.set(tab.windowId, {
         id: tab.windowId,
