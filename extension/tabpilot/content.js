@@ -1,22 +1,86 @@
 /**
  * TabPilot Content Script
- * Injects a left-side sidebar iframe into every webpage.
- * Toggle: Ctrl+Shift+E (Mac: Cmd+Shift+E) or toolbar icon click.
+ * Left-sidebar injection with resizable handle + persistent width.
  */
 
-const SIDEBAR_WIDTH = 400;
-const SIDEBAR_ID    = '__tabpilot_root__';
-const IFRAME_ID     = '__tabpilot_iframe__';
+const SIDEBAR_ID = '__tabpilot_root__';
+const IFRAME_ID  = '__tabpilot_iframe__';
+const HANDLE_ID  = '__tabpilot_resize__';
+const MIN_W = 280;
+const MAX_W = 720;
+const DEFAULT_W = 400;
 
-let isVisible = false;
-let sidebar    = null;
+let isVisible    = false;
+let sidebarWidth = DEFAULT_W;
 
-// ── Build the sidebar DOM ─────────────────────────────────────────────────────
+// ── Load persisted width ──────────────────────────────────────────────────────
+chrome.storage.local.get('tabpilotWidth', (data) => {
+  if (data.tabpilotWidth) sidebarWidth = data.tabpilotWidth;
+});
+
+// ── Apply width (sidebar + body margin) ──────────────────────────────────────
+function applyWidth(w) {
+  const el = document.getElementById(SIDEBAR_ID);
+  if (!el) return;
+  el.style.setProperty('width', `${w}px`, 'important');
+  // When hidden, keep transform in sync so slide-in starts from the right edge
+  if (!isVisible) {
+    el.style.setProperty('transform', `translateX(-${w}px)`, 'important');
+  }
+  // CSS variable drives body margin
+  document.documentElement.style.setProperty('--tabpilot-margin', `${w}px`);
+}
+
+// ── Resize handle logic ───────────────────────────────────────────────────────
+function setupResizeHandle(handle) {
+  let startX, startWidth;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX     = e.clientX;
+    startWidth = sidebarWidth;
+
+    document.documentElement.style.setProperty('cursor', 'col-resize', 'important');
+    document.body.style.setProperty('user-select', 'none', 'important');
+
+    const onMove = (moveEvt) => {
+      const delta = moveEvt.clientX - startX;
+      const newW  = Math.min(Math.max(startWidth + delta, MIN_W), MAX_W);
+      sidebarWidth = newW;
+      applyWidth(newW);
+    };
+
+    const onUp = () => {
+      document.documentElement.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+      chrome.storage.local.set({ tabpilotWidth: sidebarWidth });
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Double-click → reset to default width
+  handle.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    sidebarWidth = DEFAULT_W;
+    applyWidth(DEFAULT_W);
+    chrome.storage.local.set({ tabpilotWidth: DEFAULT_W });
+  });
+}
+
+// ── Build sidebar DOM ─────────────────────────────────────────────────────────
 function buildSidebar() {
   if (document.getElementById(SIDEBAR_ID)) return;
 
-  sidebar = document.createElement('div');
-  sidebar.id = SIDEBAR_ID;
+  const root = document.createElement('div');
+  root.id = SIDEBAR_ID;
+  // Apply current width immediately (before CSS loads)
+  root.style.setProperty('width', `${sidebarWidth}px`, 'important');
+  root.style.setProperty('transform', `translateX(-${sidebarWidth}px)`, 'important');
 
   const iframe = document.createElement('iframe');
   iframe.id    = IFRAME_ID;
@@ -24,22 +88,28 @@ function buildSidebar() {
   iframe.title = 'TabPilot';
   iframe.allow = 'clipboard-read; clipboard-write';
 
-  sidebar.appendChild(iframe);
-  document.documentElement.appendChild(sidebar);
+  const handle = document.createElement('div');
+  handle.id = HANDLE_ID;
+  setupResizeHandle(handle);
+
+  root.appendChild(iframe);
+  root.appendChild(handle);
+  document.documentElement.appendChild(root);
 }
 
 // ── Show / hide ───────────────────────────────────────────────────────────────
 function showSidebar() {
   buildSidebar();
-  sidebar = document.getElementById(SIDEBAR_ID);
-  sidebar.classList.add('tabpilot--open');
+  const el = document.getElementById(SIDEBAR_ID);
+  applyWidth(sidebarWidth);
+  el.style.setProperty('transform', 'translateX(0)', 'important');
   document.documentElement.classList.add('tabpilot-active');
   isVisible = true;
 }
 
 function hideSidebar() {
   const el = document.getElementById(SIDEBAR_ID);
-  if (el) el.classList.remove('tabpilot--open');
+  if (el) el.style.setProperty('transform', `translateX(-${sidebarWidth}px)`, 'important');
   document.documentElement.classList.remove('tabpilot-active');
   isVisible = false;
 }
@@ -49,12 +119,12 @@ function toggleSidebar() {
   else showSidebar();
 }
 
-// ── Message from background (toolbar icon click) ─────────────────────────────
+// ── Messages from background (toolbar icon) ───────────────────────────────────
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.action === 'toggle-tabpilot') toggleSidebar();
 });
 
-// ── Keyboard shortcut (backup: Ctrl+Shift+E) ─────────────────────────────────
+// ── Keyboard shortcut (Ctrl/Cmd + Shift + E) ─────────────────────────────────
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toUpperCase() === 'E') {
     e.preventDefault();

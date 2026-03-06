@@ -78,7 +78,10 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Keyboard workspace switching (Cmd+1/2/3)
 - **P3**: Live tab thumbnail previews, Export data
 
-### Extension Mode Fix (Mar 6, 2026)
+### Resizable Sidebar (Mar 2026)
+- Drag handle on right edge of extension sidebar (280px–720px range)
+- Double-click handle resets to 400px default
+- Width persisted via `chrome.storage.local` — survives browser restarts
 - Extension now shows **sidebar only** (no homepage) — `isExtensionContext()` guard in `TabPilotPreview.jsx`
 - Tab "show more" threshold raised from 5 → 15 (practical for real Chrome tabs)
 - Extension rebuilt with new JS/CSS: `main.f1038638.js` / `main.0d247cfd.css`
