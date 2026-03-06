@@ -90,5 +90,38 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Stats strip**: "Accounts needed" → "Data collected"
 - **Tour**: Removed emojis/icons from all steps; heading increased to 18px
 
-## Status: Feature Complete + Launch-Ready UX
+## Chrome Extension — Ready to Install
+
+### Extension Files
+Location: `/app/extension/tabpilot/`
+
+### How to Install
+1. Download/export `/app/extension/tabpilot/` folder
+2. Go to `chrome://extensions/`
+3. Enable **Developer mode** (top-right toggle)
+4. Click **Load unpacked** → select the `tabpilot` folder
+5. Press `Ctrl+Shift+E` (Mac: `Cmd+Shift+E`) to open the sidebar
+
+### How to Rebuild After Changes
+```bash
+cd /app && bash build-extension.sh
+```
+
+### Technical Architecture
+- **Web preview** (`REACT_APP_BACKEND_URL`): Uses `useMockTabs.js` for demo data
+- **Extension context** (Chrome): Uses `useChromeTabs.js` with real Chrome APIs
+- Detection: `isExtensionContext()` in `chromeAdapter.js` — both hooks always called, correct one returned
+
+### Permissions Used
+- `tabs`, `windows`, `tabGroups` — read and manage browser tabs/windows
+- `storage` — persist tab notes and window names
+- `sessions` — undo closed tabs (`chrome.sessions.restore`)
+- `sidePanel` — show sidebar
+- `activeTab` — read current tab
+
+### Key Chrome API Features
+- Real-time tab sync (2s polling + event listeners)
+- Tab notes persisted in `chrome.storage.local`
+- Window rename stored in `chrome.storage.local`
+- Undo close via `chrome.sessions.getRecentlyClosed`
 All features implemented and tested (iterations 1-11: 100%). Latest bug fixes applied Feb 2026.

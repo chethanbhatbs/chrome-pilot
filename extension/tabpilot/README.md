@@ -1,51 +1,49 @@
-# TabPilot Chrome Extension
+# TabPilot Chrome Extension — Installation Guide
 
-## Installation (Developer Mode)
+## Quick Install
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable **Developer mode** (toggle in top-right)
-3. Click **Load unpacked**
-4. Select this `tabpilot` folder
-5. Click the TabPilot icon in your toolbar or press **Ctrl+Shift+E** to open the sidebar
+1. **Get the extension folder**: `tabpilot/` (the folder containing `manifest.json`)
+2. Open Chrome and go to: `chrome://extensions/`
+3. Enable **Developer mode** (toggle in top-right corner)
+4. Click **Load unpacked** and select the `tabpilot/` folder
+5. The TabPilot icon appears in your toolbar
+6. Open the sidebar: `Ctrl+Shift+E` (Windows/Linux) or `Cmd+Shift+E` (Mac)
 
 ## Features
 
-- **Tab Tree View** — See all windows and tabs in real-time
-- **Global Search** — Fuzzy search across all tabs (Cmd+K for quick switch)
-- **Chrome Tab Groups** — Full integration with native tab groups
+- **Tab Tree** — All windows and tabs in a collapsible sidebar
+- **Fuzzy Search** — Find any tab instantly (`Cmd+K` or `Ctrl+K`)
+- **Workspaces** — Save and restore sets of tabs (`Ctrl+1/2/3`)
+- **Focus Mode** — Hide distractions, set a timer
+- **Heatmap** — See which tabs you use most
+- **Tab Suspension** — Discard inactive tabs to free memory
+- **Tab Notes** — Attach notes to any tab (persisted locally)
 - **Duplicate Detection** — Find and close duplicate tabs
-- **Drag & Drop** — Reorder and move tabs between windows
-- **Session Manager** — Save and restore tab sessions
-- **Activity Heatmap** — Track time spent on each site (day/week/month)
-- **Tab Timeline** — GitHub-contributions-style activity grid
-- **Focus Mode** — Hide distractions, show only core tabs
-- **Tab Suspension** — Free memory by suspending inactive tabs
-- **Tab Notes** — Attach quick notes to any tab
-- **Smart Workspaces** — Named presets + custom workspace creation
-- **Auto-Close Rules** — Automatically close inactive tabs
-- **Tab Previews** — Hover any tab for a rich preview card
-- **Command Palette** — Press Cmd+K to fuzzy-search and jump to any tab
-- **Help & Feedback** — Built-in guide and suggestion form
-
-## Privacy
-
-TabPilot runs entirely in your browser. We **never** collect, store, or transmit any browser data — no passwords, no browsing history, no personal information. All tab management happens locally on your device.
+- **Undo Close** — Restore the last closed tab from a toast notification
+- **Window Rename** — Double-click any window name to rename it
 
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+Shift+E | Toggle sidebar |
-| Cmd+K / Ctrl+K | Command palette |
-| Ctrl+Shift+F | Focus search |
-| Arrow Up/Down | Navigate tabs |
-| Enter | Switch to tab |
-| Delete | Close selected tab |
-| Escape | Clear search |
+| `Ctrl+Shift+E` / `Cmd+Shift+E` | Toggle sidebar |
+| `Ctrl+K` / `Cmd+K` | Open command palette |
+| `Ctrl+1/2/3` | Switch workspace |
 
-## Tech Stack
+## Rebuilding After Code Changes
 
-- Manifest V3
-- React 18
-- Tailwind CSS
-- Chrome APIs: tabs, tabGroups, sidePanel, storage
+```bash
+cd /app && bash build-extension.sh
+```
+
+## Permissions Required
+
+| Permission | Why |
+|-----------|-----|
+| `tabs` | Read tab titles, URLs, status |
+| `windows` | Manage browser windows |
+| `tabGroups` | Show Chrome tab groups |
+| `sidePanel` | Render sidebar |
+| `storage` | Save notes and window names |
+| `sessions` | Undo closed tabs |
+| `activeTab` | Read active tab info |
