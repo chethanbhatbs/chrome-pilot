@@ -58,7 +58,6 @@ export function TabItem({
               : 'hover:bg-white/[0.04] text-foreground/75'
             }
             ${isSuspended ? 'opacity-35' : ''}
-            ${isDuplicate ? 'ring-1 ring-inset ring-tp-duplicate/30' : ''}
           `}
         >
           {/* Active indicator */}
@@ -88,11 +87,11 @@ export function TabItem({
 
           {/* Title + URL */}
           <div className="flex-1 min-w-0">
-            <div className={`font-body leading-tight truncate ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
+            <div className={`font-body leading-tight truncate ${compact ? 'text-[11px]' : 'text-[11.5px]'}`}>
               {highlightText ? highlightText(tab.title) : tab.title}
             </div>
             {showUrls && !compact && (
-              <div className="text-[11px] text-muted-foreground/40 truncate leading-tight mt-0.5">
+              <div className="text-[10px] text-muted-foreground/40 truncate leading-tight mt-0.5">
                 {highlightText ? highlightText(domain) : domain}
               </div>
             )}

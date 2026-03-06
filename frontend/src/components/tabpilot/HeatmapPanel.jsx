@@ -147,13 +147,15 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
   }, [timeFilter]);
 
   const rankedTabs = useMemo(() => {
+    // Scale data based on time filter
+    const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
     return allTabs.map(tab => ({
       ...tab,
-      timeMinutes: TAB_TIME_MINUTES[tab.id] || 5,
-      visits: (visitCounts[tab.id] || 0) + (TAB_METRICS[tab.id]?.visitCount || 0),
+      timeMinutes: Math.round((TAB_TIME_MINUTES[tab.id] || 5) * scale),
+      visits: Math.round(((visitCounts[tab.id] || 0) + (TAB_METRICS[tab.id]?.visitCount || 0)) * scale),
       memory: TAB_METRICS[tab.id]?.memory || 80,
     })).sort((a, b) => b.timeMinutes - a.timeMinutes);
-  }, [allTabs, visitCounts]);
+  }, [allTabs, visitCounts, timeFilter]);
 
   const maxTime = rankedTabs[0]?.timeMinutes || 1;
   const totalHours = (rankedTabs.reduce((s, t) => s + t.timeMinutes, 0) / 60).toFixed(1);

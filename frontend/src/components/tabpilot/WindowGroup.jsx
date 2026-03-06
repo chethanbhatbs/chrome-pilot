@@ -36,7 +36,15 @@ export function WindowGroup({
       domains[d] = (domains[d] || 0) + 1;
     });
     const sorted = Object.entries(domains).sort((a, b) => b[1] - a[1]);
-    const shown = sorted.slice(0, 2).map(([d]) => d.replace(/^www\./, ''));
+    // Show short domain names (strip www. and long subdomains)
+    const shorten = (d) => {
+      d = d.replace(/^www\./, '');
+      const parts = d.split('.');
+      // For long subdomains like mycompany.atlassian.net, show just atlassian.net
+      if (parts.length > 2 && d.length > 20) return parts.slice(-2).join('.');
+      return d;
+    };
+    const shown = sorted.slice(0, 2).map(([d]) => shorten(d));
     const remaining = sorted.length - shown.length;
     return remaining > 0
       ? `${shown.join(', ')} +${remaining} more`
@@ -166,10 +174,10 @@ export function WindowGroup({
               <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-heading font-semibold tracking-tight">
+                  <span className="text-[11px] font-heading font-semibold tracking-tight">
                     Window {win.id}
                   </span>
-                  <span className="text-[10px] text-muted-foreground/40 font-mono">{tabCount}</span>
+                  <span className="text-[9px] text-muted-foreground/40 font-mono">{tabCount}</span>
                   {isFocused && (
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}

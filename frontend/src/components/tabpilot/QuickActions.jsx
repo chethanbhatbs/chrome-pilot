@@ -82,23 +82,18 @@ function Divider() {
 
 function ActionBtn({ id, icon: Icon, label, handler, active }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          data-testid={`action-${id}`}
-          onClick={handler}
-          className={`flex flex-col items-center gap-0 px-1.5 py-1 rounded-md transition-all duration-150 active:scale-95 min-w-[30px]
-            ${active
-              ? 'text-primary bg-primary/10'
-              : 'text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06]'
-            }
-          `}
-        >
-          <Icon size={12} strokeWidth={1.5} />
-          <span className="text-[7px] leading-tight mt-0.5 font-body">{label}</span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
-    </Tooltip>
+    <button
+      data-testid={`action-${id}`}
+      onClick={handler}
+      className={`flex flex-col items-center gap-0 px-1.5 py-1 rounded-md transition-all duration-150 active:scale-95 min-w-[30px]
+        ${active
+          ? 'text-primary bg-primary/10'
+          : 'text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06]'
+        }
+      `}
+    >
+      <Icon size={12} strokeWidth={1.5} />
+      <span className="text-[7px] leading-tight mt-0.5 font-body">{label}</span>
+    </button>
   );
 }

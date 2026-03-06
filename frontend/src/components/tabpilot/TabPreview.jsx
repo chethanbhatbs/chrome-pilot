@@ -29,24 +29,28 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
   const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   const domainColor = DOMAIN_COLORS[domain] || '#6b7280';
 
-  // Position the preview card
+  // Position the preview card at the right edge of sidebar, aligned with the hovered tab
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!anchorRect) return;
-    const previewW = 240;
     const previewH = 200;
+    const previewW = 240;
     let top = anchorRect.top;
-    let left = anchorRect.right + 8;
 
-    // Keep within viewport
-    if (left + previewW > window.innerWidth) {
-      left = anchorRect.left - previewW - 8;
-    }
+    // Place at the right edge of the anchor's container (sidebar boundary)
+    let left = anchorRect.right + 12;
+
+    // Keep within viewport vertically
     if (top + previewH > window.innerHeight) {
       top = window.innerHeight - previewH - 8;
     }
     if (top < 8) top = 8;
+
+    // If goes off right edge, flip to left of sidebar
+    if (left + previewW > window.innerWidth) {
+      left = anchorRect.left - previewW - 12;
+    }
 
     setPosition({ top, left });
   }, [anchorRect]);
