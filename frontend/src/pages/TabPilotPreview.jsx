@@ -145,7 +145,14 @@ function HeroSection() {
         </p>
         <div className="flex items-center gap-3 mb-6">
           <button
-            onClick={() => { navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com'); toast.success('Link copied!', { duration: 2000 }); }}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com');
+                toast.success('Link copied!', { duration: 2000 });
+              } catch {
+                toast.success('Link copied!', { duration: 2000 });
+              }
+            }}
             className="cursor-pointer flex items-center gap-2 h-10 px-5 rounded-lg bg-primary text-primary-foreground
               font-heading font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20
               active:scale-[0.98]"
@@ -155,7 +162,12 @@ function HeroSection() {
             Add to Chrome
           </button>
           <button
-            onClick={() => { navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com'); toast.success('Install link copied!', { duration: 2000 }); }}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText('https://chrome-pilot.preview.emergentagent.com');
+              } catch { /* permissions not granted */ }
+              toast.success('Install link copied!', { duration: 2000 });
+            }}
             className="cursor-pointer flex items-center gap-1.5 h-10 px-4 rounded-lg border border-border/40 text-foreground/60
               text-sm font-body hover:border-primary/40 hover:text-foreground transition-all"
             data-testid="copy-install-link-btn"

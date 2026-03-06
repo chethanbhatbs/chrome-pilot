@@ -32,7 +32,17 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **Command Palette** (Cmd+K)
 - **Domain View** — Collapsible domain groups with favicon, name, tab count
 
-### UX Polish (Iterations 8-13)
+### UX Polish & New Features (Iterations 8-14)
+- **First-time onboarding tour**: Spotlight-based 6-step tour, progress bar, skip/next/back; stored in localStorage
+- **Permission confirmation**: Settings toggle "Ask before tab/window actions"; dialog appears before create/close
+- **Window + button**: Hover header to see "+", creates new tab in that specific window
+- **Window rename**: Double-click window name → inline edit → Enter saves / Escape cancels
+- **Cursor fix**: cursor-default on tab items; cursor-pointer only on close/action buttons
+- **Resize handle 3s flash**: Shows on page load for 3s, then hides; always responds to hover
+- **Copy install link**: Homepage hero has "Add to Chrome" + "Copy install link" with toast feedback
+- **Enhanced tab preview**: Mock browser chrome (window dots, URL bar, favicon, content lines)
+- **Duplicate tab fix**: Right-click duplicate auto-expands tab list, shows toast confirmation
+- **Workspace keyboard shortcuts**: Ctrl/Cmd + 1/2/3/4 switches workspace with toast notification
 - **GitHub Dark theme**: #0d1117 palette
 - **Chrome system font**: -apple-system, BlinkMacSystemFont, Segoe UI
 - **Sidebar collapse/expand**: Collapse button in header row (no overlap), floating expand button, min 320px
