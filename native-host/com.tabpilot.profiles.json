@@ -1,0 +1,9 @@
+{
+  "name": "com.tabpilot.profiles",
+  "description": "TabPilot Chrome Profile Manager",
+  "path": "/path/to/tabpilot_profiles.py",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://YOUR_EXTENSION_ID/"
+  ]
+}

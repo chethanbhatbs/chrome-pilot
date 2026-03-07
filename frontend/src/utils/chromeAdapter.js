@@ -339,3 +339,32 @@ export function chromeOnTabsUpdated(callback) {
     windowEvents.forEach(e => e?.removeListener(callback));
   };
 }
+
+// --- Native Messaging: Chrome Profile Management ---
+
+const NATIVE_HOST_NAME = 'com.tabpilot.profiles';
+
+function sendNativeMessage(message) {
+  if (!IS_EXTENSION || !chrome?.runtime?.sendNativeMessage) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, message, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+export async function chromeNativeHostPing() {
+  return await sendNativeMessage({ action: 'ping' });
+}
+
+export async function chromeGetProfiles() {
+  return await sendNativeMessage({ action: 'get-profiles' });
+}
+
+export async function chromeSwitchProfile(profileDirectory) {
+  return await sendNativeMessage({ action: 'switch-profile', profileDirectory });
+}
