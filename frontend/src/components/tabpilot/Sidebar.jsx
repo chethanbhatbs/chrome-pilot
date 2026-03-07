@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer, CheckSquare, X as XIcon, Check, Minus, Save, Trash2 } from 'lucide-react';
+import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer, CheckSquare, X as XIcon, Check, Minus, Save, Trash2, Users } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -17,6 +17,7 @@ import { TabNotesPanel } from './TabNotesPanel';
 import { WorkspaceManager } from './WorkspaceManager';
 import { TabTimeline } from './TabTimeline';
 import { AutoClosePanel } from './AutoClosePanel';
+import { ProfilePanel } from './ProfilePanel';
 import { StatsBar } from './StatsBar';
 import { TourGuide, shouldShowTour } from './TourGuide';
 import { isExtensionContext, chromeStorageGet, chromeStorageSet } from '@/utils/chromeAdapter';
@@ -379,11 +380,12 @@ export function Sidebar({ onCollapse }) {
     { id: 'notes', icon: StickyNote, label: 'Notes', panel: 'notes' },
     { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
     { id: 'autoclose', icon: Timer, label: 'Auto-Close', panel: 'autoclose' },
+    { id: 'profiles', icon: Users, label: 'Profiles', panel: 'profiles' },
     { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
     { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
   ];
 
-  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline', 'autoclose'].includes(activePanel);
+  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline', 'autoclose', 'profiles'].includes(activePanel);
 
   if (activePanel === 'focus') {
     // When workspace is active, only show workspace tabs in focus mode
@@ -653,6 +655,8 @@ export function Sidebar({ onCollapse }) {
             <div className="animate-panel-enter">
               <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} />
             </div>
+          ) : activePanel === 'profiles' ? (
+            <div className="animate-panel-enter"><ProfilePanel /></div>
           ) : (
             <div>
               {viewMode === 'window' ? (

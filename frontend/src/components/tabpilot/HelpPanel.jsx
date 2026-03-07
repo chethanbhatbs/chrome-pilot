@@ -1,7 +1,7 @@
 import {
   HelpCircle, Keyboard, Search, GripVertical, Save, Flame, Focus, Pause,
   LayoutGrid, Mail, ShieldCheck, CheckSquare, Zap, StickyNote, Briefcase,
-  Timer, MousePointer, Command
+  Timer, MousePointer, Command, Users
 } from 'lucide-react';
 
 const categories = [
@@ -21,6 +21,7 @@ const categories = [
       { icon: Briefcase, text: 'Workspaces isolate tab groups per project' },
       { icon: CheckSquare, text: 'Select mode for bulk-closing multiple tabs' },
       { icon: StickyNote, text: 'Attach notes to tabs — persists across sessions' },
+      { icon: Users, text: 'Switch between Chrome profiles instantly' },
     ],
   },
   {
