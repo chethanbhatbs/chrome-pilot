@@ -331,7 +331,10 @@ export function WindowGroup({
             {(() => {
               const allElements = renderElements();
               const TAB_LIMIT = 10;
-              if (allElements.length <= TAB_LIMIT || showAllTabs) {
+              // Auto-expand if active tab is beyond the limit
+              const activeIdx = filteredTabs.findIndex(t => t.active);
+              const needsAutoExpand = activeIdx >= TAB_LIMIT;
+              if (allElements.length <= TAB_LIMIT || showAllTabs || needsAutoExpand) {
                 return allElements;
               }
               const visible = allElements.slice(0, TAB_LIMIT);

@@ -20,7 +20,7 @@ export function TabTimeline() {
   const now = new Date();
   const currentHour = now.getHours();
   const todayRowIdx = 6; // grid is ordered: 6 days ago (0) → today (6)
-  const currentColIdx = currentHour >= 6 && currentHour <= 23 ? currentHour - 6 : -1;
+  const currentColIdx = currentHour; // 0-23, matches grid column index
 
   useEffect(() => {
     if (currentCellRef.current) {
@@ -58,8 +58,11 @@ export function TabTimeline() {
   const { grid, totalHours, mostActiveDay } = timelineData;
 
   const hourLabels = [];
-  for (let h = 6; h <= 23; h++) {
-    hourLabels.push(h <= 12 ? `${h}${h === 12 ? 'p' : 'a'}` : `${h - 12}p`);
+  for (let h = 0; h <= 23; h++) {
+    if (h === 0) hourLabels.push('12a');
+    else if (h < 12) hourLabels.push(`${h}a`);
+    else if (h === 12) hourLabels.push('12p');
+    else hourLabels.push(`${h - 12}p`);
   }
 
   return (
@@ -81,15 +84,16 @@ export function TabTimeline() {
       </p>
 
       {/* Contributions-style grid */}
-      <div className="bg-card rounded-lg border border-border/50 p-4 overflow-x-auto">
-        {/* Hour labels */}
+      <div className="bg-card rounded-lg border border-border/50 p-4 pr-5 overflow-x-auto">
+        {/* Hour labels — 12a to 12a (midnight to midnight) */}
         <div className="flex items-center gap-0 mb-1">
           <div className="w-8 shrink-0" />
           {hourLabels.map((label, i) => (
-            <div key={i} className="flex-1 min-w-[18px] text-center text-[7px] text-muted-foreground/60 font-mono">
-              {i % 3 === 0 ? label : ''}
+            <div key={i} className="flex-1 min-w-[14px] text-center text-[6px] text-muted-foreground/60 font-mono">
+              {i % 4 === 0 ? label : ''}
             </div>
           ))}
+          <div className="w-3 shrink-0 text-[6px] text-muted-foreground/60 font-mono text-left">12a</div>
         </div>
 
         {/* Day rows */}
@@ -104,7 +108,7 @@ export function TabTimeline() {
                 <div
                   key={hi}
                   ref={isCurrentTime ? currentCellRef : undefined}
-                  className={`flex-1 min-w-[18px] h-[18px] rounded-[3px] mx-[1px] cursor-pointer relative
+                  className={`flex-1 min-w-[14px] h-[14px] rounded-[2px] mx-[0.5px] cursor-pointer relative
                     ${isCurrentTime ? 'bg-primary/40' : getActivityColor(hour.activity)}
                     ${selectedCell?.day === di && selectedCell?.hour === hi ? 'ring-1 ring-primary' : ''}
                     hover:ring-1 hover:ring-foreground/30 transition-all duration-100`}
@@ -117,22 +121,22 @@ export function TabTimeline() {
                 </div>
               );
             })}
+            <div className="w-3 shrink-0" />
           </div>
         ))}
 
         {/* Now indicator */}
-        {currentColIdx >= 0 && (
-          <div className="flex items-center gap-0 mt-1">
-            <div className="w-8 shrink-0" />
-            {Array.from({ length: 18 }, (_, i) => (
-              <div key={i} className="flex-1 min-w-[18px] text-center">
-                {i === currentColIdx && (
-                  <span className="text-[7px] font-mono font-bold text-primary animate-[pulse_3s_ease-in-out_infinite]">NOW</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-0 mt-1">
+          <div className="w-8 shrink-0" />
+          {Array.from({ length: 24 }, (_, i) => (
+            <div key={i} className="flex-1 min-w-[14px] text-center">
+              {i === currentColIdx && (
+                <span className="text-[7px] font-mono font-bold text-primary animate-[pulse_3s_ease-in-out_infinite]">NOW</span>
+              )}
+            </div>
+          ))}
+          <div className="w-3 shrink-0" />
+        </div>
 
         {/* Legend */}
         <div className="flex items-center justify-end gap-1.5 mt-2 pt-2 border-t border-border/30">
@@ -153,7 +157,7 @@ export function TabTimeline() {
         const hour = day.hours[selectedCell.hour];
         if (!hour) return null;
         const h = hour.hour;
-        const timeLabel = h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`;
+        const timeLabel = h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`;
         return (
           <div className="bg-card rounded-lg border border-border/50 p-2.5 animate-slide-in" data-testid="timeline-detail">
             <div className="flex items-center gap-1.5 mb-1.5">

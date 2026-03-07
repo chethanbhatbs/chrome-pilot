@@ -70,7 +70,12 @@ export async function chromeGetTabGroups() {
 
 export async function chromeSwitchToTab(tabId, windowId) {
   await chrome.tabs.update(tabId, { active: true });
-  if (windowId) await chrome.windows.update(windowId, { focused: true });
+  if (windowId) {
+    await chrome.windows.update(windowId, { focused: true });
+    // Ensure side panel stays open in the target window — without this,
+    // switching to a tab in another window closes the panel
+    try { await chrome.sidePanel.open({ windowId }); } catch {}
+  }
 }
 
 export async function chromeCloseTab(tabId) {
@@ -305,15 +310,19 @@ export async function chromeDiscardTab(tabId) {
   }
 }
 
-// Listen for tab AND window changes
+// Listen for tab changes — background service worker also notifies us via message
+// IMPORTANT: Only listen to tab events here. Window events (onCreated, onRemoved,
+// onFocusChanged) are handled by background.js which sends us a message. Listening
+// to them directly here would cause DOUBLE-FIRING and excessive refreshes that lag
+// the side panel and can cause Chrome to kill it.
 export function chromeOnTabsUpdated(callback) {
   if (!IS_EXTENSION) return () => {};
 
-  // Background message (from service worker)
+  // Background message (from service worker — covers both tab AND window events)
   const msgHandler = (msg) => { if (msg?.action === 'tabs-updated') callback(); };
   chrome.runtime.onMessage.addListener(msgHandler);
 
-  // Tab events
+  // Direct tab events (backup in case service worker is suspended)
   const tabEvents = [
     chrome.tabs.onCreated,
     chrome.tabs.onRemoved,
@@ -325,18 +334,9 @@ export function chromeOnTabsUpdated(callback) {
   ];
   tabEvents.forEach(e => e?.addListener(callback));
 
-  // Window events — wrapped in try/catch in case `windows` permission not yet granted
-  const windowEvents = [];
-  try {
-    [chrome.windows?.onCreated, chrome.windows?.onRemoved, chrome.windows?.onFocusChanged]
-      .filter(Boolean)
-      .forEach(e => { e.addListener(callback); windowEvents.push(e); });
-  } catch { /* windows permission unavailable */ }
-
   return () => {
     chrome.runtime.onMessage.removeListener(msgHandler);
     tabEvents.forEach(e => e?.removeListener(callback));
-    windowEvents.forEach(e => e?.removeListener(callback));
   };
 }
 
@@ -346,15 +346,23 @@ const NATIVE_HOST_NAME = 'com.tabpilot.profiles';
 
 function sendNativeMessage(message) {
   if (!IS_EXTENSION || !chrome?.runtime?.sendNativeMessage) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, message, (response) => {
-      if (chrome.runtime.lastError) {
-        resolve({ error: chrome.runtime.lastError.message });
-      } else {
-        resolve(response);
-      }
-    });
+  const timeout = new Promise(resolve =>
+    setTimeout(() => resolve({ error: 'Native host timeout' }), 5000)
+  );
+  const msg = new Promise((resolve) => {
+    try {
+      chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, message, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({ error: chrome.runtime.lastError.message });
+        } else {
+          resolve(response);
+        }
+      });
+    } catch (e) {
+      resolve({ error: e.message || 'Native messaging unavailable' });
+    }
   });
+  return Promise.race([msg, timeout]);
 }
 
 export async function chromeNativeHostPing() {
@@ -365,6 +373,17 @@ export async function chromeGetProfiles() {
   return await sendNativeMessage({ action: 'get-profiles' });
 }
 
-export async function chromeSwitchProfile(profileDirectory) {
-  return await sendNativeMessage({ action: 'switch-profile', profileDirectory });
+export async function chromeSwitchProfile(profileDirectory, openUrl) {
+  const msg = { action: 'switch-profile', profileDirectory };
+  if (openUrl) msg.openUrl = openUrl;
+  return await sendNativeMessage(msg);
+}
+
+export async function chromeDetectProfile() {
+  const extensionId = chrome?.runtime?.id || '';
+  return await sendNativeMessage({ action: 'detect-profile', extensionId });
+}
+
+export async function chromeCreateProfile() {
+  return await sendNativeMessage({ action: 'create-profile' });
 }

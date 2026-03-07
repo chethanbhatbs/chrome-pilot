@@ -14,6 +14,7 @@ async function openSidePanelEverywhere() {
     for (const win of windows) {
       try {
         await chrome.sidePanel.open({ windowId: win.id });
+        panelOpenWindows.add(win.id);
       } catch { /* window may not support side panel */ }
     }
   } catch {}
@@ -21,7 +22,6 @@ async function openSidePanelEverywhere() {
 
 // On install or update — auto-open in all windows
 chrome.runtime.onInstalled.addListener(() => {
-  // Small delay to ensure everything is initialized
   setTimeout(openSidePanelEverywhere, 500);
 });
 
@@ -42,10 +42,15 @@ async function updateBadge() {
   }
 }
 
-// Notify sidepanel of tab changes
+// Debounced notification — prevents cascade of rapid-fire events from overwhelming
+// the side panel with refreshes (which causes lag and can make Chrome kill the panel)
+let notifyTimer = null;
 function notifySidepanel() {
-  chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {});
-  updateBadge();
+  if (notifyTimer) clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => {
+    chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {});
+    updateBadge();
+  }, 100);
 }
 
 // Tab events
@@ -61,18 +66,44 @@ chrome.tabs.onActivated.addListener(notifySidepanel);
 chrome.tabs.onAttached.addListener(notifySidepanel);
 chrome.tabs.onDetached.addListener(notifySidepanel);
 
-// Window events — also auto-open side panel in new windows
+// Retry sidePanel.open with multiple attempts — Chrome often rejects the first
+// call when a window is newly created or focused (no user gesture context yet)
+async function retrySidePanelOpen(windowId, delays) {
+  for (const delay of delays) {
+    await new Promise(r => setTimeout(r, delay));
+    try {
+      await chrome.sidePanel.open({ windowId });
+      return; // success — stop retrying
+    } catch { /* expected on early attempts */ }
+  }
+}
+
+// Track which windows have the side panel confirmed open
+const panelOpenWindows = new Set();
+
+// Window events — also auto-open side panel in new/focused windows
 chrome.windows.onCreated.addListener((window) => {
   notifySidepanel();
-  // Auto-open side panel in new windows after a brief delay for initialization
   if (window.type === 'normal') {
-    setTimeout(async () => {
-      try { await chrome.sidePanel.open({ windowId: window.id }); } catch {}
-    }, 300);
+    retrySidePanelOpen(window.id, [100, 300, 700, 1500, 3000]).then(() => {
+      panelOpenWindows.add(window.id);
+    });
   }
 });
-chrome.windows.onRemoved.addListener(notifySidepanel);
-chrome.windows.onFocusChanged.addListener(notifySidepanel);
+chrome.windows.onRemoved.addListener((windowId) => {
+  notifySidepanel();
+  panelOpenWindows.delete(windowId);
+});
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  notifySidepanel();
+  if (windowId !== chrome.windows.WINDOW_ID_NONE && !panelOpenWindows.has(windowId)) {
+    // Only open if panel hasn't been confirmed open in this window yet —
+    // re-opening an already-open panel reloads the React app (blank screen)
+    retrySidePanelOpen(windowId, [50, 200, 500, 1200]).then(() => {
+      panelOpenWindows.add(windowId);
+    });
+  }
+});
 
 // Tab group events
 try {

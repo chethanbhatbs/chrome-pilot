@@ -19,7 +19,11 @@ export function useMockTabs() {
     setWindows(prev => prev.map(w => ({
       ...w,
       focused: w.tabs.some(t => t.id === tabId),
-      tabs: w.tabs.map(t => ({ ...t, active: t.id === tabId }))
+      tabs: w.tabs.map(t => ({
+        ...t,
+        active: t.id === tabId,
+        lastAccessed: t.id === tabId ? Date.now() : t.lastAccessed,
+      }))
     })));
   }, []);
 

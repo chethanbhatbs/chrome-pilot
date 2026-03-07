@@ -37,6 +37,7 @@ function processItems(items, timeFilter) {
       domain,
       visits,
       minutes: visits * minPerVisit,
+      hours: parseFloat((visits * minPerVisit / 60).toFixed(1)),
     }));
 
   // ── URL visit counts (for matching to open tabs) ─────────────────
@@ -173,7 +174,7 @@ export function useTimelineGrid() {
           );
 
           const hours = [];
-          for (let h = 6; h <= 23; h++) {
+          for (let h = 0; h <= 23; h++) {
             // Skip future hours on today
             if (isToday && h > currentHour) {
               hours.push({ hour: h, minutesActive: 0, activity: 0, domains: [] });
@@ -186,8 +187,8 @@ export function useTimelineGrid() {
               item.lastVisitTime >= hourStart && item.lastVisitTime < hourEnd
             );
 
-            const minutesActive = Math.min(55, hourItems.length * AVG_MIN_PER_VISIT);
-            const activity = Math.min(1, minutesActive / 55);
+            const minutesActive = Math.min(60, hourItems.length * AVG_MIN_PER_VISIT);
+            const activity = Math.min(1, minutesActive / 60);
 
             // Get domains active in this hour
             const domainSet = new Set();

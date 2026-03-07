@@ -1,3 +1,11 @@
+// lastAccessed timestamps: recent = active within threshold, old = inactive
+const NOW = Date.now();
+const MIN = 60000;
+const RECENT = NOW - 5 * MIN;       // 5 minutes ago (within any threshold)
+const OLD_30 = NOW - 45 * MIN;      // 45 minutes ago (beyond 30min threshold)
+const OLD_60 = NOW - 90 * MIN;      // 90 minutes ago (beyond 1hr threshold)
+const OLD_120 = NOW - 180 * MIN;    // 3 hours ago (beyond 2hr threshold)
+
 export const MOCK_WINDOWS = [
   {
     id: 1,
@@ -10,7 +18,8 @@ export const MOCK_WINDOWS = [
         url: 'https://github.com/tabpilot/extension',
         active: false, pinned: true,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: -1,
+        lastAccessed: RECENT
       },
       {
         id: 102, windowId: 1, index: 1,
@@ -18,7 +27,8 @@ export const MOCK_WINDOWS = [
         url: 'https://stackoverflow.com/questions/12345/how-to-use-react-hooks',
         active: true, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: -1,
+        lastAccessed: NOW
       },
       {
         id: 103, windowId: 1, index: 2,
@@ -26,7 +36,8 @@ export const MOCK_WINDOWS = [
         url: 'https://mycompany.atlassian.net/jira/board/42',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 1
+        status: 'complete', groupId: 1,
+        lastAccessed: RECENT
       },
       {
         id: 104, windowId: 1, index: 3,
@@ -34,7 +45,8 @@ export const MOCK_WINDOWS = [
         url: 'https://mycompany.atlassian.net/wiki/spaces/DEV/sprint-notes',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 1
+        status: 'complete', groupId: 1,
+        lastAccessed: OLD_30
       },
       {
         id: 105, windowId: 1, index: 4,
@@ -42,7 +54,8 @@ export const MOCK_WINDOWS = [
         url: 'https://mycompany.slack.com/channels/engineering',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 1
+        status: 'complete', groupId: 1,
+        lastAccessed: RECENT
       },
       {
         id: 106, windowId: 1, index: 5,
@@ -50,7 +63,8 @@ export const MOCK_WINDOWS = [
         url: 'https://chat.openai.com/',
         active: false, pinned: false,
         audible: true, mutedInfo: { muted: false },
-        status: 'complete', groupId: 2
+        status: 'complete', groupId: 2,
+        lastAccessed: RECENT
       },
       {
         id: 107, windowId: 1, index: 6,
@@ -58,7 +72,8 @@ export const MOCK_WINDOWS = [
         url: 'https://docs.google.com/document/d/abc123/edit',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 2
+        status: 'complete', groupId: 2,
+        lastAccessed: OLD_60
       },
     ]
   },
@@ -73,7 +88,8 @@ export const MOCK_WINDOWS = [
         url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
         active: true, pinned: false,
         audible: true, mutedInfo: { muted: false },
-        status: 'complete', groupId: 3
+        status: 'complete', groupId: 3,
+        lastAccessed: NOW
       },
       {
         id: 202, windowId: 2, index: 1,
@@ -81,7 +97,8 @@ export const MOCK_WINDOWS = [
         url: 'https://www.reddit.com/r/programming/',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 3
+        status: 'complete', groupId: 3,
+        lastAccessed: OLD_120
       },
       {
         id: 203, windowId: 2, index: 2,
@@ -89,7 +106,8 @@ export const MOCK_WINDOWS = [
         url: 'https://mail.google.com/mail/u/0/#inbox',
         active: false, pinned: true,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: -1,
+        lastAccessed: RECENT
       },
     ]
   },
@@ -104,7 +122,8 @@ export const MOCK_WINDOWS = [
         url: 'https://www.amazon.com/gp/cart/view.html',
         active: true, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: 4
+        status: 'complete', groupId: 4,
+        lastAccessed: NOW
       },
       {
         id: 302, windowId: 3, index: 1,
@@ -112,7 +131,8 @@ export const MOCK_WINDOWS = [
         url: 'https://stackoverflow.com/questions/12345/how-to-use-react-hooks',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: -1,
+        lastAccessed: OLD_30
       },
       {
         id: 303, windowId: 3, index: 2,
@@ -120,7 +140,8 @@ export const MOCK_WINDOWS = [
         url: 'https://x.com/home',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'complete', groupId: -1
+        status: 'complete', groupId: -1,
+        lastAccessed: OLD_60
       },
       {
         id: 304, windowId: 3, index: 3,
@@ -128,7 +149,8 @@ export const MOCK_WINDOWS = [
         url: 'https://www.netflix.com/browse',
         active: false, pinned: false,
         audible: false, mutedInfo: { muted: false },
-        status: 'loading', groupId: -1
+        status: 'loading', groupId: -1,
+        lastAccessed: OLD_120
       },
     ]
   }

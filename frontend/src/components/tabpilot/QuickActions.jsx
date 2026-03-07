@@ -88,7 +88,7 @@ export function QuickActions({ handlers, viewMode, activePanel, selectMode, onTo
           <TooltipContent side="bottom" className="text-[10px] font-body">More actions</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="w-44 font-body" data-testid="quick-actions-overflow">
-          <DropdownMenuLabel className="text-[10px] text-muted-foreground font-normal">Tab Control</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[8px] text-muted-foreground/60 font-normal uppercase tracking-wider">Tab Control</DropdownMenuLabel>
           <DropdownMenuItem onClick={handlers.onSuspendInactive} className="text-xs gap-2 cursor-pointer" data-testid="action-suspend-inactive">
             <Pause size={13} strokeWidth={1.5} /> Suspend Inactive
           </DropdownMenuItem>
@@ -96,7 +96,7 @@ export function QuickActions({ handlers, viewMode, activePanel, selectMode, onTo
             <Play size={13} strokeWidth={1.5} /> Resume All
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-[10px] text-muted-foreground font-normal">Audio</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[8px] text-muted-foreground/60 font-normal uppercase tracking-wider">Audio</DropdownMenuLabel>
           <DropdownMenuItem onClick={handlers.onMuteAll} className="text-xs gap-2 cursor-pointer" data-testid="action-mute-all">
             <VolumeX size={13} strokeWidth={1.5} /> Mute All
           </DropdownMenuItem>
@@ -104,7 +104,7 @@ export function QuickActions({ handlers, viewMode, activePanel, selectMode, onTo
             <Volume2 size={13} strokeWidth={1.5} /> Unmute All
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-[10px] text-muted-foreground font-normal">Organization</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[8px] text-muted-foreground/60 font-normal uppercase tracking-wider">Organization</DropdownMenuLabel>
           <DropdownMenuItem onClick={onToggleSelectMode} className="text-xs gap-2 cursor-pointer" data-testid="action-select-mode">
             <CheckSquare size={13} strokeWidth={1.5} /> {selectMode ? 'Exit Select Mode' : 'Select Tabs'}
           </DropdownMenuItem>
