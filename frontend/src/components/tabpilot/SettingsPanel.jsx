@@ -1,4 +1,4 @@
-import { Settings, Sun, Moon, Laptop, Eye, EyeOff, Zap } from 'lucide-react';
+import { Settings, Sun, Moon, Laptop, Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 
@@ -8,14 +8,24 @@ const themes = [
   { value: 'system', icon: Laptop, label: 'System' },
 ];
 
+const accentColors = [
+  { id: 'blue',   label: 'Blue',   swatch: '#3b82f6' },
+  { id: 'green',  label: 'Green',  swatch: '#22c55e' },
+  { id: 'orange', label: 'Orange', swatch: '#f97316' },
+  { id: 'purple', label: 'Purple', swatch: '#a855f7' },
+  { id: 'rose',   label: 'Rose',   swatch: '#f43f5e' },
+  { id: 'teal',   label: 'Teal',   swatch: '#14b8a6' },
+];
+
 export function SettingsPanel({ settings, onUpdate }) {
   return (
-    <div className="p-2 space-y-3" data-testid="settings-panel">
+    <div className="p-3 space-y-3" data-testid="settings-panel">
       <div className="flex items-center gap-1.5 mb-2">
         <Settings size={13} className="text-primary" strokeWidth={1.5} />
         <span className="text-xs font-heading font-bold">Settings</span>
       </div>
 
+      {/* Theme */}
       <div>
         <span className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider">Theme</span>
         <div className="flex gap-1 mt-1.5">
@@ -24,11 +34,11 @@ export function SettingsPanel({ settings, onUpdate }) {
               key={value}
               data-testid={`theme-${value}`}
               onClick={() => onUpdate('theme', value)}
-              className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-body
+              className={`cursor-pointer flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-body
                 transition-all duration-150
                 ${settings.theme === value
-                  ? 'bg-primary text-primary-foreground shadow-[0_0_8px_rgba(76,201,240,0.2)]'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-white/10'
+                  ? 'bg-primary text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.25)]'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--hover-medium))]'
                 }
               `}
             >
@@ -39,8 +49,34 @@ export function SettingsPanel({ settings, onUpdate }) {
         </div>
       </div>
 
+      {/* Accent color */}
+      <div>
+        <span className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider">Accent Color</span>
+        <div className="flex gap-1.5 mt-1.5">
+          {accentColors.map(({ id, label, swatch }) => (
+            <button
+              key={id}
+              data-testid={`accent-${id}`}
+              onClick={() => onUpdate('accentColor', id)}
+              title={label}
+              className="cursor-pointer relative w-5 h-5 rounded-full transition-all duration-150 hover:scale-110 active:scale-95
+                flex items-center justify-center"
+              style={{
+                backgroundColor: swatch,
+                boxShadow: settings.accentColor === id ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${swatch}` : 'none',
+              }}
+            >
+              {settings.accentColor === id && (
+                <Check size={10} className="text-white" strokeWidth={3} />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <Separator className="opacity-20" />
 
+      {/* Toggles */}
       <div className="space-y-2.5">
         <SettingToggle
           label="Show favicons"
@@ -64,25 +100,11 @@ export function SettingsPanel({ settings, onUpdate }) {
           testId="setting-compact"
         />
         <SettingToggle
-          label="Confirm close window"
-          description="Ask before closing windows"
-          checked={settings.confirmCloseWindow}
-          onChange={(v) => onUpdate('confirmCloseWindow', v)}
-          testId="setting-confirm-close"
-        />
-        <SettingToggle
-          label="Ask before tab/window actions"
+          label="Ask before actions"
           description="Confirm create, close & switch"
           checked={settings.confirmActions}
           onChange={(v) => onUpdate('confirmActions', v)}
           testId="setting-confirm-actions"
-        />
-        <SettingToggle
-          label="Auto-close duplicates"
-          description="Close new duplicate tabs"
-          checked={settings.autoCloseDuplicates}
-          onChange={(v) => onUpdate('autoCloseDuplicates', v)}
-          testId="setting-auto-dupes"
         />
       </div>
     </div>
@@ -93,8 +115,8 @@ function SettingToggle({ label, description, checked, onChange, testId }) {
   return (
     <div className="flex items-center justify-between" data-testid={testId}>
       <div>
-        <div className="text-xs font-body font-medium">{label}</div>
-        <div className="text-[10px] text-muted-foreground">{description}</div>
+        <div className="text-[11px] font-body font-medium">{label}</div>
+        <div className="text-[9px] text-muted-foreground">{description}</div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="scale-75" />
     </div>

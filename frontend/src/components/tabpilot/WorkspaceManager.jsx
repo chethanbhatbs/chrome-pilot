@@ -1,10 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Code, Video, Search, Coffee, Briefcase, Plus, Pencil, Trash2, X, Check, Star
+  Code, Video, Search, Coffee, Briefcase, Plus, Pencil, Trash2, X, Check, Star,
+  Globe, Music, Book, Heart, Gamepad2, Palette, GraduationCap, Home, ShoppingCart, Rocket
 } from 'lucide-react';
-import { WORKSPACE_PRESETS } from '@/utils/mockData';
-import { getFaviconUrl, getDomain } from '@/utils/grouping';
+import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
+import { isExtensionContext, chromeStorageGet, chromeStorageSet } from '@/utils/chromeAdapter';
 import { toast } from 'sonner';
+
+const WS_STORAGE_KEY = 'tabpilot_workspaces';
 
 const ICON_OPTIONS = [
   { id: 'code', icon: Code, label: 'Code' },
@@ -13,53 +16,87 @@ const ICON_OPTIONS = [
   { id: 'coffee', icon: Coffee, label: 'Break' },
   { id: 'briefcase', icon: Briefcase, label: 'Work' },
   { id: 'star', icon: Star, label: 'Starred' },
+  { id: 'globe', icon: Globe, label: 'Web' },
+  { id: 'music', icon: Music, label: 'Music' },
+  { id: 'book', icon: Book, label: 'Reading' },
+  { id: 'heart', icon: Heart, label: 'Personal' },
+  { id: 'gamepad', icon: Gamepad2, label: 'Gaming' },
+  { id: 'palette', icon: Palette, label: 'Design' },
+  { id: 'graduation', icon: GraduationCap, label: 'Study' },
+  { id: 'home', icon: Home, label: 'Home' },
+  { id: 'shopping', icon: ShoppingCart, label: 'Shopping' },
+  { id: 'rocket', icon: Rocket, label: 'Launch' },
 ];
 
 const COLOR_OPTIONS = [
   '#8ab4f8', '#81c995', '#f28b82', '#fdd663', '#c58af9', '#78d9ec', '#fcad70', '#ff8bcb',
 ];
 
-const ICONS = { code: Code, video: Video, search: Search, coffee: Coffee, briefcase: Briefcase, star: Star };
+const ICONS = {
+  code: Code, video: Video, search: Search, coffee: Coffee, briefcase: Briefcase, star: Star,
+  globe: Globe, music: Music, book: Book, heart: Heart, gamepad: Gamepad2, palette: Palette,
+  graduation: GraduationCap, home: Home, shopping: ShoppingCart, rocket: Rocket,
+};
 
 function loadCustomWorkspaces() {
   try {
-    return JSON.parse(localStorage.getItem('tabpilot_workspaces') || '[]');
+    return JSON.parse(localStorage.getItem(WS_STORAGE_KEY) || '[]');
   } catch { return []; }
 }
 
 function saveCustomWorkspaces(workspaces) {
-  localStorage.setItem('tabpilot_workspaces', JSON.stringify(workspaces));
+  localStorage.setItem(WS_STORAGE_KEY, JSON.stringify(workspaces));
+  if (isExtensionContext()) {
+    chromeStorageSet({ [WS_STORAGE_KEY]: workspaces });
+  }
 }
 
-export function WorkspaceManager({ allTabs, onSwitch }) {
+export function WorkspaceManager({ allTabs, onSwitch, activeWorkspaceId, onActivateWorkspace, onDeactivateWorkspace }) {
   const [customWorkspaces, setCustomWorkspaces] = useState(loadCustomWorkspaces);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', icon: 'code', color: '#8ab4f8', tabIds: [] });
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
+
+  // Load from chrome.storage on mount (extension context)
+  useEffect(() => {
+    if (!isExtensionContext()) return;
+    chromeStorageGet([WS_STORAGE_KEY]).then(data => {
+      if (data?.[WS_STORAGE_KEY]?.length) {
+        setCustomWorkspaces(data[WS_STORAGE_KEY]);
+      }
+    });
+  }, []);
+
+  // Cross-window sync for workspace definitions
+  useEffect(() => {
+    if (!isExtensionContext() || !chrome?.storage?.onChanged) return;
+    const handler = (changes) => {
+      if (!changes[WS_STORAGE_KEY]) return;
+      const newVal = changes[WS_STORAGE_KEY].newValue;
+      if (newVal) setCustomWorkspaces(newVal);
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
 
   useEffect(() => {
     saveCustomWorkspaces(customWorkspaces);
   }, [customWorkspaces]);
 
+  // In extension context, only show user-created workspaces (no mock presets)
   const allWorkspaces = [
-    ...WORKSPACE_PRESETS.map(ws => ({ ...ws, isPreset: true })),
     ...customWorkspaces.map(ws => ({ ...ws, isPreset: false })),
   ];
 
   const handleActivate = (workspace) => {
     if (activeWorkspaceId === workspace.id) {
-      setActiveWorkspaceId(null);
+      onDeactivateWorkspace?.();
       toast.info(`Workspace "${workspace.name}" deactivated`);
       return;
     }
     const tabIds = workspace.tabIds || [];
-    tabIds.forEach(id => {
-      const tab = allTabs.find(t => t.id === id);
-      if (tab) onSwitch(tab.id);
-    });
-    setActiveWorkspaceId(workspace.id);
-    toast.success(`Workspace "${workspace.name}" activated`);
+    onActivateWorkspace?.(workspace.id, workspace.name, tabIds);
+    toast.success(`Workspace "${workspace.name}" activated — showing ${tabIds.length} tabs`);
   };
 
   const startCreate = () => {
@@ -86,11 +123,20 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
   const handleSave = () => {
     if (!form.name.trim()) { toast.error('Name required'); return; }
     if (form.tabIds.length === 0) { toast.error('Select at least one tab'); return; }
+    // Prevent duplicate workspace names
+    const nameExists = customWorkspaces.some(ws =>
+      ws.name.toLowerCase() === form.name.trim().toLowerCase() && ws.id !== editing
+    );
+    if (nameExists) { toast.error(`Workspace "${form.name.trim()}" already exists`); return; }
 
     if (editing) {
       setCustomWorkspaces(prev => prev.map(ws =>
         ws.id === editing ? { ...ws, ...form, description: form.tabIds.length + ' tabs' } : ws
       ));
+      // If editing the active workspace, re-activate with new tab IDs
+      if (editing === activeWorkspaceId) {
+        onActivateWorkspace?.(editing, form.name, form.tabIds);
+      }
       toast.success('Workspace updated');
     } else {
       const newWs = {
@@ -159,8 +205,8 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
 
           {/* Icon picker */}
           <div>
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Icon</span>
-            <div className="flex gap-1 mt-1">
+            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider">Icon</span>
+            <div className="flex flex-wrap gap-1 mt-1">
               {ICON_OPTIONS.map(opt => {
                 const Icon = opt.icon;
                 return (
@@ -168,7 +214,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
                     key={opt.id}
                     onClick={() => setForm(prev => ({ ...prev, icon: opt.id }))}
                     className={`p-1.5 rounded-md transition-colors
-                      ${form.icon === opt.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:bg-white/[0.06]'}`}
+                      ${form.icon === opt.id ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:bg-[hsl(var(--hover-medium))]'}`}
                   >
                     <Icon size={12} strokeWidth={1.5} />
                   </button>
@@ -179,7 +225,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
 
           {/* Color picker */}
           <div>
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Color</span>
+            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider">Color</span>
             <div className="flex gap-1.5 mt-1">
               {COLOR_OPTIONS.map(c => (
                 <button
@@ -195,7 +241,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
 
           {/* Tab picker */}
           <div>
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">
+            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider">
               Select Tabs ({form.tabIds.length})
             </span>
             <div className="mt-1 space-y-0.5 max-h-[150px] overflow-y-auto">
@@ -207,14 +253,14 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
                     onClick={() => toggleTab(tab.id)}
                     data-testid={`ws-tab-pick-${tab.id}`}
                     className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors
-                      ${selected ? 'bg-primary/10 text-foreground' : 'hover:bg-white/[0.04] text-foreground/60'}`}
+                      ${selected ? 'bg-primary/10 text-foreground' : 'hover:bg-[hsl(var(--hover-subtle))] text-foreground/60'}`}
                   >
                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors
                       ${selected ? 'bg-primary border-primary' : 'border-border'}`}>
                       {selected && <Check size={8} className="text-primary-foreground" strokeWidth={3} />}
                     </div>
                     <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0"
-                      onError={e => e.target.style.display = 'none'} />
+                      onError={handleFaviconError} />
                     <span className="text-[10px] font-body truncate">{tab.title}</span>
                   </button>
                 );
@@ -234,7 +280,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
             </button>
             <button
               onClick={cancelForm}
-              className="h-7 px-3 text-[10px] rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+              className="h-7 px-3 text-[10px] rounded-md text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--hover-medium))] transition-colors"
             >
               Cancel
             </button>
@@ -265,11 +311,11 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
                 {!ws.isPreset && (
                   <div className="flex items-center gap-0.5 shrink-0">
                     <button onClick={() => startEdit(ws)}
-                      className="p-1 rounded text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors">
+                      className="p-1 rounded text-muted-foreground/50 hover:text-foreground hover:bg-[hsl(var(--hover-medium))] transition-colors">
                       <Pencil size={10} strokeWidth={1.5} />
                     </button>
                     <button onClick={() => handleDelete(ws.id)}
-                      className="p-1 rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                      className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
                       <Trash2 size={10} strokeWidth={1.5} />
                     </button>
                   </div>
@@ -278,13 +324,13 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
               <div className="flex items-center gap-1 mb-2">
                 {matchedTabs.slice(0, 5).map(tab => (
                   <img key={tab.id} src={getFaviconUrl(tab.url)} alt=""
-                    className="w-3.5 h-3.5 rounded-[2px]" onError={e => e.target.style.display = 'none'} />
+                    className="w-3.5 h-3.5 rounded-[2px]" onError={handleFaviconError} />
                 ))}
                 {matchedTabs.length > 5 && (
                   <span className="text-[8px] text-muted-foreground font-mono">+{matchedTabs.length - 5}</span>
                 )}
                 {matchedTabs.length === 0 && (
-                  <span className="text-[8px] text-muted-foreground/40 italic">No matching tabs open</span>
+                  <span className="text-[8px] text-muted-foreground/60 italic">No matching tabs open</span>
                 )}
               </div>
               <button
@@ -293,7 +339,7 @@ export function WorkspaceManager({ allTabs, onSwitch }) {
                 className={`w-full h-6 text-[10px] font-heading font-semibold rounded-md transition-colors
                   ${activeWorkspaceId === ws.id
                     ? 'bg-primary/10 border border-primary/40 text-primary hover:bg-primary/5'
-                    : 'border border-border/50 text-foreground/70 hover:text-foreground hover:bg-white/[0.04]'
+                    : 'border border-border/50 text-foreground/70 hover:text-foreground hover:bg-[hsl(var(--hover-subtle))]'
                   }`}
               >
                 {activeWorkspaceId === ws.id ? 'Deactivate' : 'Activate'}

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Search, X, Globe } from 'lucide-react';
-import { getFaviconUrl } from '@/utils/grouping';
+import { getFaviconUrl, handleFaviconError } from '@/utils/grouping';
 
 export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef: externalRef, suggestions, onSwitchTab }) {
   const internalRef = useRef(null);
@@ -74,7 +74,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         onKeyDown={handleKeyDown}
         placeholder="Search tabs... (Cmd+K)"
         className="w-full h-7 pl-7 pr-7 text-[11px] bg-input/60 rounded-md
-          border border-border/60 focus:border-primary/50 focus:outline-none
+          border border-border/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 focus:outline-none
           placeholder:text-muted-foreground/40 text-foreground font-body"
       />
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -84,7 +84,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
             <button
               data-testid="search-clear-btn"
               onClick={() => { clearSearch(); setShowSuggestions(false); }}
-              className="p-0.5 rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+              className="p-0.5 rounded hover:bg-[hsl(var(--hover-medium))] text-muted-foreground hover:text-foreground transition-colors"
             >
               <X size={11} strokeWidth={1.5} />
             </button>
@@ -106,12 +106,12 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
                 else if (s.type === 'domain') setQuery(s.domain);
               }}
               className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors
-                ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-white/[0.04]'}
-                ${idx > 0 ? 'border-t border-border/30' : ''}`}
+                ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-[hsl(var(--hover-subtle))]'}
+                ${idx > 0 ? 'border-t border-border/40' : ''}`}
             >
               {s.type === 'tab' ? (
                 <>
-                  <img src={getFaviconUrl(s.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={e => e.target.style.display = 'none'} />
+                  <img src={getFaviconUrl(s.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-body truncate text-foreground/80">{s.title}</div>
                     <div className="text-[9px] text-muted-foreground/50 truncate">{s.domain}</div>

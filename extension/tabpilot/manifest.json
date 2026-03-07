@@ -7,12 +7,15 @@
     "tabs",
     "tabGroups",
     "windows",
+    "sidePanel",
     "storage",
     "sessions",
     "history",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -33,14 +36,6 @@
       "description": "Toggle TabPilot sidebar"
     }
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "run_at": "document_idle"
-    }
-  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self'"
   },

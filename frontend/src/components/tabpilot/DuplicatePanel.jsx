@@ -1,8 +1,8 @@
-import { findDuplicates } from '@/utils/grouping';
+import { findDuplicates, normalizeUrl } from '@/utils/grouping';
 import { AlertTriangle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getFaviconUrl, getDomain } from '@/utils/grouping';
+import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
 import { useState } from 'react';
 
 export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
@@ -43,7 +43,7 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
               return (
                 <div key={url} className="rounded-md bg-background/50 p-2">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={e => e.target.style.display = 'none'} />
+                    <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
                     <span className="text-[10px] text-muted-foreground truncate font-body">{domain}</span>
                     <span className="text-[8px] font-mono text-tp-duplicate ml-auto">{tabs.length}x open</span>
                   </div>
@@ -88,16 +88,14 @@ export function getDuplicateTabIds(allTabs) {
   const urlMap = {};
   const duplicateIds = new Set();
   allTabs.forEach(t => {
-    try {
-      const u = new URL(t.url);
-      const normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
-      if (urlMap[normalized]) {
-        duplicateIds.add(t.id);
-        duplicateIds.add(urlMap[normalized]);
-      } else {
-        urlMap[normalized] = t.id;
-      }
-    } catch { /* skip */ }
+    if (!t.url) return;
+    const normalized = normalizeUrl(t.url);
+    if (urlMap[normalized]) {
+      duplicateIds.add(t.id);
+      duplicateIds.add(urlMap[normalized]);
+    } else {
+      urlMap[normalized] = t.id;
+    }
   });
   return duplicateIds;
 }

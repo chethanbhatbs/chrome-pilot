@@ -1,19 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Flame, TrendingUp, BarChart3, Clock, Zap, Filter } from 'lucide-react';
-import { getDomain, getFaviconUrl } from '@/utils/grouping';
-import {
-  TAB_METRICS, DOMAIN_TIME_SPENT, TAB_TIME_MINUTES,
-  HOURLY_ACTIVITY, WEEKLY_ACTIVITY, MONTHLY_ACTIVITY,
-} from '@/utils/mockData';
+import { Flame, TrendingUp, BarChart3, Clock, Zap, ChevronDown, ChevronUp, Filter, Check } from 'lucide-react';
+import { getDomain, getFaviconUrl, handleFaviconError as sharedFaviconError } from '@/utils/grouping';
 import { useHistoryData } from '@/hooks/useHistoryData';
-import { toast } from 'sonner';
+import { isExtensionContext } from '@/utils/chromeAdapter';
 
 function getHeatColor(ratio) {
-  if (ratio > 0.8) return { bar: '#ef4444', text: 'text-red-400' };
-  if (ratio > 0.6) return { bar: '#f97316', text: 'text-orange-400' };
-  if (ratio > 0.4) return { bar: '#eab308', text: 'text-amber-400' };
-  if (ratio > 0.2) return { bar: '#3b82f6', text: 'text-blue-400' };
-  return { bar: '#64748b', text: 'text-slate-400' };
+  if (ratio > 0.8) return { bar: 'hsl(var(--destructive))', text: 'text-destructive' };
+  if (ratio > 0.6) return { bar: 'hsl(var(--chart-3))', text: 'text-orange-400' };
+  if (ratio > 0.4) return { bar: 'hsl(var(--chart-3))', text: 'text-amber-400' };
+  if (ratio > 0.2) return { bar: 'hsl(var(--primary))', text: 'text-primary' };
+  return { bar: 'hsl(var(--muted-foreground))', text: 'text-muted-foreground' };
 }
 
 function BarChart({ data, maxVal, labelKey, valueKey, unitLabel }) {
@@ -62,14 +58,22 @@ function TimelineChart({ data, xKey, yKey, yLabel }) {
   const chartW = w - padLeft - padRight;
   const chartH = h - padTop - padBot;
 
-  const maxVal = Math.max(...data.map(d => d[yKey]));
-  const points = data.map((d, i) => ({
+  // Trim trailing zero entries (future hours/days with no data)
+  let visibleData = [...data];
+  while (visibleData.length > 1 && visibleData[visibleData.length - 1][yKey] === 0) {
+    visibleData.pop();
+  }
+
+  const maxVal = Math.max(...data.map(d => d[yKey]), 1);
+  const points = visibleData.map((d, i) => ({
     x: padLeft + (i / Math.max(data.length - 1, 1)) * chartW,
     y: padTop + chartH - (d[yKey] / maxVal) * chartH,
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-  const areaPath = linePath + ` L${points[points.length - 1].x},${padTop + chartH} L${points[0].x},${padTop + chartH} Z`;
+  const areaPath = points.length > 0
+    ? linePath + ` L${points[points.length - 1].x},${padTop + chartH} L${points[0].x},${padTop + chartH} Z`
+    : '';
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full" data-testid="timeline-chart">
@@ -94,115 +98,194 @@ function TimelineChart({ data, xKey, yKey, yLabel }) {
         </linearGradient>
       </defs>
       <path d={linePath} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r={2} className="fill-primary" />
-          <text x={p.x} y={h - 3} textAnchor="middle"
+      {/* X-axis labels for ALL data points (including future) */}
+      {data.map((d, i) => {
+        const x = padLeft + (i / Math.max(data.length - 1, 1)) * chartW;
+        return (
+          <text key={`label-${i}`} x={x} y={h - 3} textAnchor="middle"
             className="fill-muted-foreground" style={{ fontSize: '7px', fontFamily: 'inherit' }}>
-            {data[i][xKey]}
+            {d[xKey]}
           </text>
-          <text x={p.x} y={p.y - 5} textAnchor="middle"
-            className="fill-foreground" style={{ fontSize: '7px', fontWeight: 600, fontFamily: 'inherit' }}>
-            {typeof data[i][yKey] === 'number' && yKey === 'hours' ? data[i][yKey].toFixed(1) : data[i][yKey]}
-          </text>
-        </g>
-      ))}
+        );
+      })}
+      {/* Data dots and values only for visible (non-future) data */}
+      {points.map((p, i) => {
+        const val = visibleData[i][yKey];
+        const label = typeof val === 'number' && yKey === 'hours' ? val.toFixed(1) : val;
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r={2} className="fill-primary" />
+            <text x={p.x} y={p.y - 5} textAnchor="middle"
+              className="fill-foreground" style={{ fontSize: '7px', fontWeight: 600, fontFamily: 'inherit' }}>
+              {label}{yLabel}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
 
 const TIME_FILTERS = [
-  { id: 'day', label: 'Day' },
+  { id: 'day', label: 'Today' },
   { id: 'week', label: 'Week' },
   { id: 'month', label: 'Month' },
-  { id: 'custom', label: 'Custom' },
 ];
 
-export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
+export function HeatmapPanel({ allTabs, onSwitch, selectMode, selectedTabIds, onToggleSelect }) {
   const [timeFilter, setTimeFilter] = useState('week');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const isExt = isExtensionContext();
 
-  // Real Chrome history data (null in web preview → falls back to mock)
+  // Real Chrome history data (null in web preview)
   const historyData = useHistoryData(timeFilter);
 
-  const domainTimeData = useMemo(() => {
-    if (historyData) return historyData.topDomains; // real extension data
-    // Mock fallback for web preview
-    const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
-    return Object.entries(DOMAIN_TIME_SPENT)
-      .map(([, data]) => ({ domain: data.label, hours: parseFloat((data.hours * scale).toFixed(1)) }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 8);
-  }, [historyData, timeFilter]);
+  // No data available — show placeholder
+  if (!isExt && !historyData) {
+    return (
+      <div className="p-3 space-y-3" data-testid="heatmap-panel">
+        <div className="flex items-center gap-2">
+          <Flame size={13} className="text-orange-400" strokeWidth={2} />
+          <span className="text-[12px] font-heading font-bold">Activity Heatmap</span>
+        </div>
+        <div className="text-center py-8 text-muted-foreground">
+          <Flame size={24} className="mx-auto mb-2 opacity-30" />
+          <p className="text-[11px]">Activity data is available when running as a Chrome extension.</p>
+        </div>
+      </div>
+    );
+  }
 
-  const maxDomainHours = domainTimeData[0]?.hours || 1;
+  // Waiting for data to load
+  if (!historyData) {
+    return (
+      <div className="p-3 space-y-3" data-testid="heatmap-panel">
+        <div className="flex items-center gap-2">
+          <Flame size={13} className="text-orange-400" strokeWidth={2} />
+          <span className="text-[12px] font-heading font-bold">Activity Heatmap</span>
+        </div>
+        <div className="text-center py-6 text-muted-foreground text-[11px]">Loading history...</div>
+      </div>
+    );
+  }
+
+  return <HeatmapContent
+    historyData={historyData}
+    allTabs={allTabs}
+    onSwitch={onSwitch}
+    timeFilter={timeFilter}
+    setTimeFilter={setTimeFilter}
+    selectMode={selectMode}
+    selectedTabIds={selectedTabIds}
+    onToggleSelect={onToggleSelect}
+  />;
+}
+
+const SITE_NAMES = {
+  'mail.google.com': 'Gmail', 'drive.google.com': 'Google Drive',
+  'docs.google.com': 'Google Docs', 'sheets.google.com': 'Google Sheets',
+  'calendar.google.com': 'Google Calendar', 'meet.google.com': 'Google Meet',
+  'youtube.com': 'YouTube', 'github.com': 'GitHub', 'gitlab.com': 'GitLab',
+  'stackoverflow.com': 'Stack Overflow', 'reddit.com': 'Reddit',
+  'twitter.com': 'Twitter', 'x.com': 'X', 'linkedin.com': 'LinkedIn',
+  'slack.com': 'Slack', 'notion.so': 'Notion', 'figma.com': 'Figma',
+  'vercel.com': 'Vercel', 'netlify.com': 'Netlify', 'aws.amazon.com': 'AWS',
+  'console.cloud.google.com': 'Google Cloud', 'portal.azure.com': 'Azure',
+  'chat.openai.com': 'ChatGPT', 'claude.ai': 'Claude',
+};
+function getSiteName(url) {
+  const domain = getDomain(url);
+  if (SITE_NAMES[domain]) return SITE_NAMES[domain];
+  // Try without www
+  const bare = domain.replace(/^www\./, '');
+  if (SITE_NAMES[bare]) return SITE_NAMES[bare];
+  // Capitalize first part of domain: "emergent.sh" → "Emergent"
+  const parts = bare.split('.');
+  const name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function HeatmapContent({ historyData, allTabs, onSwitch, timeFilter, setTimeFilter, selectMode, selectedTabIds, onToggleSelect }) {
+  const [showAllVisited, setShowAllVisited] = useState(false);
+  const [metricMode, setMetricMode] = useState('duration');
+  const [showMetricMenu, setShowMetricMenu] = useState(false);
+  const domainTimeData = historyData.topDomains;
+
+  const totalHours = (historyData.totalMinutes / 60).toFixed(1);
 
   const timelineConfig = useMemo(() => {
-    if (historyData) {
+    if (metricMode === 'visits') {
       switch (timeFilter) {
-        case 'day':  return { data: historyData.timelineData, xKey: 'hour',  yKey: 'minutes', yLabel: 'm', title: 'Today (minutes/hour)' };
-        case 'week': return { data: historyData.timelineData, xKey: 'day',   yKey: 'hours',   yLabel: 'h', title: 'This Week (hours/day)' };
-        default:     return { data: historyData.timelineData, xKey: 'week',  yKey: 'hours',   yLabel: 'h', title: 'This Month (hours/week)' };
+        case 'day':  return { data: historyData.timelineData, xKey: 'hour', yKey: 'visits', yLabel: '', title: 'Today (visits per 3h)' };
+        case 'week': return { data: historyData.timelineData, xKey: 'day',  yKey: 'visits', yLabel: '', title: 'This Week (visits/day)' };
+        default:     return { data: historyData.timelineData, xKey: 'week', yKey: 'visits', yLabel: '', title: 'This Month (visits/week)' };
+      }
+    } else {
+      switch (timeFilter) {
+        case 'day':  return { data: historyData.timelineData, xKey: 'hour', yKey: 'minutes', yLabel: 'm', title: 'Today (est. minutes per 3h)' };
+        case 'week': return { data: historyData.timelineData, xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'This Week (est. hours/day)' };
+        default:     return { data: historyData.timelineData, xKey: 'week', yKey: 'hours',   yLabel: 'h', title: 'This Month (est. hours/week)' };
       }
     }
-    // Mock fallback
-    switch (timeFilter) {
-      case 'day':    return { data: HOURLY_ACTIVITY,  xKey: 'hour', yKey: 'minutes', yLabel: 'm', title: 'Today (minutes/hour)' };
-      case 'week':   return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'This Week (hours/day)' };
-      case 'month':  return { data: MONTHLY_ACTIVITY, xKey: 'week', yKey: 'hours',   yLabel: 'h', title: 'This Month (hours/week)' };
-      case 'custom': return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'Custom Range' };
-      default:       return { data: WEEKLY_ACTIVITY,  xKey: 'day',  yKey: 'hours',   yLabel: 'h', title: 'This Week' };
-    }
-  }, [historyData, timeFilter]);
+  }, [historyData, timeFilter, metricMode]);
 
+  // Domain chart: value key depends on metric mode
+  const domainValueKey = metricMode === 'visits' ? 'visits' : 'minutes';
+  const domainUnitLabel = metricMode === 'visits' ? '' : 'm';
+  const maxDomainVal = domainTimeData[0]?.[domainValueKey] || 1;
+
+  // Rank open tabs by domain visit count (aggregate all paths under same domain)
   const rankedTabs = useMemo(() => {
-    const scale = timeFilter === 'day' ? 0.15 : timeFilter === 'week' ? 1 : 4;
-    return allTabs.map(tab => ({
-      ...tab,
-      timeMinutes: Math.round((TAB_TIME_MINUTES[tab.id] || 5) * scale),
-      visits: Math.round(((visitCounts[tab.id] || 0) + (TAB_METRICS[tab.id]?.visitCount || 0)) * scale),
-      memory: TAB_METRICS[tab.id]?.memory || 80,
-    })).sort((a, b) => b.timeMinutes - a.timeMinutes);
-  }, [allTabs, visitCounts, timeFilter]);
+    const urlCounts = historyData.urlVisitCounts || {};
+    // Aggregate all history visits by domain
+    const domainVisits = {};
+    Object.entries(urlCounts).forEach(([url, count]) => {
+      const d = getDomain(url);
+      if (d) domainVisits[d] = (domainVisits[d] || 0) + count;
+    });
+    // Deduplicate open tabs by domain — keep first per domain, sum visits
+    const seenDomains = new Set();
+    return allTabs
+      .map(tab => {
+        const domain = getDomain(tab.url);
+        const visits = domainVisits[domain] || 0;
+        return { ...tab, visits, domain };
+      })
+      .filter(tab => {
+        if (tab.visits === 0) return false;
+        if (seenDomains.has(tab.domain)) return false;
+        seenDomains.add(tab.domain);
+        return true;
+      })
+      .sort((a, b) => b.visits - a.visits);
+  }, [allTabs, historyData]);
 
-  // Stats: use real history totals if available
-  const totalHours = historyData
-    ? historyData.totalHours.toFixed(1)
-    : (rankedTabs.reduce((s, t) => s + t.timeMinutes, 0) / 60).toFixed(1);
-  const totalVisits = historyData
-    ? historyData.totalVisits
-    : rankedTabs.reduce((s, t) => s + t.visits, 0);
-
-  const maxTime = rankedTabs[0]?.timeMinutes || 1;
+  const maxVisits = rankedTabs[0]?.visits || 1;
 
   return (
     <div className="p-3 space-y-3.5" data-testid="heatmap-panel">
-      {/* Header — compact, no description */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Flame size={13} className="text-orange-400" strokeWidth={2} />
           <span className="text-[12px] font-heading font-bold">Activity Heatmap</span>
-          {historyData && (
-            <span className="text-[8px] font-mono text-primary/60 bg-primary/10 px-1 py-0.5 rounded">LIVE</span>
-          )}
+          <span className="text-[8px] font-mono text-primary/60 bg-primary/10 px-1 py-0.5 rounded">LIVE</span>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
-          <span>{totalHours}h</span>
-          <span className="text-border">|</span>
-          <span>{totalVisits} visits</span>
+        <div className="flex items-center gap-2 text-[9px] font-mono">
+          <span className="text-primary font-semibold">{totalHours}h</span>
+          <span className="text-muted-foreground/50">|</span>
+          <span className="text-muted-foreground">{historyData.totalVisits} visits</span>
         </div>
       </div>
 
-      {/* Time filter pills */}
-      <div data-testid="heatmap-time-filters">
-        <div className="flex gap-1">
+      {/* Time filter + metric funnel */}
+      <div className="flex items-center gap-1.5" data-testid="heatmap-time-filters">
+        <div className="flex gap-1 flex-1">
           {TIME_FILTERS.map(f => (
             <button
               key={f.id}
               data-testid={`heatmap-filter-${f.id}`}
               onClick={() => setTimeFilter(f.id)}
-              className={`flex-1 py-1 rounded-md text-[10px] font-body font-medium transition-all duration-150
+              className={`cursor-pointer flex-1 py-1 rounded-md text-[10px] font-body font-medium transition-all duration-150
                 ${timeFilter === f.id
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary/60 text-muted-foreground hover:text-foreground'
@@ -212,104 +295,118 @@ export function HeatmapPanel({ allTabs, visitCounts, onSwitch }) {
             </button>
           ))}
         </div>
-        {timeFilter === 'custom' && (
-          <div className="flex gap-2 mt-1.5">
-            <input data-testid="heatmap-custom-from" type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
-              className="flex-1 h-6 px-2 text-[10px] bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-            <input data-testid="heatmap-custom-to" type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)}
-              className="flex-1 h-6 px-2 text-[10px] bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-          </div>
-        )}
+        {/* Metric funnel toggle */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMetricMenu(prev => !prev)}
+            className={`cursor-pointer flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-heading font-semibold transition-all duration-150
+              ${showMetricMenu ? 'bg-primary/15 text-primary' : 'bg-secondary/60 text-muted-foreground hover:text-foreground'}`}
+            data-testid="heatmap-metric-toggle"
+          >
+            <Filter size={10} strokeWidth={2} />
+            {metricMode === 'duration' ? 'Hours' : 'Visits'}
+          </button>
+          {showMetricMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowMetricMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-40 bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[100px]">
+                <button
+                  onClick={() => { setMetricMode('duration'); setShowMetricMenu(false); }}
+                  className={`cursor-pointer w-full text-left px-3 py-1.5 text-[10px] font-body transition-colors
+                    ${metricMode === 'duration' ? 'text-primary font-semibold bg-primary/10' : 'text-foreground/70 hover:bg-[hsl(var(--hover-subtle))]'}`}
+                >
+                  Duration (hours)
+                </button>
+                <button
+                  onClick={() => { setMetricMode('visits'); setShowMetricMenu(false); }}
+                  className={`cursor-pointer w-full text-left px-3 py-1.5 text-[10px] font-body transition-colors
+                    ${metricMode === 'visits' ? 'text-primary font-semibold bg-primary/10' : 'text-foreground/70 hover:bg-[hsl(var(--hover-subtle))]'}`}
+                >
+                  Page visits
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Timeline Chart */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Clock size={9} className="text-muted-foreground/50" strokeWidth={1.5} />
-          <span className="text-[9px] font-heading text-muted-foreground/60 uppercase tracking-wider">{timelineConfig.title}</span>
+          <Clock size={9} className="text-muted-foreground/60" strokeWidth={1.5} />
+          <span className="text-[9px] font-heading text-muted-foreground/70 uppercase tracking-wider">{timelineConfig.title}</span>
         </div>
         <div className="bg-card rounded-lg border border-border/50 p-2">
           <TimelineChart data={timelineConfig.data} xKey={timelineConfig.xKey} yKey={timelineConfig.yKey} yLabel={timelineConfig.yLabel} />
         </div>
       </div>
 
-      {/* Time by App bar chart */}
-      <div>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <BarChart3 size={9} className="text-muted-foreground/50" strokeWidth={1.5} />
-          <span className="text-[9px] font-heading text-muted-foreground/60 uppercase tracking-wider">Time by App</span>
+      {/* Time by Domain */}
+      {domainTimeData.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <BarChart3 size={9} className="text-muted-foreground/60" strokeWidth={1.5} />
+            <span className="text-[9px] font-heading text-muted-foreground/70 uppercase tracking-wider">Top Domains</span>
+          </div>
+          <div className="bg-card rounded-lg border border-border/50 p-2">
+            <BarChart data={domainTimeData} maxVal={maxDomainVal} labelKey="domain" valueKey={domainValueKey} unitLabel={domainUnitLabel} />
+          </div>
         </div>
-        <div className="bg-card rounded-lg border border-border/50 p-2">
-          <BarChart data={domainTimeData} maxVal={maxDomainHours} labelKey="domain" valueKey="hours" unitLabel="h" />
-        </div>
-      </div>
+      )}
 
-      {/* Top tabs — both visits AND hours */}
-      <div>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <TrendingUp size={9} className="text-muted-foreground/50" strokeWidth={1.5} />
-          <span className="text-[9px] font-heading text-muted-foreground/60 uppercase tracking-wider">Most Used Tabs</span>
-        </div>
-        <div className="space-y-0.5">
-          {rankedTabs.slice(0, 6).map((tab, idx) => {
-            const ratio = tab.timeMinutes / maxTime;
-            const heat = getHeatColor(ratio);
-            const hrs = Math.floor(tab.timeMinutes / 60);
-            const mins = tab.timeMinutes % 60;
-            const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-            return (
-              <div
-                key={tab.id}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => onSwitch(tab.id)}
-                data-testid={`heatmap-tab-${tab.id}`}
-              >
-                <span className={`text-[9px] font-mono w-3 text-right ${heat.text}`}>{idx + 1}</span>
-                <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-body truncate">{tab.title}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${ratio * 100}%`, backgroundColor: heat.bar }} />
+      {/* Most Visited Open Tabs (real data) */}
+      {rankedTabs.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <TrendingUp size={9} className="text-muted-foreground/60" strokeWidth={1.5} />
+            <span className="text-[9px] font-heading text-muted-foreground/70 uppercase tracking-wider">Most Visited (open tabs)</span>
+          </div>
+          <div className="space-y-0.5">
+            {rankedTabs.slice(0, showAllVisited ? rankedTabs.length : 5).map((tab, idx) => {
+              const ratio = tab.visits / maxVisits;
+              const heat = getHeatColor(ratio);
+              const siteName = getSiteName(tab.url);
+              const isSelected = selectedTabIds?.has(tab.id);
+              return (
+                <div
+                  key={tab.id}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-[hsl(var(--hover-subtle))] transition-colors duration-150"
+                  onClick={() => selectMode ? onToggleSelect?.(tab.id) : onSwitch(tab.id)}
+                  data-testid={`heatmap-tab-${tab.id}`}
+                >
+                  {selectMode ? (
+                    <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all duration-150
+                      ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
+                      {isSelected && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
                     </div>
-                    <span className={`text-[8px] font-mono ${heat.text}`}>{timeStr}</span>
-                    <span className="text-[8px] font-mono text-muted-foreground/50">{tab.visits}v</span>
+                  ) : (
+                    <span className={`text-[9px] font-mono w-3 text-right ${heat.text}`}>{idx + 1}</span>
+                  )}
+                  <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0 bg-secondary/50" onError={sharedFaviconError} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-body font-medium truncate">{siteName}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${ratio * 100}%`, backgroundColor: heat.bar }} />
+                      </div>
+                      <span className={`text-[8px] font-mono ${heat.text}`}>{tab.visits} visits</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          {rankedTabs.length > 5 && (
+            <button
+              onClick={() => setShowAllVisited(prev => !prev)}
+              className="cursor-pointer flex items-center justify-center gap-1 w-full py-1 mt-1 text-[9px] font-heading text-primary/70 hover:text-primary transition-colors"
+            >
+              {showAllVisited ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              {showAllVisited ? 'Show less' : `Show ${rankedTabs.length - 5} more`}
+            </button>
+          )}
         </div>
-      </div>
-
-      {/* Suggested Workflow */}
-      <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-2.5">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <Zap size={10} className="text-primary" strokeWidth={2} />
-          <span className="text-[10px] font-heading font-bold text-primary">Suggested Workflow</span>
-        </div>
-        <div className="space-y-0.5 mb-2.5">
-          {rankedTabs.slice(0, 4).map(tab => {
-            const hrs = Math.floor(tab.timeMinutes / 60);
-            const mins = tab.timeMinutes % 60;
-            const timeStr = hrs > 0 ? `${hrs}h${mins}m` : `${mins}m`;
-            return (
-              <div key={tab.id} className="flex items-center gap-2 text-[10px]">
-                <img src={getFaviconUrl(tab.url)} alt="" className="w-3 h-3 rounded-[2px]" onError={(e) => { e.target.style.display = 'none'; }} />
-                <span className="truncate text-foreground/80">{tab.title}</span>
-                <span className="text-muted-foreground/50 ml-auto shrink-0 font-mono text-[8px]">{timeStr}</span>
-              </div>
-            );
-          })}
-        </div>
-        <button
-          data-testid="save-suggested-session-btn"
-          onClick={() => toast.success('Workflow session saved!')}
-          className="w-full h-6 text-[10px] font-heading font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          Save as Session
-        </button>
-      </div>
+      )}
     </div>
   );
 }

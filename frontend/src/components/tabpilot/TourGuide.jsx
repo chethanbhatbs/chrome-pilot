@@ -1,290 +1,248 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ArrowRight, ArrowLeft } from 'lucide-react';
+import { X, ArrowRight, ChevronRight, Sparkles, Layout, MousePointerClick, BarChart3, Settings, Rocket } from 'lucide-react';
 
-const TOUR_KEY = 'tabpilot_tour_done_v2';
+const TOUR_KEY = 'tabpilot_tour_done_v3';
 
 const STEPS = [
   {
-    id: 'welcome',
-    badge: 'Welcome',
-    title: 'You just upgraded your browser',
-    description: 'TabPilot gives you complete control over your Chrome tabs. This 30-second tour will show you everything.',
-    center: true,
-    cta: 'Start tour',
+    icon: Sparkles,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-50 dark:bg-amber-500/10',
+    title: 'Welcome to TabPilot',
+    description: 'Your browser just got a major upgrade. Take a quick 30-second tour to discover what you can do.',
+    cta: 'Show me around',
   },
   {
-    id: 'tabs',
+    icon: Layout,
+    iconColor: 'text-blue-500',
+    iconBg: 'bg-blue-50 dark:bg-blue-500/10',
     selector: '[data-testid="sidebar-scroll-content"]',
-    badge: 'Tab List',
-    title: 'All your tabs, organized',
-    description: 'Windows and tabs are listed here. Click to switch, hover for a live preview, right-click for options like duplicate, note, move, or suspend.',
-    placement: 'right',
-    hint: 'Try right-clicking any tab',
+    title: 'Your tabs, organized',
+    description: 'All your windows and tabs live here. Click to switch, right-click for options like duplicate, pin, move, or add notes.',
   },
   {
-    id: 'toolbar',
+    icon: MousePointerClick,
+    iconColor: 'text-violet-500',
+    iconBg: 'bg-violet-50 dark:bg-violet-500/10',
     selector: '[data-testid="quick-actions"]',
-    badge: 'Toolbar',
-    title: 'Quick Actions at your fingertips',
-    description: 'Create tabs, toggle Domain view (groups by website), activate Focus Mode to block distractions, or open the Heatmap to see your browsing patterns.',
-    placement: 'bottom',
-    hint: 'Try clicking "Domain" to group by site',
+    title: 'Quick actions toolbar',
+    description: 'Create tabs, group by domain, enter Focus Mode, select multiple tabs for bulk actions, or open the Heatmap.',
   },
   {
-    id: 'features',
+    icon: Settings,
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-500/10',
     selector: '[data-testid="sidebar-header"]',
-    badge: 'Panels',
-    title: 'Six powerful panels',
-    description: 'Timeline, Notes, Workspaces, Auto-Close, Help, and Settings. Each icon opens a full panel. Try Workspaces to save tab sets for different contexts.',
-    placement: 'bottom',
-    hint: 'Press Ctrl+1 to switch workspaces',
+    title: 'Powerful panels',
+    description: 'Timeline, Notes, Workspaces, Auto-Close, Help, and Settings — each icon opens a full panel with powerful features.',
   },
   {
-    id: 'stats',
+    icon: BarChart3,
+    iconColor: 'text-rose-500',
+    iconBg: 'bg-rose-50 dark:bg-rose-500/10',
     selector: '[data-testid="stats-bar"]',
-    badge: 'Live Stats',
-    title: 'Real-time browser health',
-    description: 'Memory, CPU, audio tabs, and duplicates — updated every second. If dupes appear, hit "Fix All" to instantly clean up.',
-    placement: 'top',
-    hint: 'Stats update every second',
+    title: 'Live browser stats',
+    description: 'Monitor memory, CPU, audio, and duplicates in real time. Hit "Fix All" to clean up duplicate tabs instantly.',
   },
   {
-    id: 'done',
-    badge: "You're ready",
-    title: 'TabPilot is all yours',
-    description: 'Press Cmd+K (or Ctrl+K) for the command palette. Double-click any window name to rename it. Close tabs — use Undo if you change your mind.',
-    center: true,
-    cta: "Let's go!",
+    icon: Rocket,
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10',
+    title: "You're all set!",
+    description: 'Use Cmd+K for command palette, double-click window names to rename, and close tabs fearlessly — undo is always available.',
+    cta: 'Start using TabPilot',
   },
 ];
 
 export function TourGuide({ onComplete }) {
   const [step, setStep] = useState(0);
-  const [spotlight, setSpotlight] = useState(null);
-  const [cardStyle, setCardStyle] = useState({});
-  const [arrowDir, setArrowDir] = useState(null);
-  const [animating, setAnimating] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const [slideDir, setSlideDir] = useState('in');
+  const [highlight, setHighlight] = useState(null);
   const cardRef = useRef(null);
 
   const current = STEPS[step];
   const total = STEPS.length;
+  const isFirst = step === 0;
+  const isLast = step === total - 1;
 
-  const updatePositions = useCallback(() => {
+  // Force light theme while tour is active
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains('dark');
+    if (wasDark) root.classList.remove('dark');
+    return () => {
+      // Restore dark class only if the user's setting is still dark
+      // (they may have changed it during the tour via settings)
+      try {
+        const stored = JSON.parse(localStorage.getItem('tabpilot_settings') || '{}');
+        if (stored.theme === 'dark') root.classList.add('dark');
+      } catch { /* ignore */ }
+    };
+  }, []);
+
+  // Highlight the target element
+  useEffect(() => {
     if (!current.selector) {
-      setSpotlight(null);
-      setCardStyle({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
-      setArrowDir(null);
+      setHighlight(null);
       return;
     }
-
     const el = document.querySelector(current.selector);
-    if (!el) return;
+    if (!el) { setHighlight(null); return; }
 
-    const pad = 10;
-    const r = el.getBoundingClientRect();
-    setSpotlight({
-      top: r.top - pad,
-      left: r.left - pad,
-      width: r.width + pad * 2,
-      height: r.height + pad * 2,
-    });
-
-    const cardW = 310;
-    const cardH = 220;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const placement = current.placement || 'right';
-
-    let top, left, arrowDirection = null;
-
-    if (placement === 'bottom') {
-      top = r.bottom + pad + 12;
-      left = Math.min(r.left + r.width / 2 - cardW / 2, vw - cardW - 16);
-      left = Math.max(16, left);
-      arrowDirection = 'up';
-    } else if (placement === 'top') {
-      top = r.top - cardH - pad - 12;
-      left = Math.min(r.left + r.width / 2 - cardW / 2, vw - cardW - 16);
-      left = Math.max(16, left);
-      arrowDirection = 'down';
-    } else {
-      // right
-      top = Math.min(r.top + r.height / 2 - cardH / 2, vh - cardH - 16);
-      top = Math.max(16, top);
-      left = r.right + 16;
-      if (left + cardW > vw - 16) {
-        left = r.left - cardW - 16;
-        arrowDirection = 'right';
-      } else {
-        arrowDirection = 'left';
-      }
-    }
-
-    top = Math.max(12, Math.min(top, vh - cardH - 12));
-    left = Math.max(12, Math.min(left, vw - cardW - 12));
-
-    setCardStyle({ top, left, transform: 'none', width: cardW });
-    setArrowDir(arrowDirection);
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setHighlight({ top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, [step, current]);
 
-  useEffect(() => {
-    updatePositions();
-    window.addEventListener('resize', updatePositions);
-    return () => window.removeEventListener('resize', updatePositions);
-  }, [updatePositions]);
-
-  const goTo = useCallback((nextStep) => {
-    setAnimating(true);
+  const transition = useCallback((nextStep) => {
+    setSlideDir('out');
     setTimeout(() => {
       setStep(nextStep);
-      setAnimating(false);
-    }, 180);
+      setSlideDir('in');
+    }, 150);
   }, []);
 
   const handleNext = useCallback(() => {
-    if (step < total - 1) goTo(step + 1);
-    else handleFinish();
-  }, [step, total, goTo]);
-
-  const handlePrev = useCallback(() => {
-    if (step > 0) goTo(step - 1);
-  }, [step, goTo]);
+    if (isLast) handleFinish();
+    else transition(step + 1);
+  }, [step, isLast, transition]);
 
   const handleFinish = useCallback(() => {
-    localStorage.setItem(TOUR_KEY, '1');
-    onComplete();
+    setVisible(false);
+    setTimeout(() => {
+      localStorage.setItem(TOUR_KEY, '1');
+      onComplete();
+    }, 200);
   }, [onComplete]);
 
-  // Arrow indicator position
-  const arrowStyle = (() => {
-    if (!arrowDir || !spotlight) return {};
-    const base = { position: 'absolute', width: 10, height: 10, background: 'var(--popover)', transform: 'rotate(45deg)', zIndex: 1 };
-    if (arrowDir === 'up') return { ...base, top: -5, left: '50%', marginLeft: -5, borderTop: '1px solid var(--border)', borderLeft: '1px solid var(--border)' };
-    if (arrowDir === 'down') return { ...base, bottom: -5, left: '50%', marginLeft: -5, borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' };
-    if (arrowDir === 'left') return { ...base, left: -5, top: '50%', marginTop: -5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)' };
-    if (arrowDir === 'right') return { ...base, right: -5, top: '50%', marginTop: -5, borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)' };
-    return {};
-  })();
+  if (!visible) return null;
+
+  const Icon = current.icon;
 
   return (
-    <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: 'auto' }}>
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/75" />
+    <div className="fixed inset-0 z-[9999]">
+      {/* Light overlay — no blur */}
+      <div
+        className="absolute inset-0 bg-black/20 transition-opacity duration-300"
+        onClick={handleFinish}
+      />
 
-      {/* Spotlight with glow ring */}
-      {spotlight && (
+      {/* Highlight ring around target element */}
+      {highlight && (
         <div
-          className="absolute rounded-xl tour-spotlight-glow"
+          className="absolute rounded-lg pointer-events-none transition-all duration-300 ease-out"
           style={{
-            top: spotlight.top,
-            left: spotlight.left,
-            width: spotlight.width,
-            height: spotlight.height,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
-            border: '2px solid hsl(var(--primary))',
+            top: highlight.top,
+            left: highlight.left,
+            width: highlight.width,
+            height: highlight.height,
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.20), 0 0 0 3px hsl(var(--primary) / 0.4)',
             zIndex: 1,
-            pointerEvents: 'none',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
       )}
 
-      {/* Tour card */}
+      {/* Card */}
       <div
         ref={cardRef}
-        className={`absolute z-[2] w-[310px] bg-popover border border-border rounded-2xl shadow-2xl overflow-visible transition-opacity duration-180 ${animating ? 'opacity-0' : 'opacity-100'}`}
-        style={typeof cardStyle.top === 'number' ? cardStyle : { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}
+        className={`
+          absolute z-[2] w-[300px]
+          bg-background border border-border/60
+          rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)]
+          overflow-hidden
+          transition-all duration-200 ease-out
+          ${slideDir === 'out' ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+        `}
+        style={
+          highlight
+            ? { top: Math.max(12, Math.min(highlight.top + highlight.height + 16, window.innerHeight - 320)),
+                left: Math.max(12, Math.min(highlight.left, window.innerWidth - 316)) }
+            : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+        }
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Arrow */}
-        {arrowDir && <div style={arrowStyle} />}
-
-        {/* Progress bar top */}
-        <div className="h-[3px] bg-secondary/50 w-full rounded-t-2xl overflow-hidden">
-          <div
-            className="h-full bg-primary transition-all duration-500 ease-out"
-            style={{ width: `${((step + 1) / total) * 100}%` }}
-          />
-        </div>
+        {/* Gradient top accent */}
+        <div className="h-[3px] bg-gradient-to-r from-primary via-primary/60 to-transparent" />
 
         <div className="p-5">
-          {/* Header row */}
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <span className="text-[9px] font-mono text-primary/70 uppercase tracking-widest">{current.badge}</span>
-              <div className="text-[9px] text-muted-foreground/50 font-mono">{step + 1} / {total}</div>
+          {/* Icon + Step badge */}
+          <div className="flex items-start justify-between mb-4">
+            <div className={`w-10 h-10 rounded-xl ${current.iconBg} flex items-center justify-center`}>
+              <Icon size={20} className={current.iconColor} strokeWidth={1.5} />
             </div>
-            {/* Skip */}
-            <button
-              onClick={handleFinish}
-              className="cursor-pointer p-1 rounded-full text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
-              data-testid="tour-skip-btn"
-            >
-              <X size={13} strokeWidth={1.5} />
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground/60 font-body tabular-nums">
+                {step + 1}/{total}
+              </span>
+              <button
+                onClick={handleFinish}
+                className="cursor-pointer p-1 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary transition-colors"
+                data-testid="tour-skip-btn"
+              >
+                <X size={14} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
 
-          {/* Content */}
-          <h3 className="text-[18px] font-heading font-bold text-foreground leading-snug mb-2">
+          {/* Title */}
+          <h3 className="text-[16px] font-heading font-bold text-foreground leading-tight mb-1.5">
             {current.title}
           </h3>
-          <p className="text-[11px] text-muted-foreground font-body leading-relaxed mb-3">
+
+          {/* Description */}
+          <p className="text-[12px] text-muted-foreground font-body leading-relaxed mb-5">
             {current.description}
           </p>
 
-          {/* Hint pill */}
-          {current.hint && (
-            <div className="inline-flex items-center gap-1.5 bg-primary/[0.08] border border-primary/20 rounded-full px-2.5 py-0.5 mb-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[9px] font-mono text-primary/80">{current.hint}</span>
-            </div>
-          )}
-
-          {/* Step dots */}
-          <div className="flex items-center gap-1.5 mb-4">
+          {/* Step indicators */}
+          <div className="flex items-center gap-1 mb-4">
             {STEPS.map((_, i) => (
-              <button
+              <div
                 key={i}
-                onClick={() => goTo(i)}
-                className={`rounded-full transition-all duration-300 cursor-pointer ${i === step ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-muted-foreground/25 hover:bg-muted-foreground/50'}`}
+                className={`h-[3px] rounded-full transition-all duration-300 ${
+                  i === step
+                    ? 'w-5 bg-primary'
+                    : i < step
+                      ? 'w-2 bg-primary/40'
+                      : 'w-2 bg-border'
+                }`}
               />
             ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Actions */}
           <div className="flex items-center gap-2">
-            {step > 0 && (
+            {isFirst && (
               <button
-                onClick={handlePrev}
-                className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-xl border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                data-testid="tour-prev-btn"
+                onClick={handleFinish}
+                className="cursor-pointer px-3 h-9 rounded-xl text-[11px] font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                data-testid="tour-skip-link"
               >
-                <ArrowLeft size={14} strokeWidth={1.5} />
+                Skip
+              </button>
+            )}
+            {!isFirst && !isLast && (
+              <button
+                onClick={handleFinish}
+                className="cursor-pointer px-3 h-9 rounded-xl text-[11px] font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                Skip
               </button>
             )}
             <button
               onClick={handleNext}
-              className="cursor-pointer flex-1 flex items-center justify-center gap-2 h-9 bg-primary text-primary-foreground text-[12px] font-heading font-bold rounded-xl hover:bg-primary/90 transition-all active:scale-[0.98]"
+              className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 h-9 bg-primary text-primary-foreground text-[12px] font-heading font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98]"
               data-testid="tour-next-btn"
             >
-              {step < total - 1 ? (
-                <>{current.cta || 'Continue'} <ArrowRight size={13} strokeWidth={2} /></>
-              ) : (
-                current.cta || "Let's go!"
-              )}
+              {current.cta || 'Next'}
+              {!isLast && <ChevronRight size={14} strokeWidth={2} />}
             </button>
           </div>
-
-          {/* Skip link */}
-          {step === 0 && (
-            <button
-              onClick={handleFinish}
-              className="cursor-pointer w-full mt-2.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground font-body transition-colors"
-              data-testid="tour-skip-link"
-            >
-              Skip tour
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Timer, Shield, Trash2, Plus, X, AlertTriangle } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Timer, Shield, Plus, X, AlertTriangle, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { getDomain, getFaviconUrl } from '@/utils/grouping';
+import { getDomain, getFaviconUrl, handleFaviconError } from '@/utils/grouping';
 
 const PRESETS = [
   { id: '15', label: '15 min', minutes: 15 },
@@ -12,61 +12,63 @@ const PRESETS = [
   { id: 'off', label: 'Off', minutes: 0 },
 ];
 
-export function AutoClosePanel({ allTabs, onClose }) {
-  const [enabled, setEnabled] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState('30');
-  const [customMinutes, setCustomMinutes] = useState('');
-  const [whitelist, setWhitelist] = useState(['mail.google.com', 'docs.google.com']);
-  const [newDomain, setNewDomain] = useState('');
-  const [tabTimers, setTabTimers] = useState({});
+function formatTimeLeft(lastAccessed, activeMinutes) {
+  if (!lastAccessed || !activeMinutes) return `${activeMinutes}m left`;
+  const elapsedMs = Date.now() - lastAccessed;
+  const elapsedMin = elapsedMs / 60000;
+  const remaining = Math.max(0, activeMinutes - elapsedMin);
+  if (remaining < 1) return '< 1m left';
+  if (remaining < 60) return `${Math.round(remaining)}m left`;
+  const h = Math.floor(remaining / 60);
+  const m = Math.round(remaining % 60);
+  return m > 0 ? `${h}h ${m}m left` : `${h}h left`;
+}
+
+export function AutoClosePanel({ allTabs, onClose, settings, onUpdateSetting, visitCounts = {} }) {
+  const enabled = settings.autoCloseEnabled;
+  const selectedPreset = settings.autoClosePreset || '30';
+  const customMinutes = settings.autoCloseCustomMinutes || '';
+  const whitelist = settings.autoCloseWhitelist || ['mail.google.com', 'docs.google.com'];
 
   const activeMinutes = selectedPreset === 'custom'
     ? parseInt(customMinutes) || 0
     : PRESETS.find(p => p.id === selectedPreset)?.minutes || 0;
 
-  // Simulate tab timers when enabled
-  useEffect(() => {
-    if (!enabled || activeMinutes === 0) {
-      setTabTimers({});
-      return;
-    }
-    const timers = {};
-    allTabs.forEach(tab => {
-      if (tab.active || tab.pinned) return;
-      const domain = getDomain(tab.url);
-      if (whitelist.includes(domain)) return;
-      // Simulate random remaining time
-      timers[tab.id] = Math.floor(Math.random() * activeMinutes);
-    });
-    setTabTimers(timers);
-  }, [enabled, activeMinutes, allTabs, whitelist]);
-
   const handleToggle = useCallback((val) => {
-    setEnabled(val);
+    onUpdateSetting('autoCloseEnabled', val);
     if (val) toast.success(`Auto-close enabled: ${activeMinutes}min inactivity`);
     else toast.info('Auto-close disabled');
-  }, [activeMinutes]);
+  }, [activeMinutes, onUpdateSetting]);
 
-  const addWhitelistDomain = useCallback(() => {
+  const addWhitelistDomain = useCallback((newDomain) => {
     const d = newDomain.trim().toLowerCase();
-    if (!d) return;
-    if (whitelist.includes(d)) { toast.info('Already whitelisted'); return; }
-    setWhitelist(prev => [...prev, d]);
-    setNewDomain('');
+    if (!d) return false;
+    if (whitelist.includes(d)) { toast.info('Already whitelisted'); return false; }
+    onUpdateSetting('autoCloseWhitelist', [...whitelist, d]);
     toast.success(`${d} whitelisted`);
-  }, [newDomain, whitelist]);
+    return true;
+  }, [whitelist, onUpdateSetting]);
 
   const removeWhitelistDomain = useCallback((domain) => {
-    setWhitelist(prev => prev.filter(d => d !== domain));
-  }, []);
+    onUpdateSetting('autoCloseWhitelist', whitelist.filter(d => d !== domain));
+  }, [whitelist, onUpdateSetting]);
 
-  // Tabs that would be closed
-  const atRiskTabs = allTabs.filter(tab => {
-    if (!enabled || activeMinutes === 0) return false;
-    if (tab.active || tab.pinned) return false;
-    const domain = getDomain(tab.url);
-    return !whitelist.includes(domain);
-  });
+  // Tabs that would be closed (with time remaining)
+  const atRiskTabs = useMemo(() => {
+    if (!enabled || activeMinutes === 0) return [];
+    return allTabs
+      .filter(tab => {
+        if (tab.active || tab.pinned) return false;
+        if (visitCounts[tab.id]) return false; // exclude visited tabs
+        const domain = getDomain(tab.url);
+        return !whitelist.includes(domain);
+      })
+      .map(tab => ({
+        ...tab,
+        timeLeft: formatTimeLeft(tab.lastAccessed, activeMinutes),
+      }))
+      .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0)); // soonest to close first
+  }, [allTabs, enabled, activeMinutes, whitelist]);
 
   return (
     <div className="p-3 space-y-3" data-testid="auto-close-panel">
@@ -89,14 +91,14 @@ export function AutoClosePanel({ allTabs, onClose }) {
 
       {/* Inactivity timer presets */}
       <div>
-        <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">Inactivity Threshold</span>
+        <span className="text-[9px] font-heading text-muted-foreground/60 uppercase tracking-wider font-semibold">Inactivity Threshold</span>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {PRESETS.map(p => (
             <button
               key={p.id}
               data-testid={`auto-close-preset-${p.id}`}
-              onClick={() => setSelectedPreset(p.id)}
-              className={`px-2 py-1 rounded-md text-[10px] font-body transition-all
+              onClick={() => onUpdateSetting('autoClosePreset', p.id)}
+              className={`cursor-pointer px-2 py-1 rounded-md text-[10px] font-body transition-all
                 ${selectedPreset === p.id
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary/60 text-muted-foreground hover:text-foreground'
@@ -107,8 +109,8 @@ export function AutoClosePanel({ allTabs, onClose }) {
           ))}
           <button
             data-testid="auto-close-preset-custom"
-            onClick={() => setSelectedPreset('custom')}
-            className={`px-2 py-1 rounded-md text-[10px] font-body transition-all
+            onClick={() => onUpdateSetting('autoClosePreset', 'custom')}
+            className={`cursor-pointer px-2 py-1 rounded-md text-[10px] font-body transition-all
               ${selectedPreset === 'custom'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary/60 text-muted-foreground hover:text-foreground'
@@ -123,7 +125,7 @@ export function AutoClosePanel({ allTabs, onClose }) {
               data-testid="auto-close-custom-input"
               type="number"
               value={customMinutes}
-              onChange={(e) => setCustomMinutes(e.target.value)}
+              onChange={(e) => onUpdateSetting('autoCloseCustomMinutes', e.target.value)}
               placeholder="Minutes"
               min={1}
               className="w-20 h-7 px-2 text-[10px] font-body bg-card border border-border rounded-md
@@ -136,85 +138,103 @@ export function AutoClosePanel({ allTabs, onClose }) {
 
       {/* Whitelist */}
       <div>
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <Shield size={9} className="text-muted-foreground/50" strokeWidth={1.5} />
-          <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">Whitelisted Domains</span>
+        <div className="flex items-center gap-1.5 mb-1">
+          <Shield size={10} className="text-primary/60" strokeWidth={2} />
+          <span className="text-[9px] font-heading text-foreground/60 uppercase tracking-wider font-semibold">Whitelisted Domains</span>
         </div>
-        <p className="text-[9px] text-muted-foreground/40 mb-1.5">These domains will never be auto-closed.</p>
+        <p className="text-[9px] text-muted-foreground mb-1.5">These domains will never be auto-closed.</p>
         <div className="space-y-0.5 mb-2">
           {whitelist.map(domain => (
             <div key={domain} className="flex items-center justify-between py-1 px-2 rounded-md bg-card/50 border border-border/30"
               data-testid={`whitelist-${domain}`}>
               <div className="flex items-center gap-1.5 min-w-0">
-                <img
-                  src={getFaviconUrl(`https://${domain}`)}
-                  alt=""
-                  className="w-3.5 h-3.5 rounded-[2px] shrink-0"
-                  onError={e => e.target.style.display = 'none'}
-                />
+                <div className="w-4 h-4 rounded bg-secondary/60 flex items-center justify-center shrink-0">
+                  <img
+                    src={getFaviconUrl(`https://${domain}`)}
+                    alt=""
+                    className="w-3.5 h-3.5 rounded-[2px]"
+                    onError={handleFaviconError}
+                  />
+                </div>
                 <span className="text-[10px] font-body text-foreground/70 truncate">{domain}</span>
               </div>
               <button
                 onClick={() => removeWhitelistDomain(domain)}
-                className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 ml-1"
+                className="cursor-pointer p-0.5 rounded text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 ml-1"
               >
                 <X size={10} strokeWidth={1.5} />
               </button>
             </div>
           ))}
         </div>
-        <div className="flex gap-1">
-          <input
-            data-testid="whitelist-input"
-            type="text"
-            value={newDomain}
-            onChange={(e) => setNewDomain(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addWhitelistDomain()}
-            placeholder="Add domain (e.g., github.com)"
-            className="flex-1 h-7 px-2 text-[10px] font-body bg-card border border-border rounded-md
-              text-foreground placeholder:text-muted-foreground/40
-              focus:outline-none focus:ring-1 focus:ring-primary/40"
-          />
-          <button
-            data-testid="whitelist-add-btn"
-            onClick={addWhitelistDomain}
-            className="h-7 px-2 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Plus size={12} strokeWidth={1.5} />
-          </button>
-        </div>
+        <WhitelistInput onAdd={addWhitelistDomain} />
       </div>
 
-      {/* At-risk preview */}
+      {/* At-risk preview with time remaining */}
       {enabled && activeMinutes > 0 && (
         <div className="rounded-lg border border-border/50 bg-card/50 p-2.5" data-testid="at-risk-tabs">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <AlertTriangle size={10} className="text-foreground/60" strokeWidth={2} />
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertTriangle size={10} className="text-destructive/70" strokeWidth={2} />
             <span className="text-[10px] font-heading font-semibold text-foreground/70">
               {atRiskTabs.length} tab{atRiskTabs.length !== 1 ? 's' : ''} subject to auto-close
             </span>
           </div>
-          <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
-            {atRiskTabs.slice(0, 8).map(tab => {
-              const remaining = tabTimers[tab.id] || 0;
-              return (
-                <div key={tab.id} className="flex items-center gap-2 py-0.5 text-[10px]">
-                  <span className="font-mono text-muted-foreground/50 w-10 text-right shrink-0">
-                    {remaining}m
-                  </span>
-                  <div className="flex-1 h-1 bg-muted/30 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary/50"
-                      style={{ width: `${(remaining / activeMinutes) * 100}%` }}
-                    />
-                  </div>
-                  <span className="truncate text-foreground/60 flex-1 max-w-[120px]">{tab.title}</span>
+          <div className="space-y-0.5 max-h-[160px] overflow-y-auto">
+            {atRiskTabs.slice(0, 10).map(tab => (
+              <div key={tab.id} className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-[hsl(var(--hover-subtle))]">
+                <div className="w-4 h-4 rounded bg-secondary/60 flex items-center justify-center shrink-0">
+                  <img
+                    src={getFaviconUrl(tab.url)}
+                    alt=""
+                    className="w-3.5 h-3.5 rounded-[2px]"
+                    onError={handleFaviconError}
+                  />
                 </div>
-              );
-            })}
+                <span className="text-[10px] font-body truncate flex-1 text-foreground/70">{tab.title}</span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Clock size={8} className="text-destructive/50" strokeWidth={2} />
+                  <span className="text-[8px] font-mono text-destructive/60">{tab.timeLeft}</span>
+                </div>
+              </div>
+            ))}
+            {atRiskTabs.length > 10 && (
+              <div className="text-[9px] text-muted-foreground/60 text-center py-1">
+                +{atRiskTabs.length - 10} more
+              </div>
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Separate component so the input text resets on add but doesn't need global persistence
+function WhitelistInput({ onAdd }) {
+  const [value, setValue] = useState('');
+  const handleAdd = () => {
+    if (onAdd(value)) setValue('');
+  };
+  return (
+    <div className="flex gap-1">
+      <input
+        data-testid="whitelist-input"
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        placeholder="Add domain (e.g., github.com)"
+        className="flex-1 h-7 px-2 text-[10px] font-body bg-card border border-border rounded-md
+          text-foreground placeholder:text-muted-foreground/50
+          focus:outline-none focus:ring-1 focus:ring-primary/40"
+      />
+      <button
+        data-testid="whitelist-add-btn"
+        onClick={handleAdd}
+        className="cursor-pointer h-7 px-2 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Plus size={12} strokeWidth={1.5} />
+      </button>
     </div>
   );
 }

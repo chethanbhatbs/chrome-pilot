@@ -315,6 +315,10 @@ export function useMockTabs() {
     });
   }, []);
 
+  const hideTabs = useCallback(() => null, []);
+  const unhideTabs = useCallback(() => {}, []);
+  const restoreSession = useCallback(() => 0, []);
+
   return {
     windows, tabGroups, allTabs, suspendedTabs, tabNotes,
     switchToTab, closeTab, undoCloseTab, pinTab, muteTab, duplicateTab,
@@ -323,6 +327,6 @@ export function useMockTabs() {
     muteAll, unmuteAll, closeDuplicates,
     reorderTab, closeOtherTabs, closeTabsToRight,
     suspendTab, unsuspendTab, suspendInactive, unsuspendAll,
-    setTabNote,
+    setTabNote, hideTabs, unhideTabs, restoreSession,
   };
 }

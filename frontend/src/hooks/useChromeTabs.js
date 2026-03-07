@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
+// Stable window index tracker — persists across re-renders, assigns sequential numbers
+const windowIndexMap = {};
+let nextWindowIdx = 1;
+function getStableWindowIndex(windowId) {
+  if (!windowIndexMap[windowId]) {
+    windowIndexMap[windowId] = nextWindowIdx++;
+  }
+  return windowIndexMap[windowId];
+}
 import {
   isExtensionContext, chromeGetAllWindows, chromeGetTabGroups,
   chromeSwitchToTab, chromeCloseTab, chromePinTab, chromeMuteTab,
   chromeDuplicateTab, chromeMoveTab, chromeMoveTabToNewWindow,
   chromeCreateNewTab, chromeCreateTabInWindow, chromeCreateNewWindow,
   chromeCloseWindow, chromeMinimizeWindow, chromeMuteAll, chromeUnmuteAll,
-  chromeCloseDuplicates, chromeDiscardTab, chromeOnTabsUpdated,
+  chromeCloseDuplicates, chromeRestoreSession, chromeDiscardTab, chromeHideTabs, chromeUnhideTabs, chromeOnTabsUpdated,
   chromeUndoCloseTab, chromeStorageGet, chromeStorageSet,
 } from '@/utils/chromeAdapter';
 
@@ -52,13 +62,18 @@ export function useChromeTabs() {
     const t2 = setTimeout(() => refreshRef.current?.(), 600);
     const t3 = setTimeout(() => refreshRef.current?.(), 1500);
     const cleanup = chromeOnTabsUpdated(() => refreshRef.current?.());
-    const interval = setInterval(() => refreshRef.current?.(), 3000);
+    const interval = setInterval(() => refreshRef.current?.(), 1000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); cleanup(); clearInterval(interval); };
   }, [refresh]);
 
-  // Merge stored window names into windows
+  // Merge stored window names into windows — stable sequential fallback names
+  // Ignore stored names that are raw window IDs (from old bug like "Window 1997660659")
   const windowsWithNames = useMemo(() =>
-    windows.map(w => ({ ...w, name: windowNames[w.id] || null })),
+    windows.map(w => {
+      let name = windowNames[w.id];
+      if (name && /^Window \d{5,}$/.test(name)) name = null;
+      return { ...w, name: name || `Window ${getStableWindowIndex(w.id)}` };
+    }),
     [windows, windowNames]
   );
 
@@ -200,6 +215,18 @@ export function useChromeTabs() {
     });
   }, []);
 
+  const restoreSession = useCallback(async (session) => {
+    return await chromeRestoreSession(session);
+  }, []);
+
+  const hideTabs = useCallback(async (tabIds) => {
+    return await chromeHideTabs(tabIds);
+  }, []);
+
+  const unhideTabs = useCallback(async () => {
+    await chromeUnhideTabs();
+  }, []);
+
   return {
     windows: windowsWithNames, tabGroups, allTabs, suspendedTabs, tabNotes,
     switchToTab, closeTab, undoCloseTab, pinTab, muteTab, duplicateTab,
@@ -208,6 +235,6 @@ export function useChromeTabs() {
     muteAll, unmuteAll, closeDuplicates,
     reorderTab, closeOtherTabs, closeTabsToRight,
     suspendTab, unsuspendTab, suspendInactive, unsuspendAll,
-    setTabNote, refresh,
+    setTabNote, refresh, restoreSession, hideTabs, unhideTabs,
   };
 }

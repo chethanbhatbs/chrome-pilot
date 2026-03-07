@@ -161,16 +161,140 @@ export async function chromeCloseDuplicates() {
   const urlMap = {};
   const toClose = [];
   for (const tab of tabs) {
-    if (tab.url.startsWith('chrome://')) continue;
-    try {
-      const u = new URL(tab.url);
-      const normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
-      if (urlMap[normalized]) toClose.push(tab.id);
-      else urlMap[normalized] = tab.id;
-    } catch { /* skip */ }
+    if (!tab.url) continue;
+    let normalized;
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      normalized = tab.url.replace(/\/$/, '');
+    } else {
+      try {
+        const u = new URL(tab.url);
+        normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
+      } catch { continue; }
+    }
+    if (urlMap[normalized]) toClose.push(tab.id);
+    else urlMap[normalized] = tab.id;
   }
   if (toClose.length > 0) await chrome.tabs.remove(toClose);
   return toClose.length;
+}
+
+// Focus mode / workspace: hide non-focus tabs by grouping & collapsing
+// Groups per-window since chrome.tabs.group only works within a single window
+export async function chromeHideTabs(tabIds) {
+  if (!tabIds.length) return null;
+  try {
+    // Get tab details to group by window
+    const allTabs = await chrome.tabs.query({});
+    const tabMap = new Map(allTabs.map(t => [t.id, t]));
+    const byWindow = new Map();
+    for (const id of tabIds) {
+      const tab = tabMap.get(id);
+      if (!tab) continue;
+      if (!byWindow.has(tab.windowId)) byWindow.set(tab.windowId, []);
+      byWindow.get(tab.windowId).push(id);
+    }
+
+    const groupIds = [];
+    for (const [windowId, winTabIds] of byWindow) {
+      try {
+        // Don't hide ALL tabs in a window — Chrome won't allow grouping the active tab if it's the only one left
+        const windowTabs = allTabs.filter(t => t.windowId === windowId);
+        const remainingUngrouped = windowTabs.filter(t => !winTabIds.includes(t.id));
+        if (remainingUngrouped.length === 0) continue; // skip — can't hide all tabs in a window
+
+        const groupId = await chrome.tabs.group({ tabIds: winTabIds });
+        await chrome.tabGroups.update(groupId, { collapsed: true, title: 'Hidden', color: 'grey' });
+        try { await chrome.tabGroups.move(groupId, { index: -1 }); } catch {}
+        groupIds.push(groupId);
+      } catch (e) {
+        console.error('chromeHideTabs window error:', windowId, e);
+      }
+    }
+    return groupIds.length === 1 ? groupIds[0] : groupIds;
+  } catch (e) {
+    console.error('chromeHideTabs error:', e);
+    return null;
+  }
+}
+
+// Ungroup ALL tabs in every "Hidden" group across all windows.
+// This is the only reliable way — stored tab IDs can go stale.
+export async function chromeUnhideTabs() {
+  try {
+    const groups = await chrome.tabGroups.query({});
+    const hiddenGroups = groups.filter(g => g.title === 'Hidden');
+    if (hiddenGroups.length === 0) return;
+
+    const allTabs = await chrome.tabs.query({});
+    for (const group of hiddenGroups) {
+      const groupTabs = allTabs.filter(t => t.groupId === group.id);
+      if (groupTabs.length > 0) {
+        try {
+          await chrome.tabs.ungroup(groupTabs.map(t => t.id));
+        } catch {
+          // Try individually if bulk fails
+          for (const t of groupTabs) {
+            try { await chrome.tabs.ungroup([t.id]); } catch {}
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('chromeUnhideTabs error:', e);
+  }
+}
+
+function isRestorableUrl(url) {
+  if (!url) return false;
+  // Chrome blocks extensions from opening these URL schemes
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
+      url.startsWith('about:') || url.startsWith('javascript:') ||
+      url.startsWith('data:') || url.startsWith('file:')) {
+    return false;
+  }
+  return true;
+}
+
+export async function chromeRestoreSession(session) {
+  if (!session?.windows?.length) return 0;
+  let tabCount = 0;
+  for (const win of session.windows) {
+    if (!win.tabs?.length) continue;
+    try {
+      // Filter to restorable tabs only
+      const restorableTabs = win.tabs.filter(t => isRestorableUrl(t.url));
+      if (restorableTabs.length === 0) continue;
+
+      // Create window with the first restorable tab
+      const firstTab = restorableTabs[0];
+      const newWin = await chrome.windows.create({ url: firstTab.url, focused: false });
+      if (firstTab.pinned && newWin.tabs?.[0]) {
+        try { await chrome.tabs.update(newWin.tabs[0].id, { pinned: true }); } catch {}
+      }
+      tabCount++;
+
+      // Add remaining tabs sequentially with small delay for stability
+      for (let i = 1; i < restorableTabs.length; i++) {
+        const t = restorableTabs[i];
+        try {
+          await chrome.tabs.create({
+            windowId: newWin.id,
+            url: t.url,
+            pinned: t.pinned || false,
+            active: false,
+          });
+          tabCount++;
+        } catch (err) {
+          console.warn('chromeRestoreSession tab error:', t.url, err);
+        }
+      }
+      // Focus the window after all tabs are created
+      try { await chrome.windows.update(newWin.id, { focused: true }); } catch {}
+    } catch (e) {
+      console.error('chromeRestoreSession window error:', e);
+    }
+  }
+  return tabCount;
 }
 
 export async function chromeDiscardTab(tabId) {

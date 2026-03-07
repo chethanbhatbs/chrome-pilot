@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StickyNote, X, Save } from 'lucide-react';
-import { getFaviconUrl, getDomain } from '@/utils/grouping';
+import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
 import { toast } from 'sonner';
 
 export function TabNotesPanel({ allTabs, tabNotes, onSetNote, onSwitch }) {
@@ -60,7 +60,7 @@ export function TabNotesPanel({ allTabs, tabNotes, onSetNote, onSwitch }) {
             </button>
             <button
               onClick={() => setEditingTabId(null)}
-              className="h-6 px-2 text-[10px] rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+              className="h-6 px-2 text-[10px] rounded-md text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--hover-medium))] transition-colors"
             >
               Cancel
             </button>
@@ -81,7 +81,7 @@ export function TabNotesPanel({ allTabs, tabNotes, onSetNote, onSwitch }) {
               data-testid={`tab-note-${tab.id}`}
             >
               <div className="flex items-center gap-2 mb-1 cursor-pointer" onClick={() => onSwitch(tab.id)}>
-                <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={e => e.target.style.display = 'none'} />
+                <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
                 <span className="text-[10px] font-body truncate flex-1 text-foreground/80">{tab.title}</span>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed mb-1.5 pl-5.5">{tabNotes[tab.id]}</p>

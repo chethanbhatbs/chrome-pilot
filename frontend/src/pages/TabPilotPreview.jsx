@@ -53,7 +53,7 @@ export default function TabPilotPreview() {
   if (isExtensionContext()) {
     return (
       <div className="h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col" data-testid="tabpilot-extension">
-        <Toaster richColors position="bottom-center" toastOptions={{ duration: 3000 }} />
+        <Toaster richColors closeButton position="bottom-center" offset="36px" toastOptions={{ duration: 2000 }} />
         <div className="flex-1 overflow-hidden">
           <Sidebar />
         </div>
@@ -63,7 +63,7 @@ export default function TabPilotPreview() {
 
   return (
     <div className="h-screen bg-background text-foreground flex" data-testid="tabpilot-preview">
-      <Toaster richColors position="bottom-right" toastOptions={{ duration: 3000 }} />
+      <Toaster richColors position="bottom-right" toastOptions={{ duration: 2000 }} />
 
       {/* Sidebar */}
       <div
