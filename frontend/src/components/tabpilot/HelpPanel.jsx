@@ -1,196 +1,113 @@
-import { useState } from 'react';
 import {
-  HelpCircle, Keyboard, Mouse, Search, GripVertical, Save, Flame, Focus, Pause,
-  LayoutGrid, Send, MessageSquare, ShieldCheck, ChevronRight, X
+  HelpCircle, Keyboard, Search, GripVertical, Save, Flame, Focus, Pause,
+  LayoutGrid, Mail, ShieldCheck, CheckSquare, Zap, StickyNote, Briefcase,
+  Timer, MousePointer, Command
 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-const shortcuts = [
-  ['Ctrl+Shift+E', 'Toggle sidebar'],
-  ['Ctrl+Shift+F', 'Focus search'],
-  ['Ctrl+Shift+D', 'Close duplicates'],
-  ['Arrow Up/Down', 'Navigate tabs'],
-  ['Enter', 'Switch to selected tab'],
-  ['Delete / Backspace', 'Close selected tab'],
-  ['Escape', 'Clear search'],
+const categories = [
+  {
+    title: 'Find & Navigate',
+    items: [
+      { icon: Search, text: 'Fuzzy search any tab by title or URL' },
+      { icon: LayoutGrid, text: 'Sites view groups tabs by domain' },
+      { icon: GripVertical, text: 'Drag tabs to reorder or move between windows' },
+      { icon: MousePointer, text: 'Right-click for pin, mute, move, copy URL' },
+    ],
+  },
+  {
+    title: 'Organize & Focus',
+    items: [
+      { icon: Focus, text: 'Focus mode hides everything except chosen tabs' },
+      { icon: Briefcase, text: 'Workspaces isolate tab groups per project' },
+      { icon: CheckSquare, text: 'Select mode for bulk-closing multiple tabs' },
+      { icon: StickyNote, text: 'Attach notes to tabs — persists across sessions' },
+    ],
+  },
+  {
+    title: 'Save & Automate',
+    items: [
+      { icon: Save, text: 'Sessions snapshot & restore all windows/tabs' },
+      { icon: Timer, text: 'Auto-close rules close idle tabs on a timer' },
+      { icon: Pause, text: 'Suspend inactive tabs to free memory' },
+      { icon: Flame, text: 'Activity heatmap shows browsing patterns' },
+    ],
+  },
 ];
 
-const tips = [
-  { icon: Search, text: 'Use the search bar to fuzzy-search across all tab titles and URLs.' },
-  { icon: Mouse, text: 'Right-click any tab for a full context menu: pin, mute, duplicate, move, suspend, and more.' },
-  { icon: GripVertical, text: 'Drag & drop tabs to reorder them within a window, or drop onto another window.' },
-  { icon: LayoutGrid, text: 'Toggle "Group by Domain" to see all your tabs organized by website instead of window.' },
-  { icon: Save, text: 'Save your current set of tabs as a session. Restore them anytime to get back in the zone.' },
-  { icon: Flame, text: 'The Activity Heatmap shows how much time you spend on each site — filter by day, week, or month.' },
-  { icon: Focus, text: 'Focus Mode hides everything except your top workflow tabs to help you concentrate.' },
-  { icon: Pause, text: 'Suspend inactive tabs to free up memory. Suspended tabs reload when you click them.' },
+const shortcuts = [
+  { keys: '⌘K', action: 'Quick switch' },
+  { keys: '↑ ↓', action: 'Navigate' },
+  { keys: '↵', action: 'Switch tab' },
+  { keys: '⌫', action: 'Close tab' },
 ];
 
 export function HelpPanel({ onBack }) {
-  const [view, setView] = useState('help');
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
-
-  const handleSubmitSuggestion = async () => {
-    if (!message.trim()) { toast.error('Please enter a suggestion'); return; }
-    setSending(true);
-    try {
-      const res = await fetch(`${API_URL}/api/suggestions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), message: message.trim() }),
-      });
-      if (res.ok) {
-        toast.success('Thanks for your suggestion!');
-        setName('');
-        setMessage('');
-      } else {
-        toast.error('Failed to send. Please try again.');
-      }
-    } catch {
-      toast.error('Network error. Please try again.');
-    } finally {
-      setSending(false);
-    }
+  const handleFeedback = () => {
+    const subject = encodeURIComponent('TabPilot Feedback');
+    const body = encodeURIComponent('Hi,\n\nI have the following feedback about TabPilot:\n\n');
+    window.open(`mailto:bschethanbhat@gmail.com?subject=${subject}&body=${body}`, '_blank');
   };
 
   return (
-    <div className="p-3 space-y-3" data-testid="help-panel">
-      {/* Tab switcher */}
-      <div className="flex gap-1 p-0.5 bg-secondary/50 rounded-lg">
-        <button
-          data-testid="help-tab-help"
-          onClick={() => setView('help')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-body transition-all duration-150
-            ${view === 'help'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <HelpCircle size={11} strokeWidth={1.5} />
-          How to Use
-        </button>
-        <button
-          data-testid="help-tab-suggest"
-          onClick={() => setView('suggest')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-body transition-all duration-150
-            ${view === 'suggest'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <MessageSquare size={11} strokeWidth={1.5} />
-          Suggest
-        </button>
+    <div className="p-3 space-y-2.5" data-testid="help-panel">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <HelpCircle size={13} className="text-primary" strokeWidth={1.5} />
+          <span className="text-xs font-heading font-bold">Guide & Help</span>
+        </div>
+        <span className="text-[9px] font-mono text-muted-foreground/50 bg-secondary px-1.5 py-0.5 rounded">v1.1.0</span>
       </div>
 
-      {view === 'help' ? (
-        <div className="space-y-4">
-          {/* Tips */}
-          <div>
-            <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
-              Quick Tips
-            </span>
-            <div className="mt-2 space-y-1">
-              {tips.map(({ icon: Icon, text }, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 rounded-md hover:bg-card/60 transition-colors border-l-2 border-primary/20 pl-3">
-                  <Icon size={12} className="text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <span className="text-[11px] text-foreground/70 font-body leading-relaxed">{text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator className="opacity-20" />
-
-          {/* Keyboard shortcuts */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Keyboard size={11} className="text-muted-foreground/60" strokeWidth={1.5} />
-              <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
-                Keyboard Shortcuts
-              </span>
-            </div>
-            <div className="space-y-0.5">
-              {shortcuts.map(([key, action]) => (
-                <div key={key} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-card/60 transition-colors">
-                  <span className="text-[11px] text-foreground/60 font-body">{action}</span>
-                  <kbd className="text-[9px] font-mono bg-secondary px-1.5 py-0.5 rounded border border-border/40 text-foreground/60 shrink-0 ml-2">{key}</kbd>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator className="opacity-20" />
-
-          {/* Privacy */}
-          <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-3" data-testid="privacy-disclaimer">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <ShieldCheck size={12} className="text-primary" strokeWidth={2} />
-              <span className="text-[11px] font-heading font-bold text-primary">Privacy Promise</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              TabPilot runs entirely in your browser. We <strong className="text-foreground">never</strong> collect,
-              store, or transmit any browser data. Your data stays yours.
-            </p>
+      {/* Feature categories as compact cards */}
+      {categories.map(({ title, items }) => (
+        <div key={title} className="rounded-lg border border-border/40 bg-card/50 p-2">
+          <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider">{title}</span>
+          <div className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1">
+            {items.map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-start gap-1.5">
+                <Icon size={10} className="text-primary/50 shrink-0 mt-[1px]" strokeWidth={1.5} />
+                <span className="text-[9.5px] text-foreground/70 leading-tight">{text}</span>
+              </div>
+            ))}
           </div>
         </div>
-      ) : (
-        <div className="space-y-3" data-testid="suggestion-form">
-          <div>
-            <span className="text-[9px] font-heading text-muted-foreground/50 uppercase tracking-wider">
-              Share your ideas
-            </span>
-            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-              Help make TabPilot better. We read every suggestion.
-            </p>
-          </div>
+      ))}
 
-          <div>
-            <label className="text-[10px] text-muted-foreground font-body block mb-1">Name (optional)</label>
-            <input
-              data-testid="suggestion-name-input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              className="w-full h-8 px-2.5 text-[11px] font-body bg-card border border-border rounded-md
-                text-foreground placeholder:text-muted-foreground/40
-                focus:outline-none focus:ring-1 focus:ring-primary/40 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] text-muted-foreground font-body block mb-1">Suggestion <span className="text-tp-duplicate">*</span></label>
-            <textarea
-              data-testid="suggestion-message-input"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="What would you like to see improved?"
-              rows={4}
-              className="w-full px-2.5 py-2 text-[11px] font-body bg-card border border-border rounded-md
-                text-foreground placeholder:text-muted-foreground/40 resize-none
-                focus:outline-none focus:ring-1 focus:ring-primary/40 transition-colors"
-            />
-          </div>
-
-          <button
-            data-testid="suggestion-submit-btn"
-            onClick={handleSubmitSuggestion}
-            disabled={sending || !message.trim()}
-            className="w-full h-8 flex items-center justify-center gap-1.5 text-[11px] font-heading font-semibold
-              rounded-md bg-primary text-primary-foreground hover:bg-primary/90
-              disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send size={11} strokeWidth={1.5} />
-            {sending ? 'Sending...' : 'Submit Suggestion'}
-          </button>
+      {/* Shortcuts — inline row */}
+      <div className="rounded-lg bg-card border border-border/40 px-2.5 py-2">
+        <div className="flex items-center gap-1 mb-1.5">
+          <Keyboard size={9} className="text-primary/70" strokeWidth={2} />
+          <span className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-wider">Shortcuts</span>
         </div>
-      )}
+        <div className="flex flex-wrap gap-2">
+          {shortcuts.map(({ keys, action }) => (
+            <div key={keys} className="flex items-center gap-1">
+              <kbd className="text-[8px] font-mono bg-secondary px-1 py-0.5 rounded border border-border/40 text-foreground/60">{keys}</kbd>
+              <span className="text-[9px] text-foreground/60">{action}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Privacy */}
+      <div className="rounded-lg border border-primary/15 bg-primary/[0.03] px-2.5 py-1.5 flex items-center gap-2" data-testid="privacy-disclaimer">
+        <ShieldCheck size={11} className="text-primary shrink-0" strokeWidth={2} />
+        <p className="text-[9px] text-muted-foreground/80 leading-snug">
+          <span className="font-semibold text-primary">100% Private</span> — Runs entirely in your browser. No data leaves your machine.
+        </p>
+      </div>
+
+      {/* Feedback */}
+      <button
+        onClick={handleFeedback}
+        className="cursor-pointer w-full flex items-center justify-center gap-1.5 h-7 text-[10px] font-heading font-semibold
+          rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+        data-testid="feedback-email-btn"
+      >
+        <Mail size={11} strokeWidth={1.5} />
+        Send Feedback
+      </button>
     </div>
   );
 }

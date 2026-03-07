@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sidebar } from '@/components/tabpilot/Sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import { isExtensionContext } from '@/utils/chromeAdapter';
 import {
   TreePine, Search, Layers, Flame, Focus, Pause, Keyboard,
   StickyNote, Briefcase, Timer, GripVertical, Zap, Download,
@@ -48,9 +49,21 @@ export default function TabPilotPreview() {
     };
   }, []);
 
+  // ── Extension mode: render sidebar ONLY (no homepage, full panel width) ──
+  if (isExtensionContext()) {
+    return (
+      <div className="h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col" data-testid="tabpilot-extension">
+        <Toaster richColors closeButton position="bottom-center" offset="36px" toastOptions={{ duration: 2000 }} />
+        <div className="flex-1 overflow-hidden">
+          <Sidebar />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-background text-foreground flex" data-testid="tabpilot-preview">
-      <Toaster richColors position="bottom-right" toastOptions={{ duration: 3000 }} />
+      <Toaster richColors position="bottom-right" toastOptions={{ duration: 2000 }} />
 
       {/* Sidebar */}
       <div

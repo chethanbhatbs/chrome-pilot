@@ -1,5 +1,5 @@
-import { getDomain, getFaviconUrl } from '@/utils/grouping';
-import { Pin, Volume2, VolumeX, X, Loader2, Copy, StickyNote, GripVertical, Pause } from 'lucide-react';
+import { getDomain, getFaviconUrl, handleFaviconError } from '@/utils/grouping';
+import { Pin, Volume2, VolumeX, X, Loader2, Copy, StickyNote, GripVertical, Pause, Check } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem,
   ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger,
@@ -16,8 +16,9 @@ export function TabItem({
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
   onSuspend, onUnsuspend, onAddNote,
   windows, currentWindowId, tabNote,
-  onDragStart, onDragOver, onDrop, onDragEnd,
-  onHoverEnter, onHoverLeave
+  onDragStart, onDragEnd,
+  onHoverEnter, onHoverLeave,
+  selectMode, isSelected, onToggleSelect
 }) {
   const domain = getDomain(tab.url);
   const faviconUrl = showFavicons ? getFaviconUrl(tab.url) : null;
@@ -42,44 +43,56 @@ export function TabItem({
           data-testid={`tab-item-${tab.id}`}
           draggable
           onDragStart={(e) => onDragStart?.(e, tab)}
-          onDragOver={(e) => onDragOver?.(e, tab)}
-          onDrop={(e) => onDrop?.(e, tab)}
           onDragEnd={onDragEnd}
           onMouseEnter={(e) => onHoverEnter?.(tab, e)}
           onMouseLeave={() => onHoverLeave?.()}
           onClick={() => {
+            if (selectMode) { onToggleSelect?.(tab.id); return; }
             if (isSuspended) onUnsuspend?.(tab.id);
             onSwitch(tab.id);
           }}
-          className={`group flex items-center gap-1.5 cursor-default transition-all duration-100 select-none relative
+          className={`group flex items-center gap-1.5 cursor-pointer transition-all duration-150 select-none relative
             ${compact ? 'px-2 py-[3px]' : 'px-2 py-[5px]'}
             ${isActive
-              ? 'bg-primary/[0.08] text-foreground'
-              : 'hover:bg-white/[0.04] text-foreground/75'
+              ? 'bg-primary/[0.10] text-foreground'
+              : 'hover:bg-[hsl(var(--hover-subtle))] text-foreground/75'
             }
             ${isSuspended ? 'opacity-35' : ''}
           `}
         >
           {/* Active indicator */}
           {isActive && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-r-full bg-primary" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-r-full bg-primary active-tab-glow" />
           )}
 
-          {/* Drag handle — visible on hover */}
-          <div className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0 cursor-grab active:cursor-grabbing"
-            data-testid={`drag-handle-${tab.id}`}
-          >
-            <GripVertical size={10} strokeWidth={1.5} />
-          </div>
+          {/* Select checkbox or drag handle */}
+          {selectMode ? (
+            <div
+              className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all duration-150
+                ${isSelected
+                  ? 'bg-primary border-primary'
+                  : 'border-muted-foreground/30 hover:border-muted-foreground/50'
+                }`}
+              data-testid={`select-checkbox-${tab.id}`}
+            >
+              {isSelected && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
+            </div>
+          ) : (
+            <div className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0 cursor-grab active:cursor-grabbing"
+              data-testid={`drag-handle-${tab.id}`}
+            >
+              <GripVertical size={10} strokeWidth={1.5} />
+            </div>
+          )}
 
           {/* Favicon + status indicators */}
-          <div className="w-4 h-4 shrink-0 flex items-center justify-center relative">
+          <div className="w-4 h-4 shrink-0 flex items-center justify-center relative rounded bg-secondary/50">
             {isLoading ? (
               <Loader2 size={12} className="animate-spin text-primary" strokeWidth={1.5} />
             ) : isSuspended ? (
               <Pause size={12} className="text-muted-foreground/40" strokeWidth={1.5} />
             ) : faviconUrl ? (
-              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" onError={(e) => { e.target.style.display = 'none'; }} />
+              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" onError={handleFaviconError} />
             ) : (
               <div className="w-3.5 h-3.5 rounded-[3px] bg-muted-foreground/20" />
             )}
@@ -91,7 +104,7 @@ export function TabItem({
               {highlightText ? highlightText(tab.title) : tab.title}
             </div>
             {showUrls && !compact && (
-              <div className="text-[10px] text-muted-foreground/40 truncate leading-tight mt-0.5">
+              <div className="text-[10px] text-muted-foreground/60 truncate leading-tight mt-0.5">
                 {highlightText ? highlightText(domain) : domain}
               </div>
             )}
@@ -102,11 +115,15 @@ export function TabItem({
             {isPinned && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="p-0.5" data-testid={`pin-badge-${tab.id}`}>
-                    <Pin size={9} className="text-tp-pinned" strokeWidth={2} />
-                  </div>
+                  <button
+                    className="cursor-pointer p-1 rounded-md hover:bg-tp-pinned/20 transition-colors active:scale-90"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onPin(tab.id); }}
+                    data-testid={`pin-badge-${tab.id}`}
+                  >
+                    <Pin size={11} className="text-tp-pinned" strokeWidth={2} />
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">Pinned tab</TooltipContent>
+                <TooltipContent side="top" className="text-[10px]">Click to unpin</TooltipContent>
               </Tooltip>
             )}
             {isDuplicate && (
@@ -140,8 +157,8 @@ export function TabItem({
                   <button
                     data-testid={`tab-note-btn-${tab.id}`}
                     onClick={(e) => { e.stopPropagation(); onAddNote?.(tab.id); }}
-                    className="cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
-                      opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-foreground/60"
+                    className="cursor-pointer p-0.5 rounded-[3px] transition-all duration-150 hover:bg-[hsl(var(--hover-medium))]
+                      opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-foreground/60"
                   >
                     <StickyNote size={11} strokeWidth={1.5} />
                   </button>
@@ -155,7 +172,7 @@ export function TabItem({
                   <button
                     data-testid={`tab-mute-${tab.id}`}
                     onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-                    className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-100 hover:bg-white/10
+                    className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-150 hover:bg-[hsl(var(--hover-medium))]
                       ${isAudible ? 'text-tp-audible' : 'text-muted-foreground/60'}`}
                   >
                     {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
@@ -167,8 +184,8 @@ export function TabItem({
             <button
               data-testid={`tab-close-${tab.id}`}
               onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-              className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10
-                opacity-0 group-hover:opacity-100 transition-all duration-100"
+              className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10
+                opacity-0 group-hover:opacity-100 transition-all duration-150"
             >
               <X size={11} strokeWidth={1.5} />
             </button>
@@ -209,13 +226,21 @@ export function TabItem({
         <ContextMenuSub>
           <ContextMenuSubTrigger className="cursor-pointer">Move to</ContextMenuSubTrigger>
           <ContextMenuSubContent className="font-body text-xs">
-            {otherWindows.map(w => (
-              <ContextMenuItem className="cursor-pointer" key={w.id} onClick={() => onMoveToWindow(tab.id, w.id)}>
-                {w.name || `Window ${w.id}`} ({w.tabs.length} tabs)
+            {isPinned ? (
+              <ContextMenuItem className="text-muted-foreground cursor-default" disabled>
+                Pinned tabs cannot be moved. Unpin first.
               </ContextMenuItem>
-            ))}
-            <ContextMenuSeparator />
-            <ContextMenuItem className="cursor-pointer" onClick={() => onMoveToNewWindow(tab.id)}>New Window</ContextMenuItem>
+            ) : (
+              <>
+                {otherWindows.map(w => (
+                  <ContextMenuItem className="cursor-pointer" key={w.id} onClick={() => onMoveToWindow(tab.id, w.id)}>
+                    {w.name || 'Window'} ({w.tabs.length} tabs)
+                  </ContextMenuItem>
+                ))}
+                <ContextMenuSeparator />
+                <ContextMenuItem className="cursor-pointer" onClick={() => onMoveToNewWindow(tab.id)}>New Window</ContextMenuItem>
+              </>
+            )}
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />

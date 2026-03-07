@@ -1,17 +1,42 @@
 /**
- * TabPilot - Background Service Worker
- * Handles badge updates, tab monitoring, and message passing to sidepanel.
+ * TabPilot Background Service Worker
+ * Uses Chrome Side Panel API for persistent sidebar across all tabs.
+ * Auto-opens side panel everywhere so users rely on TabPilot instead of the tab bar.
  */
 
-// Update badge with tab count
+// Enable side panel to auto-open when toolbar icon is clicked
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+
+// Auto-open side panel in all existing windows
+async function openSidePanelEverywhere() {
+  try {
+    const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+    for (const win of windows) {
+      try {
+        await chrome.sidePanel.open({ windowId: win.id });
+      } catch { /* window may not support side panel */ }
+    }
+  } catch {}
+}
+
+// On install or update — auto-open in all windows
+chrome.runtime.onInstalled.addListener(() => {
+  // Small delay to ensure everything is initialized
+  setTimeout(openSidePanelEverywhere, 500);
+});
+
+// On browser startup — auto-open in all windows
+chrome.runtime.onStartup.addListener(() => {
+  setTimeout(openSidePanelEverywhere, 500);
+});
+
+// Update badge with open tab count
 async function updateBadge() {
   try {
     const tabs = await chrome.tabs.query({});
     const count = tabs.length;
-    chrome.action.setBadgeText({ text: count.toString() });
-    chrome.action.setBadgeBackgroundColor({
-      color: count > 20 ? '#f28b82' : count > 10 ? '#fdd663' : '#81c995'
-    });
+    chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
+    chrome.action.setBadgeBackgroundColor({ color: '#1f6feb' });
   } catch (e) {
     console.error('Badge update error:', e);
   }
@@ -19,13 +44,11 @@ async function updateBadge() {
 
 // Notify sidepanel of tab changes
 function notifySidepanel() {
-  chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {
-    // Sidepanel not open, ignore
-  });
+  chrome.runtime.sendMessage({ action: 'tabs-updated' }).catch(() => {});
   updateBadge();
 }
 
-// Listen for tab events
+// Tab events
 chrome.tabs.onCreated.addListener(notifySidepanel);
 chrome.tabs.onRemoved.addListener(notifySidepanel);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -38,8 +61,16 @@ chrome.tabs.onActivated.addListener(notifySidepanel);
 chrome.tabs.onAttached.addListener(notifySidepanel);
 chrome.tabs.onDetached.addListener(notifySidepanel);
 
-// Listen for window events
-chrome.windows.onCreated.addListener(notifySidepanel);
+// Window events — also auto-open side panel in new windows
+chrome.windows.onCreated.addListener((window) => {
+  notifySidepanel();
+  // Auto-open side panel in new windows after a brief delay for initialization
+  if (window.type === 'normal') {
+    setTimeout(async () => {
+      try { await chrome.sidePanel.open({ windowId: window.id }); } catch {}
+    }, 300);
+  }
+});
 chrome.windows.onRemoved.addListener(notifySidepanel);
 chrome.windows.onFocusChanged.addListener(notifySidepanel);
 
@@ -48,18 +79,7 @@ try {
   chrome.tabGroups.onCreated.addListener(notifySidepanel);
   chrome.tabGroups.onUpdated.addListener(notifySidepanel);
   chrome.tabGroups.onRemoved.addListener(notifySidepanel);
-} catch {
-  // tabGroups might not be available in all Chrome versions
-}
+} catch {}
 
-// Open sidepanel on action click
-chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    await chrome.sidePanel.open({ tabId: tab.id });
-  } catch {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
-  }
-});
-
-// Initial badge update
+// Initial badge
 updateBadge();

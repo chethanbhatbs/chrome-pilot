@@ -96,13 +96,18 @@ module.exports = {
                                 from: { opacity: '1', transform: 'scale(1)' },
                                 to: { opacity: '0', transform: 'scale(0.95)' },
                         },
+                        'panel-enter': {
+                                from: { opacity: '0', transform: 'translateY(6px)' },
+                                to: { opacity: '1', transform: 'translateY(0)' },
+                        },
                 },
                 animation: {
                         'accordion-down': 'accordion-down 0.2s ease-out',
                         'accordion-up': 'accordion-up 0.2s ease-out',
                         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
-                        'slide-in': 'slide-in 0.2s ease-out',
+                        'slide-in': 'slide-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
                         'fade-out': 'fade-out 0.15s ease-in',
+                        'panel-enter': 'panel-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }
         }
   },

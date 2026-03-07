@@ -1,10 +1,13 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { ChevronRight, Minus, X, Monitor, Plus } from 'lucide-react';
+import { ChevronRight, X, Monitor, Plus, Check, MoreHorizontal, Minimize2, FilePlus } from 'lucide-react';
 import { TabItem } from './TabItem';
 import { TabGroupHeader } from './TabGroupHeader';
 import { TAB_GROUP_COLORS } from '@/utils/mockData';
 import { getDomain } from '@/utils/grouping';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
 export function WindowGroup({
@@ -15,7 +18,8 @@ export function WindowGroup({
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
   onCreateTabInWindow, onRenameWindow,
   suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
-  onHoverEnter, onHoverLeave
+  onHoverEnter, onHoverLeave,
+  selectMode, selectedTabIds, onToggleSelect, onSelectAllInWindow
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -57,63 +61,105 @@ export function WindowGroup({
   }, [win.tabs]);
 
   const handleDragStart = useCallback((e, tab) => {
+    if (tab.pinned) {
+      e.preventDefault();
+      toast.info('Pinned tabs cannot be moved. Unpin first.', { duration: 2000 });
+      return;
+    }
     e.dataTransfer.setData('application/json', JSON.stringify({ tabId: tab.id, windowId: win.id }));
     e.dataTransfer.effectAllowed = 'move';
   }, [win.id]);
 
-  const handleDragOver = useCallback((e, tab) => {
+  // --- Container-level drag & drop (single handler, no per-element listeners) ---
+  const tabListRef = useRef(null);
+  const dragOverIdxRef = useRef(null);
+
+  // Find the correct insertion index from mouse Y by checking each tab row's midpoint
+  const getDropIndex = useCallback((clientY) => {
+    if (!tabListRef.current) return win.tabs.length;
+    const items = tabListRef.current.querySelectorAll('[data-drop-idx]');
+    if (items.length === 0) return 0;
+    for (const item of items) {
+      const rect = item.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) {
+        return parseInt(item.dataset.dropIdx, 10);
+      }
+    }
+    return win.tabs.length; // below all tabs → append to end
+  }, [win.tabs.length]);
+
+  const handleContainerDragOver = useCallback((e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverIdx(win.tabs.findIndex(t => t.id === tab.id));
-  }, [win.tabs]);
+    const idx = getDropIndex(e.clientY);
+    if (idx !== dragOverIdxRef.current) {
+      dragOverIdxRef.current = idx;
+      setDragOverIdx(idx);
+    }
+  }, [getDropIndex]);
 
-  const handleDrop = useCallback((e, targetTab) => {
+  const handleContainerDrop = useCallback((e) => {
     e.preventDefault();
+    const dropIdx = dragOverIdxRef.current ?? win.tabs.length;
     setDragOverIdx(null);
+    dragOverIdxRef.current = null;
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      const targetIdx = win.tabs.findIndex(t => t.id === targetTab.id);
-      if (data.windowId === win.id) onReorderTab(data.tabId, win.id, targetIdx);
-      else onMoveTab(data.tabId, win.id, targetIdx);
-      toast.success('Tab moved');
+      if (data.windowId === win.id) {
+        // Same window reorder: chrome.tabs.move removes the tab first then inserts,
+        // so when moving DOWN (source < target), the target shifts up by 1.
+        const sourceIdx = win.tabs.findIndex(t => t.id === data.tabId);
+        const adjustedIdx = (sourceIdx !== -1 && sourceIdx < dropIdx) ? dropIdx - 1 : dropIdx;
+        onReorderTab(data.tabId, win.id, adjustedIdx);
+      } else {
+        onMoveTab(data.tabId, win.id, dropIdx);
+      }
     } catch { /* ignore */ }
   }, [win.id, win.tabs, onReorderTab, onMoveTab]);
 
-  const handleDragEnd = useCallback(() => setDragOverIdx(null), []);
+  const handleContainerDragLeave = useCallback((e) => {
+    // Only clear when actually leaving the container, not entering a child
+    if (!tabListRef.current?.contains(e.relatedTarget)) {
+      setDragOverIdx(null);
+      dragOverIdxRef.current = null;
+    }
+  }, []);
 
-  const handleWindowDrop = useCallback((e) => {
-    e.preventDefault();
+  const handleDragEnd = useCallback(() => {
     setDragOverIdx(null);
-    try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.windowId !== win.id) {
-        onMoveTab(data.tabId, win.id, -1);
-        toast.success('Tab moved');
-      }
-    } catch { /* ignore */ }
-  }, [win.id, onMoveTab]);
+    dragOverIdxRef.current = null;
+  }, []);
 
   const tabItemProps = {
     showFavicons, showUrls, compact, highlightText,
     onSwitch, onClose, onPin, onMute,
-    onDuplicate: (tabId) => { setShowAllTabs(true); onDuplicate(tabId); toast.success('Tab duplicated', { duration: 1500 }); },
+    onDuplicate: (tabId) => { setShowAllTabs(true); onDuplicate(tabId); },
     onMoveToNewWindow, onMoveToWindow: (tabId, winId) => onMoveTab(tabId, winId),
     onCloseOthers, onCloseToRight, windows, currentWindowId: win.id,
-    onDragStart: handleDragStart, onDragOver: handleDragOver,
-    onDrop: handleDrop, onDragEnd: handleDragEnd,
+    onDragStart: handleDragStart, onDragEnd: handleDragEnd,
     onSuspend, onUnsuspend, onAddNote,
     onHoverEnter, onHoverLeave,
+    selectMode, onToggleSelect,
   };
 
   const handleStartRename = () => {
-    setRenameValue(win.name || `Window ${win.id}`);
+    setRenameValue(win.name || 'Window');
     setIsRenaming(true);
     setTimeout(() => renameInputRef.current?.select(), 50);
   };
 
   const handleSaveRename = () => {
     const trimmed = renameValue.trim();
-    if (trimmed && onRenameWindow) onRenameWindow(win.id, trimmed || `Window ${win.id}`);
+    if (trimmed && onRenameWindow) {
+      // Prevent duplicate window names
+      const nameExists = windows?.some(w => w.id !== win.id && (w.name || 'Window').toLowerCase() === trimmed.toLowerCase());
+      if (nameExists) {
+        toast.info(`Window "${trimmed}" already exists`);
+        setIsRenaming(false);
+        return;
+      }
+      onRenameWindow(win.id, trimmed || 'Window');
+    }
     setIsRenaming(false);
   };
 
@@ -141,28 +187,32 @@ export function WindowGroup({
           );
         }
         if (!collapsedGroups[group.id]) {
-          // Grouped tab: colored left border gutter at the edge, NO extra indent
+          const tabIdx = win.tabs.findIndex(t => t.id === tab.id);
           elements.push(
             <div
               key={tab.id}
-              className={`animate-slide-in border-l-[3px] ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-t-primary' : ''}`}
+              data-drop-idx={tabIdx}
+              className={`animate-slide-in border-l-[3px] ${dragOverIdx === tabIdx ? 'border-t-2 border-t-primary' : ''}`}
               style={{ borderLeftColor: color.bg + '50' }}
             >
               <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
                 tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+                isSelected={selectedTabIds?.has(tab.id)}
                 {...tabItemProps} />
             </div>
           );
         }
       } else {
-        // Ungrouped tab: transparent left border to maintain the same layout as grouped tabs
+        const tabIdx = win.tabs.findIndex(t => t.id === tab.id);
         elements.push(
           <div
             key={tab.id}
-            className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === win.tabs.indexOf(tab) ? 'border-t border-primary' : ''}`}
+            data-drop-idx={tabIdx}
+            className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === tabIdx ? 'border-t-2 border-t-primary' : ''}`}
           >
             <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
               tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+              isSelected={selectedTabIds?.has(tab.id)}
               {...tabItemProps} />
           </div>
         );
@@ -173,23 +223,39 @@ export function WindowGroup({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div
-        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-        onDrop={handleWindowDrop}
-        data-testid={`window-group-${win.id}`}
-      >
+      <div data-testid={`window-group-${win.id}`}>
         <CollapsibleTrigger asChild>
-          <div className={`flex items-center justify-between px-2.5 py-1.5 cursor-pointer
-            hover:bg-white/[0.03] transition-colors
-            ${isFocused ? 'bg-primary/[0.04]' : ''}`}
+          <div className={`group/window flex items-center justify-between px-2.5 py-1.5 cursor-pointer
+            hover:bg-[hsl(var(--hover-subtle))] transition-colors duration-150
+            ${isFocused ? 'bg-primary/[0.06]' : ''}`}
           >
             <div className="flex items-center gap-2">
-              <ChevronRight
-                size={13}
-                className={`text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                strokeWidth={2}
-              />
-              <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/40'} strokeWidth={1.5} />
+              {selectMode ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelectAllInWindow?.(win.id); }}
+                  className="cursor-pointer shrink-0"
+                  data-testid={`select-all-window-${win.id}`}
+                >
+                  {(() => {
+                    const allSel = win.tabs.length > 0 && win.tabs.every(t => selectedTabIds?.has(t.id));
+                    const someSel = win.tabs.some(t => selectedTabIds?.has(t.id));
+                    return (
+                      <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center transition-all duration-150
+                        ${allSel ? 'bg-primary border-primary' : someSel ? 'bg-primary/30 border-primary/60' : 'border-muted-foreground/30'}`}>
+                        {allSel && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
+                        {someSel && !allSel && <div className="w-1.5 h-0.5 rounded-full bg-primary" />}
+                      </div>
+                    );
+                  })()}
+                </button>
+              ) : (
+                <ChevronRight
+                  size={13}
+                  className={`text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                  strokeWidth={2}
+                />
+              )}
+              <Monitor size={12} className={isFocused ? 'text-primary' : 'text-muted-foreground/60'} strokeWidth={1.5} />
               <div>
                 <div className="flex items-center gap-1.5">
                   {isRenaming ? (
@@ -213,56 +279,58 @@ export function WindowGroup({
                       title="Double-click to rename"
                       data-testid={`window-name-${win.id}`}
                     >
-                      {win.name || `Window ${win.id}`}
+                      {win.name || 'Window'}
                     </span>
                   )}
-                  <span className="text-[9px] text-muted-foreground/40 font-mono">{tabCount}</span>
+                  <span className="text-[9px] text-muted-foreground/60 font-mono">{tabCount}</span>
                   {isFocused && (
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}
                 </div>
-                <div className="text-[9px] text-muted-foreground/40 font-body italic truncate max-w-[180px]">
+                <div className="text-[9px] text-muted-foreground/60 font-body italic truncate max-w-[180px]">
                   {windowSummary}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-0.5"
-              style={{ opacity: 0 }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
-            >
-              {/* Add tab to this window */}
-              <button
-                data-testid={`window-add-tab-${win.id}`}
-                onClick={(e) => { e.stopPropagation(); onCreateTabInWindow && onCreateTabInWindow(win.id); }}
-                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
-                title="New tab in this window"
-              >
-                <Plus size={10} strokeWidth={1.5} />
-              </button>
-              <button
-                data-testid={`window-minimize-${win.id}`}
-                onClick={(e) => { e.stopPropagation(); onMinimizeWindow(win.id); }}
-                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-foreground hover:bg-white/10 transition-colors"
-              >
-                <Minus size={10} strokeWidth={1.5} />
-              </button>
-              <button
-                data-testid={`window-close-${win.id}`}
-                onClick={(e) => { e.stopPropagation(); onCloseWindow(win.id); }}
-                className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <X size={10} strokeWidth={1.5} />
-              </button>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover/window:opacity-100 transition-opacity duration-150">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    data-testid={`window-menu-${win.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/50 hover:text-foreground hover:bg-[hsl(var(--hover-medium))] transition-colors"
+                  >
+                    <MoreHorizontal size={11} strokeWidth={1.5} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40 font-body">
+                  <DropdownMenuItem onClick={() => onCreateTabInWindow?.(win.id)} className="text-xs gap-2 cursor-pointer" data-testid={`window-add-tab-${win.id}`}>
+                    <FilePlus size={12} strokeWidth={1.5} /> New Tab
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onMinimizeWindow(win.id)} className="text-xs gap-2 cursor-pointer" data-testid={`window-minimize-${win.id}`}>
+                    <Minimize2 size={12} strokeWidth={1.5} /> {win.state === 'minimized' ? 'Restore' : 'Minimize'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onCloseWindow(win.id)} className="text-xs gap-2 cursor-pointer text-destructive focus:text-destructive" data-testid={`window-close-${win.id}`}>
+                    <X size={12} strokeWidth={1.5} /> Close Window
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="pb-0.5 pl-5">
+          <div
+            ref={tabListRef}
+            className="pb-0.5 pl-5"
+            onDragOver={handleContainerDragOver}
+            onDrop={handleContainerDrop}
+            onDragLeave={handleContainerDragLeave}
+          >
             {(() => {
               const allElements = renderElements();
-              const TAB_LIMIT = 5;
+              const TAB_LIMIT = 10;
               if (allElements.length <= TAB_LIMIT || showAllTabs) {
                 return allElements;
               }
@@ -283,6 +351,8 @@ export function WindowGroup({
                 </>
               );
             })()}
+            {/* End-of-list drop indicator */}
+            <div className={`h-1 transition-colors duration-150 ${dragOverIdx === win.tabs.length ? 'border-t-2 border-t-primary' : ''}`} />
           </div>
         </CollapsibleContent>
       </div>

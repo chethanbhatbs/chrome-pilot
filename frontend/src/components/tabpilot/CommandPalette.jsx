@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Command, X } from 'lucide-react';
-import { getFaviconUrl, getDomain } from '@/utils/grouping';
+import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
 
 export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
   const [query, setQuery] = useState('');
@@ -73,7 +73,7 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
             placeholder="Type to switch to any tab..."
             className="flex-1 bg-transparent text-sm font-body text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
           />
-          <button onClick={onClose} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--hover-medium))] transition-colors">
             <X size={14} strokeWidth={1.5} />
           </button>
         </div>
@@ -89,13 +89,13 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
                 data-testid={`cmd-result-${tab.id}`}
                 onClick={() => { onSwitch(tab.id); onClose(); }}
                 className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors
-                  ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-white/[0.04]'}`}
+                  ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-[hsl(var(--hover-subtle))]'}`}
               >
                 <img
                   src={getFaviconUrl(tab.url)}
                   alt=""
                   className="w-4 h-4 rounded-[3px] shrink-0"
-                  onError={(e) => { e.target.style.display = 'none'; }}
+                  onError={handleFaviconError}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-body truncate text-foreground">{tab.title}</div>
@@ -110,7 +110,7 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 text-[9px] text-muted-foreground/50 font-mono">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground/50 font-mono">
           <span>Arrow keys to navigate</span>
           <span>Enter to switch</span>
           <span>Esc to close</span>

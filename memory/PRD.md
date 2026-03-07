@@ -78,7 +78,23 @@ Build a Chrome Extension called "TabPilot" — a sidebar-based tab and window ma
 - **P2**: Keyboard workspace switching (Cmd+1/2/3)
 - **P3**: Live tab thumbnail previews, Export data
 
-### Bug Fixes (Feb 2026) — Batch 2
+## Chrome Extension Bug Fixes (Mar 2026 — Session 2)
+
+### Critical Bugs Fixed
+- **Sidebar State Persistence (P0)**: Sidebar now remembers open/closed state across page navigations using `chrome.storage.local` (`tabpilotOpen` key). The `content.js` loads state on startup and saves on every toggle.
+- **Drag Handle Sensitivity (P1)**: Fixed jumpy drag by setting `iframe.style.pointerEvents = 'none'` on mousedown and restoring on mouseup, preventing the iframe from swallowing mouse events during resize.
+- **Heatmap Wrong Data (P1)**: Fixed in `useHistoryData.js` — was using `item.visitCount` (ALL-TIME count) instead of counting each search result as 1 visit. `chrome.history.search` with `startTime` already filters by period, so each item = 1 visit within that window.
+- **All Windows Loading (P0)**: Added aggressive multi-stage retry in `useChromeTabs.js` (0ms, 150ms, 600ms, 1500ms + 3s polling) and filtered invalid `windowId = -1` tabs in `chromeAdapter.js`.
+- **Pin Icon (P2)**: Already implemented with `text-tp-pinned` (#e2b714) color in `TabItem.jsx`.
+
+### Extension Rebuilt
+- New JS: `main.f6c84d64.js`, CSS: `main.5411e92c.css`
+- Drag handle on right edge of extension sidebar (280px–720px range)
+- Double-click handle resets to 400px default
+- Width persisted via `chrome.storage.local` — survives browser restarts
+- Extension now shows **sidebar only** (no homepage) — `isExtensionContext()` guard in `TabPilotPreview.jsx`
+- Tab "show more" threshold raised from 5 → 15 (practical for real Chrome tabs)
+- Extension rebuilt with new JS/CSS: `main.f1038638.js` / `main.0d247cfd.css`
 - **Search bar character input**: `pr-16` (64px) reduced to `pr-7` — now shows full text input
 - **Search bar visibility**: Fixed dark-only transparent bg to use `bg-input/60 border border-border/60`
 - **TabPilot text color**: Split "Tab"=foreground + "Pilot"=primary in sidebar — matches homepage
