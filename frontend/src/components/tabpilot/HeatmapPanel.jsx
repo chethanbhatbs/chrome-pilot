@@ -28,7 +28,7 @@ function BarChart({ data, maxVal, labelKey, valueKey, unitLabel }) {
         const heat = getHeatColor(ratio);
         const barW = Math.max(2, ratio * barAreaW);
         return (
-          <g key={item[labelKey]}>
+          <g key={item[labelKey]} className="chart-bar-animate">
             <text x={labelW - 4} y={y + 13} textAnchor="end"
               className="fill-muted-foreground" style={{ fontSize: '9px', fontFamily: 'inherit' }}>
               {item[labelKey].length > 14 ? item[labelKey].slice(0, 14) + '..' : item[labelKey]}
@@ -90,14 +90,15 @@ function TimelineChart({ data, xKey, yKey, yLabel }) {
           </g>
         );
       })}
-      <path d={areaPath} fill="url(#areaGrad)" />
+      <path d={areaPath} fill="url(#areaGrad)" className="chart-area-animate" />
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
           <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
         </linearGradient>
       </defs>
-      <path d={linePath} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={linePath} fill="none" className="stroke-primary chart-line-animate" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+        style={{ '--line-length': 1000 }} />
       {/* X-axis labels for ALL data points (including future) */}
       {data.map((d, i) => {
         const x = padLeft + (i / Math.max(data.length - 1, 1)) * chartW;
@@ -228,9 +229,9 @@ function HeatmapContent({ historyData, allTabs, onSwitch, timeFilter, setTimeFil
     }
   }, [historyData, timeFilter, metricMode]);
 
-  // Domain chart: value key depends on metric mode
-  const domainValueKey = metricMode === 'visits' ? 'visits' : 'minutes';
-  const domainUnitLabel = metricMode === 'visits' ? '' : 'm';
+  // Domain chart: use hours for week/month, minutes for day
+  const domainValueKey = metricMode === 'visits' ? 'visits' : (timeFilter === 'day' ? 'minutes' : 'hours');
+  const domainUnitLabel = metricMode === 'visits' ? '' : (timeFilter === 'day' ? 'm' : 'h');
   const maxDomainVal = domainTimeData[0]?.[domainValueKey] || 1;
 
   // Rank open tabs by domain visit count (aggregate all paths under same domain)

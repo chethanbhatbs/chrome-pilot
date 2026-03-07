@@ -30,6 +30,9 @@ export function useChromeTabs() {
   const [tabNotes, setTabNotes] = useState({});
   const [windowNames, setWindowNames] = useState({});
   const refreshRef = useRef(null);
+  const debounceRef = useRef(null);
+  // Track lastAccessed ourselves — chrome.tabs.query() doesn't return it reliably
+  const lastAccessedRef = useRef({});
 
   // Load persisted data from chrome.storage on mount
   useEffect(() => {
@@ -44,6 +47,11 @@ export function useChromeTabs() {
     if (!isExtensionContext()) return;
     try {
       const wins = await chromeGetAllWindows();
+      // Stamp lastAccessed for active tabs on every refresh
+      const now = Date.now();
+      wins.forEach(w => w.tabs?.forEach(t => {
+        if (t.active) lastAccessedRef.current[t.id] = now;
+      }));
       setWindows(wins);
       const groups = await chromeGetTabGroups();
       setTabGroups(groups);
@@ -56,14 +64,24 @@ export function useChromeTabs() {
 
   useEffect(() => {
     if (!isExtensionContext()) return;
-    // Immediate fetch + multiple fast retries to handle extension initialization timing
+
+    // Debounced refresh — collapses rapid successive events (tab switches, focus changes)
+    // into a single refresh, preventing the cascade that causes panel lag/crashes
+    const debouncedRefresh = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => refreshRef.current?.(), 150);
+    };
+
+    // Immediate fetch + one retry for initialization
     refresh();
-    const t1 = setTimeout(() => refreshRef.current?.(), 150);
-    const t2 = setTimeout(() => refreshRef.current?.(), 600);
-    const t3 = setTimeout(() => refreshRef.current?.(), 1500);
-    const cleanup = chromeOnTabsUpdated(() => refreshRef.current?.());
-    const interval = setInterval(() => refreshRef.current?.(), 1000);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); cleanup(); clearInterval(interval); };
+    const t1 = setTimeout(() => refreshRef.current?.(), 500);
+    const cleanup = chromeOnTabsUpdated(debouncedRefresh);
+    // Track tab activation — chrome.tabs.query doesn't return lastAccessed reliably
+    const onActivated = (info) => { lastAccessedRef.current[info.tabId] = Date.now(); };
+    chrome.tabs.onActivated.addListener(onActivated);
+    // Reduced polling: 5s instead of 1s (events already trigger debounced refreshes)
+    const interval = setInterval(() => refreshRef.current?.(), 5000);
+    return () => { clearTimeout(t1); if (debounceRef.current) clearTimeout(debounceRef.current); cleanup(); chrome.tabs.onActivated.removeListener(onActivated); clearInterval(interval); };
   }, [refresh]);
 
   // Merge stored window names into windows — stable sequential fallback names
@@ -78,11 +96,17 @@ export function useChromeTabs() {
   );
 
   const allTabs = useMemo(() =>
-    windowsWithNames.flatMap(w => (w.tabs || []).map(t => ({ ...t, windowId: w.id }))),
+    windowsWithNames.flatMap(w => (w.tabs || []).map(t => ({
+      ...t,
+      windowId: w.id,
+      // Merge our tracked lastAccessed — chrome.tabs.query doesn't return it
+      lastAccessed: lastAccessedRef.current[t.id] || t.lastAccessed || 0,
+    }))),
     [windowsWithNames]
   );
 
   const switchToTab = useCallback(async (tabId) => {
+    lastAccessedRef.current[tabId] = Date.now();
     const tab = allTabs.find(t => t.id === tabId);
     await chromeSwitchToTab(tabId, tab?.windowId);
   }, [allTabs]);

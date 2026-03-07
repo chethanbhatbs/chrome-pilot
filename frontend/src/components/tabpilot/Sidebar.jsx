@@ -18,6 +18,7 @@ import { WorkspaceManager } from './WorkspaceManager';
 import { TabTimeline } from './TabTimeline';
 import { AutoClosePanel } from './AutoClosePanel';
 import { ProfilePanel } from './ProfilePanel';
+import { ProfileSwitcher } from './ProfileSwitcher';
 import { StatsBar } from './StatsBar';
 import { TourGuide, shouldShowTour } from './TourGuide';
 import { isExtensionContext, chromeStorageGet, chromeStorageSet } from '@/utils/chromeAdapter';
@@ -380,7 +381,6 @@ export function Sidebar({ onCollapse }) {
     { id: 'notes', icon: StickyNote, label: 'Notes', panel: 'notes' },
     { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
     { id: 'autoclose', icon: Timer, label: 'Auto-Close', panel: 'autoclose' },
-    { id: 'profiles', icon: Users, label: 'Profiles', panel: 'profiles' },
     { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
     { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
   ];
@@ -447,12 +447,12 @@ export function Sidebar({ onCollapse }) {
         )}
 
         {/* Header */}
-        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/90 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
-          <div className="flex items-center gap-1">
-            <span className="text-[13px] font-heading font-bold tracking-tight px-1 shrink-0 brand-text">
+        <div className="px-2 pt-2 pb-1 space-y-1 bg-primary/[0.03] border-b border-primary/10 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-heading font-bold tracking-tight shrink-0 brand-text">
               TabPilot
             </span>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 ml-1">
               <SearchBar
                 query={search.query} setQuery={search.setQuery}
                 resultCount={search.resultCount} clearSearch={search.clearSearch}
@@ -653,7 +653,7 @@ export function Sidebar({ onCollapse }) {
             <div className="animate-panel-enter"><TabTimeline /></div>
           ) : activePanel === 'autoclose' ? (
             <div className="animate-panel-enter">
-              <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} />
+              <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} onAutoClose={tabs.closeTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} />
             </div>
           ) : activePanel === 'profiles' ? (
             <div className="animate-panel-enter"><ProfilePanel /></div>
@@ -684,7 +684,7 @@ export function Sidebar({ onCollapse }) {
           </div>
         </ScrollArea>
 
-        <StatsBar allTabs={filteredAllTabs} suspendedCount={tabs.suspendedTabs.size} />
+        <ProfileSwitcher onOpenSetup={() => setActivePanel('profiles')} allTabs={filteredAllTabs} suspendedCount={tabs.suspendedTabs.size} />
       </div>
     </TooltipProvider>
   );

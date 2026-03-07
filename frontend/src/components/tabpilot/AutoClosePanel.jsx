@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Timer, Shield, Plus, X, AlertTriangle, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -9,7 +9,6 @@ const PRESETS = [
   { id: '30', label: '30 min', minutes: 30 },
   { id: '60', label: '1 hour', minutes: 60 },
   { id: '120', label: '2 hours', minutes: 120 },
-  { id: 'off', label: 'Off', minutes: 0 },
 ];
 
 function formatTimeLeft(lastAccessed, activeMinutes) {
@@ -24,7 +23,7 @@ function formatTimeLeft(lastAccessed, activeMinutes) {
   return m > 0 ? `${h}h ${m}m left` : `${h}h left`;
 }
 
-export function AutoClosePanel({ allTabs, onClose, settings, onUpdateSetting, visitCounts = {} }) {
+export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpdateSetting, visitCounts = {} }) {
   const enabled = settings.autoCloseEnabled;
   const selectedPreset = settings.autoClosePreset || '30';
   const customMinutes = settings.autoCloseCustomMinutes || '';
@@ -53,22 +52,59 @@ export function AutoClosePanel({ allTabs, onClose, settings, onUpdateSetting, vi
     onUpdateSetting('autoCloseWhitelist', whitelist.filter(d => d !== domain));
   }, [whitelist, onUpdateSetting]);
 
-  // Tabs that would be closed (with time remaining)
+  // Subdomain-aware whitelist check: "google.com" matches "docs.google.com", "mail.google.com" etc.
+  const isWhitelisted = useCallback((hostname) => {
+    if (!hostname) return false;
+    return whitelist.some(w => hostname === w || hostname.endsWith('.' + w));
+  }, [whitelist]);
+
+  // Tick every 3s to force re-evaluation — ensures tabs disappear when visited
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!enabled || activeMinutes === 0) return;
+    const id = setInterval(() => setTick(t => t + 1), 3000);
+    return () => clearInterval(id);
+  }, [enabled, activeMinutes]);
+
+  // Tabs that would be closed — only truly inactive tabs
   const atRiskTabs = useMemo(() => {
     if (!enabled || activeMinutes === 0) return [];
+    const thresholdMs = activeMinutes * 60000;
+    const now = Date.now();
     return allTabs
       .filter(tab => {
+        // Skip active, pinned, and recently visited (via TabPilot click) tabs
         if (tab.active || tab.pinned) return false;
-        if (visitCounts[tab.id]) return false; // exclude visited tabs
+        if (visitCounts[tab.id]) return false;
         const domain = getDomain(tab.url);
-        return !whitelist.includes(domain);
+        if (isWhitelisted(domain)) return false;
+        // Skip tabs accessed within threshold — covers tabs opened directly in Chrome
+        if (tab.lastAccessed && (now - tab.lastAccessed) < thresholdMs) return false;
+        return true;
       })
       .map(tab => ({
         ...tab,
         timeLeft: formatTimeLeft(tab.lastAccessed, activeMinutes),
       }))
-      .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0)); // soonest to close first
-  }, [allTabs, enabled, activeMinutes, whitelist]);
+      .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
+  }, [allTabs, enabled, activeMinutes, isWhitelisted, visitCounts, tick]);
+
+  // Actually auto-close expired tabs
+  const closedRef = useRef(new Set());
+  useEffect(() => {
+    if (!enabled || activeMinutes === 0 || !onAutoClose) return;
+    const thresholdMs = activeMinutes * 60000;
+    const now = Date.now();
+    atRiskTabs.forEach(tab => {
+      if (closedRef.current.has(tab.id)) return;
+      const elapsed = tab.lastAccessed ? (now - tab.lastAccessed) : thresholdMs + 1;
+      if (elapsed >= thresholdMs) {
+        closedRef.current.add(tab.id);
+        onAutoClose(tab.id);
+        toast.success(`Auto-closed: ${tab.title?.slice(0, 40) || 'Tab'}`, { duration: 3000 });
+      }
+    });
+  }, [atRiskTabs, enabled, activeMinutes, onAutoClose, tick]);
 
   return (
     <div className="p-3 space-y-3" data-testid="auto-close-panel">

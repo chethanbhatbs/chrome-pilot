@@ -51,7 +51,7 @@ Snapshot your entire browser state (all windows and tabs) with a name. Restore a
 Suspend inactive tabs to free up memory. Suspended tabs remain in the sidebar but are visually dimmed. Suspend all inactive tabs at once, or suspend/unsuspend individual tabs via right-click. The stats bar shows the current suspended count.
 
 ### Auto-Close Rules
-Set time-based rules to automatically close idle tabs. Choose from presets (15min, 30min, 1hr, 2hr) or set a custom timer. Whitelist specific domains (e.g., `mail.google.com`) to keep them safe. The at-risk tab preview shows which tabs will be closed and how much time they have left.
+Set time-based rules to automatically close idle tabs. Choose from presets (15min, 30min, 1hr, 2hr) or set a custom timer. Whitelist specific domains (e.g., `mail.google.com`) to keep them safe — subdomain-aware matching means whitelisting `google.com` also protects `docs.google.com`. The at-risk tab preview shows which tabs will be closed and how much time they have left. Tabs are **actually auto-closed** when their inactivity timer expires, with a toast notification for each closed tab. Tab activity is tracked in real time — switching to a tab immediately removes it from the at-risk list.
 
 ### Duplicate Detection
 Duplicates are automatically detected and highlighted with a badge. The stats bar shows the duplicate count. The duplicate panel at the bottom lists all duplicates grouped by URL, with one-click "Close All Duplicates". Detection includes `chrome://` and `chrome-extension://` pages (new tab, settings, etc.).
@@ -63,7 +63,16 @@ Right-click any tab to attach a note. Notes persist across sessions via `chrome.
 Visualize your browsing patterns with an interactive heatmap. View activity across Today, This Week, or This Month. The heatmap shows tab activity by time-of-day using color intensity. Includes a top-sites breakdown showing your most-visited domains.
 
 ### Tab Timeline
-A chronological timeline of your browsing history showing when tabs were opened and visited over recent hours.
+A 7-day browsing activity grid (GitHub contributions-style). Each cell represents one hour, colored by activity intensity. Click any cell to see active minutes, intensity percentage, and top domains for that hour. Includes a "NOW" indicator, daily breakdown bars, and a color legend. Live data from `chrome.history`.
+
+### Chrome Profile Switching
+Switch between Chrome profiles directly from the sidebar. Requires a one-time native messaging host setup (lightweight Python script). Features:
+- **Profile list** with avatars, names, and email addresses
+- **One-click switch** to any profile (opens that profile's Chrome window)
+- **Sync Profiles** button to pick up newly created profiles
+- **Remove profiles** from TabPilot (per-profile, without affecting Chrome)
+- **Identity selection** — each Chrome profile identifies itself via user selection, cached per-profile in `chrome.storage.local`
+- **Setup wizard** with copy-paste Terminal commands and safety notice
 
 ### Drag & Drop
 Reorder tabs within a window by dragging. Drag tabs between windows to move them. A drop indicator shows exactly where the tab will land. Pinned tabs cannot be dragged (a toast explains why).
@@ -85,12 +94,13 @@ All state syncs across windows in real time:
 ### Notifications
 Toast notifications for all actions (close, duplicate, suspend, mute, etc.) with opaque styling. All notifications auto-dismiss within 2 seconds. Undo support on tab close.
 
-### Stats Bar
-A persistent footer showing 4 live metrics:
+### Stats Bar & Profile Switcher
+A persistent footer combining live metrics and profile switching:
 - **Tabs** — total open tab count
 - **Audio** — tabs currently playing audio
 - **Paused** — suspended tab count
 - **Dupes** — duplicate tab count
+- **Profile dropdown** — quick switch profiles, manage profiles, re-identify
 
 ### Settings Panel
 - **Show favicons** — toggle tab favicons on/off
@@ -139,6 +149,14 @@ A guided tour highlights key features when you first install TabPilot.
    - Select the `extension/tabpilot` folder
 
 5. Click the TabPilot icon in the toolbar (or press `Cmd+Shift+E`) to open the sidebar.
+
+6. **(Optional) Set up profile switching:**
+   ```bash
+   cd native-host
+   bash install.sh
+   # Paste your extension ID when prompted (find it at chrome://extensions)
+   ```
+   Then restart Chrome. The Profiles panel will now show your Chrome profiles.
 
 ---
 
@@ -259,7 +277,9 @@ chrome-pilot/
 │   │   │   ├── HelpPanel.jsx         # Categorized help guide
 │   │   │   ├── SettingsPanel.jsx     # User preferences
 │   │   │   ├── TabNotesPanel.jsx     # Notes management
-│   │   │   ├── TabTimeline.jsx       # Browsing timeline
+│   │   │   ├── TabTimeline.jsx       # 7-day activity grid
+│   │   │   ├── ProfilePanel.jsx     # Profile management panel
+│   │   │   ├── ProfileSwitcher.jsx  # Bottom bar stats + profile dropdown
 │   │   │   ├── TabPreview.jsx        # Tab hover preview
 │   │   │   ├── TourGuide.jsx         # First-time onboarding
 │   │   │   └── TabGroupHeader.jsx    # Chrome tab group header
@@ -285,6 +305,11 @@ chrome-pilot/
 │   ├── craco.config.js              # CRA override config
 │   ├── tailwind.config.js           # Tailwind + custom theme
 │   └── package.json
+│
+├── native-host/                 # Native messaging host for profile switching
+│   ├── tabpilot_profiles.py     # Python script (reads profiles, launches Chrome)
+│   ├── install.sh               # One-time macOS install script
+│   └── com.tabpilot.profiles.json  # Native messaging manifest template
 │
 └── README.md
 ```
@@ -318,6 +343,7 @@ chrome-pilot/
 | `sessions` | Undo close tab (restore recently closed) |
 | `history` | Activity heatmap data |
 | `activeTab` | Access current tab info |
+| `nativeMessaging` | Communicate with native host for Chrome profile switching |
 
 ---
 
