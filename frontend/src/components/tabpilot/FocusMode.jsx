@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Focus, X, Timer, Check, ChevronRight, Monitor } from 'lucide-react';
-import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
+import { getDomain } from '@/utils/grouping';
+import { FaviconWithFallback } from './FaviconWithFallback';
 import { chromeStorageGet, chromeStorageSet, isExtensionContext } from '@/utils/chromeAdapter';
 import { toast } from 'sonner';
 
@@ -186,14 +187,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
                 onClick={() => onSwitch(tab.id)}
                 data-testid={`focus-tab-${tab.id}`}
               >
-                <img
-                  src={getFaviconUrl(tab.url, tab.favIconUrl)}
-                  alt=""
-                  className="w-4 h-4 rounded-[3px] shrink-0"
-                  data-tab-url={tab.url}
-                  data-chrome-favicon={tab.favIconUrl || ''}
-                  onError={handleFaviconError}
-                />
+                <FaviconWithFallback url={tab.url} favIconUrl={tab.favIconUrl} className="w-4 h-4 rounded-[3px] shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11.5px] font-body truncate">{tab.title}</div>
                   <div className="text-[10px] text-muted-foreground/70 truncate">{getDomain(tab.url)}</div>
@@ -293,14 +287,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
                     data-testid={`focus-select-tab-${tab.id}`}
                   >
                     <FocusCheckbox checked={focusTabIds.has(tab.id)} />
-                    <img
-                      src={getFaviconUrl(tab.url, tab.favIconUrl)}
-                      alt=""
-                      className="w-3.5 h-3.5 rounded-[2px] shrink-0"
-                      data-tab-url={tab.url}
-                      data-chrome-favicon={tab.favIconUrl || ''}
-                      onError={handleFaviconError}
-                    />
+                    <FaviconWithFallback url={tab.url} favIconUrl={tab.favIconUrl} className="w-3.5 h-3.5 rounded-[2px] shrink-0" />
                     <span className="text-[11px] font-body truncate flex-1 min-w-0">
                       {tab.title}
                     </span>

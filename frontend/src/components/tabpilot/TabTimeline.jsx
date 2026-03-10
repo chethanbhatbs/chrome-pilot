@@ -16,17 +16,26 @@ export function TabTimeline() {
   const [selectedCell, setSelectedCell] = useState(null);
   const timelineData = useTimelineGrid();
   const currentCellRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   const now = new Date();
   const currentHour = now.getHours();
   const todayRowIdx = 6; // grid is ordered: 6 days ago (0) → today (6)
   const currentColIdx = currentHour; // 0-23, matches grid column index
 
+  // Track mount to trigger scroll animation each time user navigates to timeline
+  const [mountKey] = useState(() => Date.now());
+
+  // Auto-scroll to current time when timeline mounts or becomes visible
   useEffect(() => {
-    if (currentCellRef.current) {
-      currentCellRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (currentCellRef.current && scrollContainerRef.current) {
+      // Small delay to ensure DOM is laid out before scrolling
+      const timer = setTimeout(() => {
+        currentCellRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }, 250);
+      return () => clearTimeout(timer);
     }
-  }, [timelineData]);
+  }, [timelineData, mountKey]);
 
   if (!isExtensionContext()) {
     return (
@@ -84,7 +93,7 @@ export function TabTimeline() {
       </p>
 
       {/* Contributions-style grid */}
-      <div className="bg-card rounded-lg border border-border/50 p-4 pr-5 overflow-x-auto">
+      <div ref={scrollContainerRef} className="bg-card rounded-lg border border-border/50 p-4 pr-5 overflow-x-auto scroll-smooth">
         {/* Hour labels — 12a to 12a (midnight to midnight) */}
         <div className="flex items-center gap-0 mb-1">
           <div className="w-8 shrink-0" />

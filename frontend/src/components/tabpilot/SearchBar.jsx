@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Search, X, Globe } from 'lucide-react';
-import { getFaviconUrl, handleFaviconError } from '@/utils/grouping';
+import { FaviconWithFallback } from './FaviconWithFallback';
 
 export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef: externalRef, suggestions, onSwitchTab }) {
   const internalRef = useRef(null);
@@ -73,7 +73,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         onFocus={() => setShowSuggestions(true)}
         onKeyDown={handleKeyDown}
         placeholder="Search tabs... (Cmd+K)"
-        className="w-full h-7 pl-7 pr-7 text-[11px] bg-input/60 rounded-md
+        className="w-full h-8 pl-7 pr-10 text-[11px] bg-input/60 rounded-md
           border border-border/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 focus:outline-none
           placeholder:text-muted-foreground/40 text-foreground font-body"
       />
@@ -94,7 +94,8 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
 
       {hasSuggestions && (
         <div
-          className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden"
+          className="fixed left-0 right-0 mx-2 mt-1 bg-popover border border-border rounded-lg shadow-xl z-[100] overflow-hidden max-h-[240px] overflow-y-auto"
+          style={{ top: wrapperRef.current?.getBoundingClientRect().bottom }}
           data-testid="search-suggestions"
         >
           {suggestions.map((s, idx) => (
@@ -105,14 +106,14 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
                 if (s.type === 'tab' && onSwitchTab) { onSwitchTab(s.id); setShowSuggestions(false); }
                 else if (s.type === 'domain') setQuery(s.domain);
               }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors
                 ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-[hsl(var(--hover-subtle))]'}
                 ${idx > 0 ? 'border-t border-border/40' : ''}`}
             >
               {s.type === 'tab' ? (
                 <>
-                  <img src={getFaviconUrl(s.url, s.favIconUrl)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" data-tab-url={s.url} data-chrome-favicon={s.favIconUrl || ''} onError={handleFaviconError} />
-                  <div className="flex-1 min-w-0">
+                  <FaviconWithFallback url={s.url} favIconUrl={s.favIconUrl} className="w-3.5 h-3.5 rounded-[2px] shrink-0" />
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="text-[11px] font-body truncate text-foreground/80">{s.title}</div>
                     <div className="text-[9px] text-muted-foreground/50 truncate">{s.domain}</div>
                   </div>
@@ -120,10 +121,10 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
               ) : (
                 <>
                   <Globe size={13} className="text-muted-foreground/50 shrink-0" strokeWidth={1.5} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-body text-foreground/80">{s.domain}</div>
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="text-[11px] font-body truncate text-foreground/80">{s.domain}</div>
                   </div>
-                  <span className="text-[9px] text-muted-foreground/50 font-mono">{s.count} tabs</span>
+                  <span className="text-[9px] text-muted-foreground/50 font-mono shrink-0">{s.count} tabs</span>
                 </>
               )}
             </button>
