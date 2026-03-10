@@ -128,7 +128,7 @@ export function useHistoryData(timeFilter) {
         const items = await chrome.history.search({ text: '', startTime, maxResults: 10_000 });
         setData(processItems(items, timeFilter));
       } catch (e) {
-        console.error('TabPilot history error:', e);
+        console.error('ChromePilot history error:', e);
       }
     }
 
@@ -228,7 +228,7 @@ export function useTimelineGrid() {
           mostActiveDay,
         });
       } catch (e) {
-        console.error('TabPilot timeline error:', e);
+        console.error('ChromePilot timeline error:', e);
       }
     }
 

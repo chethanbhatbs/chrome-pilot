@@ -5,7 +5,7 @@ import { Pin, Volume2, Pause, StickyNote } from 'lucide-react';
 export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
   const ref = useRef(null);
   const domain = getDomain(tab.url);
-  const faviconUrl = getFaviconUrl(tab.url);
+  const faviconUrl = getFaviconUrl(tab.url, tab.favIconUrl);
 
   // Position the preview at the sidebar's right edge, aligned with the hovered tab
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -57,7 +57,7 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
           <div className="flex flex-col items-center gap-1">
             {faviconUrl && (
               <img src={faviconUrl} alt="" className="w-6 h-6 rounded-lg shadow-lg"
-                onError={handleFaviconError} />
+                data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
             )}
             <span className="text-[8px] text-white/60 font-mono">{domain}</span>
           </div>

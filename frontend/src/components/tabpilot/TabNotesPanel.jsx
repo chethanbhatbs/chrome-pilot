@@ -81,7 +81,7 @@ export function TabNotesPanel({ allTabs, tabNotes, onSetNote, onSwitch }) {
               data-testid={`tab-note-${tab.id}`}
             >
               <div className="flex items-center gap-2 mb-1 cursor-pointer" onClick={() => onSwitch(tab.id)}>
-                <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
+                <img src={getFaviconUrl(tab.url, tab.favIconUrl)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
                 <span className="text-[10px] font-body truncate flex-1 text-foreground/80">{tab.title}</span>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed mb-1.5 pl-5.5">{tabNotes[tab.id]}</p>

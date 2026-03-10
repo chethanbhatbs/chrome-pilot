@@ -450,7 +450,7 @@ export function Sidebar({ onCollapse }) {
         <div className="px-2 pt-2 pb-1 space-y-1 bg-primary/[0.03] border-b border-primary/10 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-heading font-bold tracking-tight shrink-0 brand-text">
-              TabPilot
+              ChromePilot
             </span>
             <div className="flex-1 min-w-0 ml-1">
               <SearchBar

@@ -99,7 +99,7 @@ export function SessionManager({ sessions, onSave, onDelete, onRestore, windows 
                   <div className="mb-2 space-y-0.5 max-h-[150px] overflow-y-auto rounded border border-border/30 bg-background/50 p-1">
                     {allSessionTabs.map((tab, i) => (
                       <div key={i} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] text-foreground/70 hover:bg-[hsl(var(--hover-subtle))]">
-                        <img src={getFaviconUrl(tab.url)} alt="" className="w-3 h-3 rounded-[2px] shrink-0" onError={handleFaviconError} />
+                        <img src={getFaviconUrl(tab.url, tab.favIconUrl)} alt="" className="w-3 h-3 rounded-[2px] shrink-0" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
                         <span className="truncate flex-1">{tab.title}</span>
                         {tab.pinned && <span className="text-[7px] text-primary/60 font-mono shrink-0">PIN</span>}
                       </div>

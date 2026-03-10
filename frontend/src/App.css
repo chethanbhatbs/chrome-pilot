@@ -1,4 +1,4 @@
-/* TabPilot Custom Styles */
+/* ChromePilot Custom Styles */
 
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
@@ -50,6 +50,16 @@
 /* Smooth tab removal */
 .tab-exit {
   animation: fade-out 0.15s ease-in forwards;
+}
+
+/* Favicon contrast safety net — ensures icons are visible regardless of
+   their color vs the panel background. Light mode: dark outline around
+   white/light icons. Dark mode: light outline around dark icons. */
+img[data-tab-url] {
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.45));
+}
+.dark img[data-tab-url] {
+  filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.45));
 }
 
 /* Mark highlight style override */

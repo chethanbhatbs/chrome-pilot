@@ -163,24 +163,49 @@ export async function chromeUnmuteAll() {
 
 export async function chromeCloseDuplicates() {
   const tabs = await chrome.tabs.query({});
-  const urlMap = {};
-  const toClose = [];
+  const groups = {};
   for (const tab of tabs) {
     if (!tab.url) continue;
     let normalized;
     if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
       normalized = tab.url.replace(/\/$/, '');
     } else {
-      try {
-        const u = new URL(tab.url);
-        normalized = u.origin + u.pathname.replace(/\/$/, '') + u.search;
-      } catch { continue; }
+      try { normalized = new URL(tab.url).origin; } catch { continue; }
     }
-    if (urlMap[normalized]) toClose.push(tab.id);
-    else urlMap[normalized] = tab.id;
+    if (!groups[normalized]) groups[normalized] = [];
+    groups[normalized].push(tab);
+  }
+  const toClose = [];
+  for (const tabs of Object.values(groups)) {
+    if (tabs.length <= 1) continue;
+    const keep = tabs.find(t => t.active) || tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
+    for (const t of tabs) { if (t.id !== keep.id) toClose.push(t.id); }
   }
   if (toClose.length > 0) await chrome.tabs.remove(toClose);
   return toClose.length;
+}
+
+export async function chromeSplitTabs(tabIds) {
+  if (!tabIds || tabIds.length < 2) return;
+  const [leftTabId, rightTabId] = tabIds;
+  const [leftTab, rightTab] = await Promise.all([chrome.tabs.get(leftTabId), chrome.tabs.get(rightTabId)]);
+  const currentWin = await chrome.windows.getCurrent();
+  const top = currentWin.top || 0;
+  const left = currentWin.left || 0;
+  const totalW = currentWin.width || 1280;
+  const totalH = currentWin.height || 800;
+  const halfW = Math.floor(totalW / 2);
+  await chrome.tabs.update(leftTabId, { active: true });
+  if (leftTab.windowId === rightTab.windowId) {
+    await chrome.windows.update(leftTab.windowId, { state: 'normal', left, top, width: halfW, height: totalH });
+    const rightWin = await chrome.windows.create({ tabId: rightTabId, left: left + halfW, top, width: halfW, height: totalH, focused: true, state: 'normal' });
+    await chrome.windows.update(leftTab.windowId, { focused: true });
+    await chrome.windows.update(rightWin.id, { focused: true });
+  } else {
+    await chrome.windows.update(leftTab.windowId, { state: 'normal', left, top, width: halfW, height: totalH, focused: true });
+    await chrome.tabs.update(rightTabId, { active: true });
+    await chrome.windows.update(rightTab.windowId, { state: 'normal', left: left + halfW, top, width: halfW, height: totalH, focused: true });
+  }
 }
 
 // Focus mode / workspace: hide non-focus tabs by grouping & collapsing
@@ -202,10 +227,21 @@ export async function chromeHideTabs(tabIds) {
     const groupIds = [];
     for (const [windowId, winTabIds] of byWindow) {
       try {
-        // Don't hide ALL tabs in a window — Chrome won't allow grouping the active tab if it's the only one left
+        // Don't hide ALL tabs in a window — Chrome won't allow it
         const windowTabs = allTabs.filter(t => t.windowId === windowId);
-        const remainingUngrouped = windowTabs.filter(t => !winTabIds.includes(t.id));
-        if (remainingUngrouped.length === 0) continue; // skip — can't hide all tabs in a window
+        const remainingVisible = windowTabs.filter(t => !winTabIds.includes(t.id));
+        if (remainingVisible.length === 0) continue;
+
+        // Ensure active tab in this window is NOT one we're about to hide
+        // (Chrome can't collapse a group containing the active tab)
+        const activeTab = windowTabs.find(t => t.active);
+        if (activeTab && winTabIds.includes(activeTab.id)) {
+          // Activate a visible tab first
+          const switchTo = remainingVisible[0];
+          if (switchTo) {
+            await chrome.tabs.update(switchTo.id, { active: true });
+          }
+        }
 
         const groupId = await chrome.tabs.group({ tabIds: winTabIds });
         await chrome.tabGroups.update(groupId, { collapsed: true, title: 'Hidden', color: 'grey' });
@@ -386,4 +422,61 @@ export async function chromeDetectProfile() {
 
 export async function chromeCreateProfile() {
   return await sendNativeMessage({ action: 'create-profile' });
+}
+
+// Bookmark API wrappers
+export async function chromeGetBookmarkTree() {
+  if (!IS_EXTENSION) return [];
+  try { return await chrome.bookmarks.getTree(); } catch { return []; }
+}
+
+export async function chromeGetBookmarkFolders() {
+  if (!IS_EXTENSION) return [];
+  try {
+    const tree = await chrome.bookmarks.getTree();
+    const folders = [];
+    function walk(nodes, depth = 0) {
+      for (const node of nodes) {
+        if (node.children) {
+          folders.push({ id: node.id, title: node.title || 'Bookmarks', depth });
+          walk(node.children, depth + 1);
+        }
+      }
+    }
+    walk(tree);
+    return folders;
+  } catch { return []; }
+}
+
+export async function chromeSearchBookmarks(url) {
+  if (!IS_EXTENSION) return [];
+  try { return await chrome.bookmarks.search({ url }); } catch { return []; }
+}
+
+export async function chromeCreateBookmark(url, title, parentId) {
+  if (!IS_EXTENSION) return null;
+  try {
+    return await chrome.bookmarks.create({ url, title, parentId: parentId || undefined });
+  } catch { return null; }
+}
+
+export async function chromeRemoveBookmark(bookmarkId) {
+  if (!IS_EXTENSION) return;
+  try { await chrome.bookmarks.remove(bookmarkId); } catch {}
+}
+
+export async function chromeGetAllBookmarks() {
+  if (!IS_EXTENSION) return [];
+  try {
+    const tree = await chrome.bookmarks.getTree();
+    const bookmarks = [];
+    function walk(nodes) {
+      for (const node of nodes) {
+        if (node.url) bookmarks.push(node);
+        if (node.children) walk(node.children);
+      }
+    }
+    walk(tree);
+    return bookmarks;
+  } catch { return []; }
 }

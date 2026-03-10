@@ -383,7 +383,7 @@ function HeatmapContent({ historyData, allTabs, onSwitch, timeFilter, setTimeFil
                   ) : (
                     <span className={`text-[9px] font-mono w-3 text-right ${heat.text}`}>{idx + 1}</span>
                   )}
-                  <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0 bg-secondary/50" onError={sharedFaviconError} />
+                  <img src={getFaviconUrl(tab.url, tab.favIconUrl)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0 bg-secondary/50" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={sharedFaviconError} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-body font-medium truncate">{siteName}</div>
                     <div className="flex items-center gap-1.5 mt-0.5">

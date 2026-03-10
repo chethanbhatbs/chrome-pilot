@@ -111,7 +111,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
             >
               {s.type === 'tab' ? (
                 <>
-                  <img src={getFaviconUrl(s.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
+                  <img src={getFaviconUrl(s.url, s.favIconUrl)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" data-tab-url={s.url} data-chrome-favicon={s.favIconUrl || ''} onError={handleFaviconError} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-body truncate text-foreground/80">{s.title}</div>
                     <div className="text-[9px] text-muted-foreground/50 truncate">{s.domain}</div>

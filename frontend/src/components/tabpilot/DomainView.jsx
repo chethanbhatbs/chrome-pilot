@@ -54,7 +54,7 @@ function DomainGroup({
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const faviconUrl = getFaviconUrl(tabs[0]?.url);
+  const faviconUrl = getFaviconUrl(tabs[0]?.url, tabs[0]?.favIconUrl);
   const activeTabs = tabs.filter(t => t.active).length;
   // Short domain for display
   const shortDomain = domain.replace(/^www\./, '');
@@ -97,7 +97,7 @@ function DomainGroup({
               />
             )}
             {showFavicons && faviconUrl ? (
-              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px] shrink-0" onError={handleFaviconError} />
+              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px] shrink-0" data-tab-url={tabs[0]?.url} data-chrome-favicon={tabs[0]?.favIconUrl || ''} onError={handleFaviconError} />
             ) : (
               <Globe size={12} className="text-muted-foreground/50 shrink-0" strokeWidth={1.5} />
             )}

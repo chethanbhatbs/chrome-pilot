@@ -106,7 +106,7 @@ export default function TabPilotPreview() {
               hover:border-primary/30 transition-all shadow-lg shadow-black/20"
           >
             <PanelLeftOpen size={14} strokeWidth={1.5} />
-            <span className="text-[11px] font-body font-medium">TabPilot</span>
+            <span className="text-[11px] font-body font-medium">ChromePilot</span>
           </button>
         )}
         <LandingPage />
@@ -126,7 +126,7 @@ function LandingPage() {
       <BottomCTA />
       <footer className="text-center py-6 border-t border-border/20">
         <p className="text-[11px] text-muted-foreground/30 font-mono">
-          TabPilot v1.0 &middot; Manifest V3 &middot; React 18 &middot; Open Source
+          ChromePilot v1.0 &middot; Manifest V3 &middot; React 18 &middot; Open Source
         </p>
       </footer>
     </div>
@@ -142,13 +142,13 @@ function HeroSection() {
         <div className="flex items-center gap-3 mb-6">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/20
             flex items-center justify-center shadow-lg shadow-primary/10">
-            <span className="text-2xl font-heading font-black text-primary">T</span>
+            <span className="text-2xl font-heading font-black text-primary">C</span>
           </div>
           <div>
             <h1 className="text-3xl font-heading font-black tracking-tight leading-none">
-              <span className="text-foreground">Tab</span><span className="text-primary">Pilot</span>
+              <span className="text-foreground">Chrome</span><span className="text-primary">Pilot</span>
             </h1>
-            <p className="text-xs text-muted-foreground/50 font-mono mt-0.5">Tab & Window Manager for Chrome</p>
+            <p className="text-xs text-muted-foreground/50 font-mono mt-0.5">Chrome Tab & Window Manager</p>
           </div>
         </div>
         <h2 className="text-lg font-heading font-bold text-foreground/90 leading-snug mb-3 max-w-md">
@@ -276,7 +276,7 @@ function FeatureGrid() {
 function HowItWorks() {
   const steps = [
     { num: '1', title: 'Install the extension', desc: 'One click from the Chrome Web Store. No sign-up, no configuration needed.' },
-    { num: '2', title: 'Open the sidebar', desc: 'Click the TabPilot icon or use a keyboard shortcut to open the sidebar panel.' },
+    { num: '2', title: 'Open the sidebar', desc: 'Click the ChromePilot icon or use a keyboard shortcut to open the sidebar panel.' },
     { num: '3', title: 'Take control', desc: 'Search, organize, suspend, and manage all your tabs from one place.' },
   ];
   return (

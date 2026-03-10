@@ -44,8 +44,8 @@ const shortcuts = [
 
 export function HelpPanel({ onBack }) {
   const handleFeedback = () => {
-    const subject = encodeURIComponent('TabPilot Feedback');
-    const body = encodeURIComponent('Hi,\n\nI have the following feedback about TabPilot:\n\n');
+    const subject = encodeURIComponent('ChromePilot Feedback');
+    const body = encodeURIComponent('Hi,\n\nI have the following feedback about ChromePilot:\n\n');
     window.open(`mailto:bschethanbhat@gmail.com?subject=${subject}&body=${body}`, '_blank');
   };
 

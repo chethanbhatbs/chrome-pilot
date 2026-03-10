@@ -92,9 +92,11 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
                   ${idx === selectedIdx ? 'bg-primary/10' : 'hover:bg-[hsl(var(--hover-subtle))]'}`}
               >
                 <img
-                  src={getFaviconUrl(tab.url)}
+                  src={getFaviconUrl(tab.url, tab.favIconUrl)}
                   alt=""
                   className="w-4 h-4 rounded-[3px] shrink-0"
+                  data-tab-url={tab.url}
+                  data-chrome-favicon={tab.favIconUrl || ''}
                   onError={handleFaviconError}
                 />
                 <div className="flex-1 min-w-0">

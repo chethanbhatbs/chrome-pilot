@@ -39,40 +39,48 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
           <div className="px-2.5 pb-2 space-y-1.5">
             {duplicates.map(({ url, tabs }) => {
               const domain = getDomain(url);
-              const favicon = getFaviconUrl(url);
+              const favicon = getFaviconUrl(url, tabs[0]?.favIconUrl);
               return (
                 <div key={url} className="rounded-md bg-background/50 p-2">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" onError={handleFaviconError} />
+                    <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" data-tab-url={url} data-chrome-favicon={tabs[0]?.favIconUrl || ''} onError={handleFaviconError} />
                     <span className="text-[10px] text-muted-foreground truncate font-body">{domain}</span>
                     <span className="text-[8px] font-mono text-tp-duplicate ml-auto">{tabs.length}x open</span>
                   </div>
-                  {tabs.map((tab, i) => (
-                    <div key={tab.id} className="flex items-center justify-between py-0.5 pl-6">
-                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        {i === 0 && (
-                          <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-audible/50 text-tp-audible shrink-0">
-                            keep
-                          </Badge>
-                        )}
-                        {i > 0 && (
-                          <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-duplicate/50 text-tp-duplicate shrink-0">
-                            extra
-                          </Badge>
-                        )}
-                        <span className="text-[10px] text-foreground/60 truncate">Window {tab.windowId}</span>
-                      </div>
-                      {i > 0 && (
-                        <button
-                          data-testid={`close-dupe-${tab.id}`}
-                          onClick={() => onCloseTab(tab.id)}
-                          className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors shrink-0 ml-1"
-                        >
-                          <X size={10} strokeWidth={1.5} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {(() => {
+                    // Keep the active tab; fall back to most recently accessed
+                    const keepId = (tabs.find(t => t.active) || [...tabs].sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0])?.id;
+                    return tabs.map((tab) => {
+                      const isKeep = tab.id === keepId;
+                      return (
+                        <div key={tab.id} className="flex items-center justify-between py-0.5 pl-6">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            {isKeep ? (
+                              <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-audible/50 text-tp-audible shrink-0">
+                                keep
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-duplicate/50 text-tp-duplicate shrink-0">
+                                extra
+                              </Badge>
+                            )}
+                            <span className="text-[10px] text-foreground/60 truncate">
+                              {tab.active ? 'Active' : `Window ${tab.windowId}`}
+                            </span>
+                          </div>
+                          {!isKeep && (
+                            <button
+                              data-testid={`close-dupe-${tab.id}`}
+                              onClick={() => onCloseTab(tab.id)}
+                              className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors shrink-0 ml-1"
+                            >
+                              <X size={10} strokeWidth={1.5} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               );
             })}

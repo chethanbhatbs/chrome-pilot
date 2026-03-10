@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Focus, X, Timer, Check, ChevronRight, Monitor } from 'lucide-react';
 import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
 import { chromeStorageGet, chromeStorageSet, isExtensionContext } from '@/utils/chromeAdapter';
+import { toast } from 'sonner';
 
 const FOCUS_STORAGE_KEY = 'tabpilot_focus';
 
@@ -36,6 +37,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
     return new Set();
   });
   const [isActive, setIsActive] = useState(() => !!persistedFocus);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [elapsed, setElapsed] = useState(() => {
     if (persistedFocus?.startTime) return Math.floor((Date.now() - persistedFocus.startTime) / 1000);
     return 0;
@@ -48,9 +50,36 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
     return () => clearInterval(interval);
   }, [isActive]);
 
+  // Sidebar toast when focus mode blocks an action
+  const lastToastRef = useRef(0);
+  useEffect(() => {
+    if (!isActive || !isExtensionContext()) return;
+    const handler = (msg) => {
+      if (msg?.action !== 'focus-blocked') return;
+      const now = Date.now();
+      if (now - lastToastRef.current < 2000) return;
+      lastToastRef.current = now;
+      const messages = {
+        'new-tab': 'New tabs are blocked in Focus Mode',
+        'new-window': 'New windows are blocked in Focus Mode',
+        'switch-tab': 'Only focus tabs are accessible',
+      };
+      toast.info(messages[msg.reason] || 'Blocked — Focus Mode active', {
+        description: 'Exit Focus Mode to access other tabs',
+        duration: 3000,
+      });
+    };
+    chrome.runtime.onMessage.addListener(handler);
+    return () => chrome.runtime.onMessage.removeListener(handler);
+  }, [isActive]);
+
   const formatTime = (secs) => {
-    const m = Math.floor(secs / 60);
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
+    if (h > 0) {
+      return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
@@ -92,6 +121,12 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
     const startTime = Date.now();
     setIsActive(true);
     setElapsed(0);
+    // Switch to a focus tab FIRST so the active tab isn't in the hidden group
+    // (Chrome can't collapse a group containing the active tab)
+    const firstFocusTab = allTabs.find(t => focusTabIds.has(t.id));
+    if (firstFocusTab) onSwitch(firstFocusTab.id);
+    // Small delay to let Chrome activate the tab before grouping
+    await new Promise(r => setTimeout(r, 150));
     // Hide non-focus tabs by grouping & collapsing them
     const toHide = allTabs.filter(t => !focusTabIds.has(t.id)).map(t => t.id);
     if (toHide.length > 0 && onHideTabs) {
@@ -100,9 +135,6 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
     }
     // Persist so focus survives panel reloads / window switches
     persistFocusState(focusTabIds, toHide, startTime);
-    // Switch to the first focused tab immediately
-    const firstFocusTab = allTabs.find(t => focusTabIds.has(t.id));
-    if (firstFocusTab) onSwitch(firstFocusTab.id);
   };
 
   const handleExitFocus = async () => {
@@ -155,9 +187,11 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
                 data-testid={`focus-tab-${tab.id}`}
               >
                 <img
-                  src={getFaviconUrl(tab.url)}
+                  src={getFaviconUrl(tab.url, tab.favIconUrl)}
                   alt=""
                   className="w-4 h-4 rounded-[3px] shrink-0"
+                  data-tab-url={tab.url}
+                  data-chrome-favicon={tab.favIconUrl || ''}
                   onError={handleFaviconError}
                 />
                 <div className="flex-1 min-w-0">
@@ -260,9 +294,11 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
                   >
                     <FocusCheckbox checked={focusTabIds.has(tab.id)} />
                     <img
-                      src={getFaviconUrl(tab.url)}
+                      src={getFaviconUrl(tab.url, tab.favIconUrl)}
                       alt=""
                       className="w-3.5 h-3.5 rounded-[2px] shrink-0"
+                      data-tab-url={tab.url}
+                      data-chrome-favicon={tab.favIconUrl || ''}
                       onError={handleFaviconError}
                     />
                     <span className="text-[11px] font-body truncate flex-1 min-w-0">
@@ -276,28 +312,81 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
         })}
       </div>
 
+      {/* Confirmation prompt */}
+      {showConfirm && (
+        <div className="mx-3 mb-2 p-3 rounded-lg bg-destructive/[0.06] border border-destructive/20">
+          <p className="text-[11px] font-heading font-semibold text-destructive mb-1.5">
+            Are you sure?
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-relaxed mb-3">
+            While Focus Mode is active, you <span className="font-semibold text-foreground">will not</span> be able to:
+          </p>
+          <ul className="text-[10px] text-muted-foreground leading-relaxed mb-3 space-y-1 pl-3">
+            <li className="flex items-start gap-1.5">
+              <X size={10} className="text-destructive shrink-0 mt-[2px]" strokeWidth={2} />
+              Switch to any non-focus tab
+            </li>
+            <li className="flex items-start gap-1.5">
+              <X size={10} className="text-destructive shrink-0 mt-[2px]" strokeWidth={2} />
+              Open new tabs or windows
+            </li>
+            <li className="flex items-start gap-1.5">
+              <X size={10} className="text-destructive shrink-0 mt-[2px]" strokeWidth={2} />
+              Switch to other Chrome windows
+            </li>
+            <li className="flex items-start gap-1.5">
+              <X size={10} className="text-destructive shrink-0 mt-[2px]" strokeWidth={2} />
+              Access hidden tabs until you exit
+            </li>
+          </ul>
+          <p className="text-[9px] text-muted-foreground/70 mb-3">
+            Switching to other apps (VS Code, Finder, etc.) is still allowed.
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowConfirm(false); handleStartFocus(); }}
+              className="cursor-pointer flex-1 h-7 flex items-center justify-center gap-1 text-[10px] font-heading font-semibold
+                rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150"
+            >
+              <Focus size={10} strokeWidth={1.5} />
+              Yes, start focus
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="cursor-pointer flex-1 h-7 flex items-center justify-center text-[10px] font-heading font-semibold
+                rounded-md border border-border text-muted-foreground hover:text-foreground
+                hover:bg-[hsl(var(--hover-subtle))] transition-all duration-150"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Start / Cancel buttons */}
-      <div className="p-3 space-y-1.5">
-        <button
-          data-testid="start-focus-btn"
-          onClick={handleStartFocus}
-          disabled={focusTabIds.size === 0}
-          className="cursor-pointer w-full h-8 flex items-center justify-center gap-1.5 text-[11px] font-heading font-semibold
-            rounded-lg bg-primary text-primary-foreground hover:bg-primary/90
-            disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
-        >
-          <Focus size={12} strokeWidth={1.5} />
-          Start Focus ({focusTabIds.size})
-        </button>
-        <button
-          data-testid="cancel-focus-btn"
-          onClick={onExit}
-          className="cursor-pointer w-full h-7 flex items-center justify-center text-[10px] font-heading
-            text-muted-foreground hover:text-foreground transition-colors duration-150"
-        >
-          Cancel
-        </button>
-      </div>
+      {!showConfirm && (
+        <div className="p-3 space-y-1.5">
+          <button
+            data-testid="start-focus-btn"
+            onClick={() => setShowConfirm(true)}
+            disabled={focusTabIds.size === 0}
+            className="cursor-pointer w-full h-8 flex items-center justify-center gap-1.5 text-[11px] font-heading font-semibold
+              rounded-lg bg-primary text-primary-foreground hover:bg-primary/90
+              disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+          >
+            <Focus size={12} strokeWidth={1.5} />
+            Start Focus ({focusTabIds.size})
+          </button>
+          <button
+            data-testid="cancel-focus-btn"
+            onClick={onExit}
+            className="cursor-pointer w-full h-7 flex items-center justify-center text-[10px] font-heading
+              text-muted-foreground hover:text-foreground transition-colors duration-150"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }

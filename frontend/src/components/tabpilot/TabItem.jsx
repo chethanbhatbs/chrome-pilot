@@ -1,4 +1,4 @@
-import { getDomain, getFaviconUrl, handleFaviconError } from '@/utils/grouping';
+import { getDomain, getFaviconUrl, handleFaviconError, getLetterAvatar } from '@/utils/grouping';
 import { Pin, Volume2, VolumeX, X, Loader2, Copy, StickyNote, GripVertical, Pause, Check } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem,
@@ -21,7 +21,8 @@ export function TabItem({
   selectMode, isSelected, onToggleSelect
 }) {
   const domain = getDomain(tab.url);
-  const faviconUrl = showFavicons ? getFaviconUrl(tab.url) : null;
+  const faviconUrl = showFavicons ? getFaviconUrl(tab.url, tab.favIconUrl) : null;
+  const avatar = !faviconUrl ? getLetterAvatar(tab.url) : null;
   const isLoading = tab.status === 'loading';
   const isPinned = tab.pinned;
   const isAudible = tab.audible && !tab.mutedInfo?.muted;
@@ -92,9 +93,11 @@ export function TabItem({
             ) : isSuspended ? (
               <Pause size={12} className="text-muted-foreground/40" strokeWidth={1.5} />
             ) : faviconUrl ? (
-              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" onError={handleFaviconError} />
+              <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
             ) : (
-              <div className="w-3.5 h-3.5 rounded-[3px] bg-muted-foreground/20" />
+              <div className="w-4 h-4 rounded-[3px] flex items-center justify-center text-[9px] font-bold"
+                style={{ background: avatar?.color.bg, color: avatar?.color.fg }}
+              >{avatar?.letter}</div>
             )}
           </div>
 

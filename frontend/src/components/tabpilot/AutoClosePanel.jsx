@@ -73,7 +73,7 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
     const now = Date.now();
     return allTabs
       .filter(tab => {
-        // Skip active, pinned, and recently visited (via TabPilot click) tabs
+        // Skip active, pinned, and recently visited (via ChromePilot click) tabs
         if (tab.active || tab.pinned) return false;
         if (visitCounts[tab.id]) return false;
         const domain = getDomain(tab.url);
@@ -189,6 +189,8 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
                     src={getFaviconUrl(`https://${domain}`)}
                     alt=""
                     className="w-3.5 h-3.5 rounded-[2px]"
+                    data-tab-url={`https://${domain}`}
+                    data-chrome-favicon=""
                     onError={handleFaviconError}
                   />
                 </div>
@@ -220,9 +222,11 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
               <div key={tab.id} className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-[hsl(var(--hover-subtle))]">
                 <div className="w-4 h-4 rounded bg-secondary/60 flex items-center justify-center shrink-0">
                   <img
-                    src={getFaviconUrl(tab.url)}
+                    src={getFaviconUrl(tab.url, tab.favIconUrl)}
                     alt=""
                     className="w-3.5 h-3.5 rounded-[2px]"
+                    data-tab-url={tab.url}
+                    data-chrome-favicon={tab.favIconUrl || ''}
                     onError={handleFaviconError}
                   />
                 </div>

@@ -98,7 +98,7 @@ export function ProfilePanel() {
     const updated = [...hiddenProfiles, directory];
     setHiddenProfiles(updated);
     chromeStorageSet({ tabpilot_hidden_profiles: updated });
-    toast.success(`"${p?.name || directory}" removed from TabPilot`);
+    toast.success(`"${p?.name || directory}" removed from ChromePilot`);
   }, [profiles, hiddenProfiles]);
 
   const handleSelectAsMe = useCallback((directory) => {
@@ -165,7 +165,7 @@ export function ProfilePanel() {
               <div className="px-2.5 py-1.5 rounded-md bg-secondary/80 border border-border/40">
                 <span className="text-[9px] text-muted-foreground/60 block">Go to:</span>
                 <span className="text-[10px] font-mono text-foreground/80">chrome://extensions</span>
-                <span className="text-[9px] text-muted-foreground/60 block mt-0.5">Enable Developer mode → find TabPilot → copy the ID</span>
+                <span className="text-[9px] text-muted-foreground/60 block mt-0.5">Enable Developer mode → find ChromePilot → copy the ID</span>
               </div>
             )}
           </div>
@@ -305,7 +305,7 @@ export function ProfilePanel() {
                   onClick={() => handleRemoveFromExtension(profile.directory)}
                   className="cursor-pointer p-1.5 rounded-md text-muted-foreground/40 hover:text-destructive
                     hover:bg-destructive/10 transition-colors shrink-0"
-                  title="Remove from TabPilot"
+                  title="Remove from ChromePilot"
                   data-testid={`remove-profile-${profile.directory}`}
                 >
                   <Trash2 size={11} strokeWidth={1.5} />

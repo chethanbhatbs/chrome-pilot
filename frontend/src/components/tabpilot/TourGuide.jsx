@@ -8,7 +8,7 @@ const STEPS = [
     icon: Sparkles,
     iconColor: 'text-amber-500',
     iconBg: 'bg-amber-50 dark:bg-amber-500/10',
-    title: 'Welcome to TabPilot',
+    title: 'Welcome to ChromePilot',
     description: 'Your browser just got a major upgrade. Take a quick 30-second tour to discover what you can do.',
     cta: 'Show me around',
   },
@@ -50,7 +50,7 @@ const STEPS = [
     iconBg: 'bg-primary/10',
     title: "You're all set!",
     description: 'Use Cmd+K for command palette, double-click window names to rename, and close tabs fearlessly — undo is always available.',
-    cta: 'Start using TabPilot',
+    cta: 'Start using ChromePilot',
   },
 ];
 

@@ -1,5 +1,5 @@
 /**
- * TabPilot Content Script
+ * ChromePilot Content Script
  * Left-sidebar injection with resizable handle + persistent width.
  */
 
@@ -95,7 +95,7 @@ function buildSidebar() {
   const iframe = document.createElement('iframe');
   iframe.id    = IFRAME_ID;
   iframe.src   = chrome.runtime.getURL('sidepanel/index.html');
-  iframe.title = 'TabPilot';
+  iframe.title = 'ChromePilot';
   iframe.allow = 'clipboard-read; clipboard-write';
 
   const handle = document.createElement('div');

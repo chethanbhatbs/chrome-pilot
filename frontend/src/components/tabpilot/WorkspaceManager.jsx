@@ -259,8 +259,8 @@ export function WorkspaceManager({ allTabs, onSwitch, activeWorkspaceId, onActiv
                       ${selected ? 'bg-primary border-primary' : 'border-border'}`}>
                       {selected && <Check size={8} className="text-primary-foreground" strokeWidth={3} />}
                     </div>
-                    <img src={getFaviconUrl(tab.url)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0"
-                      onError={handleFaviconError} />
+                    <img src={getFaviconUrl(tab.url, tab.favIconUrl)} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0"
+                      data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
                     <span className="text-[10px] font-body truncate">{tab.title}</span>
                   </button>
                 );
@@ -323,8 +323,8 @@ export function WorkspaceManager({ allTabs, onSwitch, activeWorkspaceId, onActiv
               </div>
               <div className="flex items-center gap-1 mb-2">
                 {matchedTabs.slice(0, 5).map(tab => (
-                  <img key={tab.id} src={getFaviconUrl(tab.url)} alt=""
-                    className="w-3.5 h-3.5 rounded-[2px]" onError={handleFaviconError} />
+                  <img key={tab.id} src={getFaviconUrl(tab.url, tab.favIconUrl)} alt=""
+                    className="w-3.5 h-3.5 rounded-[2px]" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
                 ))}
                 {matchedTabs.length > 5 && (
                   <span className="text-[8px] text-muted-foreground font-mono">+{matchedTabs.length - 5}</span>
