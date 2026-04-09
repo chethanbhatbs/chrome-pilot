@@ -146,7 +146,7 @@ A guided tour highlights key features when you first install ChromePilot.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/chethan-sudo/chrome-pilot.git
+   git clone https://github.com/chethanbhatbs/chrome-pilot.git
    cd chrome-pilot
    ```
 
