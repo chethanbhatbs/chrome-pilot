@@ -142,34 +142,42 @@ A guided tour highlights key features when you first install ChromePilot.
 
 ## Installation
 
-### From Source (Developer)
+The extension comes **pre-built** — no npm install or build step needed.
 
-1. Clone the repository:
+### Quick Install (3 steps)
+
+1. **Clone the repo:**
    ```bash
    git clone https://github.com/chethanbhatbs/chrome-pilot.git
-   cd chrome-pilot
    ```
 
-2. Build the frontend:
-   ```bash
-   cd frontend
-   npm install
-   npx craco build
-   ```
-
-3. Deploy to extension:
-   ```bash
-   # From repo root
-   rm -rf extension/tabpilot/sidepanel/static
-   cp -r frontend/build/static extension/tabpilot/sidepanel/static
-   # Update sidepanel/index.html with new bundle hashes if needed
-   ```
-
-4. Load in Chrome:
-   - Navigate to `chrome://extensions/`
-   - Enable **Developer mode** (top right)
+2. **Load in Chrome:**
+   - Open `chrome://extensions/` in Chrome
+   - Enable **Developer mode** (toggle in top right)
    - Click **Load unpacked**
-   - Select the `extension/tabpilot` folder
+   - Navigate to the cloned folder and select `extension/tabpilot`
+
+3. **Open ChromePilot:**
+   - Click the ChromePilot icon in the toolbar, OR
+   - Press `Ctrl+Shift+E` (or `Cmd+Shift+E` on Mac)
+   - The sidebar panel opens with all your tabs
+
+That's it — no build, no npm, no dependencies.
+
+### Development (if you want to modify the frontend)
+
+Only needed if you want to change the React source code:
+
+```bash
+cd frontend
+npm install --legacy-peer-deps
+npx craco build
+
+# Copy build output to extension
+bash build-extension.sh
+```
+
+Then reload the extension in `chrome://extensions/`.
 
 5. Click the ChromePilot icon in the toolbar (or press `Cmd+Shift+E`) to open the sidebar.
 
