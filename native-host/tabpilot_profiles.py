@@ -58,13 +58,23 @@ def get_chrome_profiles():
     info_cache = local_state.get('profile', {}).get('info_cache', {})
     profiles = []
     for dir_name, info in info_cache.items():
+        # Match Chrome's own UI behavior: when the profile still has its
+        # default name ("Your Chrome", "Person 1", ...) AND the profile is
+        # signed in to a Google account, prefer the gaia_name so users see
+        # "Chethan Bhat" rather than "Your Chrome". If the user has set a
+        # custom name (is_using_default_name == false), always honor it.
+        raw_name = info.get('name', dir_name)
+        gaia_name = info.get('gaia_name', '')
+        is_default = info.get('is_using_default_name', True)
+        display_name = gaia_name if (is_default and gaia_name) else raw_name
         profile = {
             'directory': dir_name,
-            'name': info.get('name', dir_name),
+            'name': display_name,
+            'rawName': raw_name,
             'shortcutName': info.get('shortcut_name', ''),
-            'gaiaName': info.get('gaia_name', ''),
+            'gaiaName': gaia_name,
             'userName': info.get('user_name', ''),
-            'isUsingDefaultName': info.get('is_using_default_name', True),
+            'isUsingDefaultName': is_default,
             'picture': None,
         }
         pic_path = os.path.join(chrome_dir, dir_name, 'Google Profile Picture.png')

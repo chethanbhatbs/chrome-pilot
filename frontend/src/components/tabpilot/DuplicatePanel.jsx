@@ -64,9 +64,12 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
                                 extra
                               </Badge>
                             )}
-                            <span className="text-[10px] text-foreground/60 truncate">
-                              {tab.active ? 'Active' : `Window ${tab.windowId}`}
-                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[10px] text-foreground/60 truncate">{tab.title}</span>
+                              <span className="text-[8px] text-muted-foreground truncate">
+                                {tab.active ? 'Active' : `Window ${tab.windowId}`}
+                              </span>
+                            </div>
                           </div>
                           {!isKeep && (
                             <button

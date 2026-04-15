@@ -1,5 +1,5 @@
 import { getDomain, getFaviconUrl, handleFaviconError, getLetterAvatar } from '@/utils/grouping';
-import { Pin, Volume2, VolumeX, X, Loader2, Copy, StickyNote, GripVertical, Pause, Check } from 'lucide-react';
+import { Pin, Volume2, VolumeX, X, Loader2, Copy, GripVertical, Pause, Check, Star } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem,
   ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger,
@@ -14,11 +14,13 @@ export function TabItem({
   tab, isActive, showFavicons, showUrls, compact, suspended, isDuplicate,
   highlightText, onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
-  onSuspend, onUnsuspend, onAddNote,
-  windows, currentWindowId, tabNote,
+  onSuspend, onUnsuspend,
+  windows, currentWindowId,
   onDragStart, onDragEnd,
   onHoverEnter, onHoverLeave,
-  selectMode, isSelected, onToggleSelect
+  selectMode, isSelected, onToggleSelect,
+  isFavorite, toggleFavorite,
+  hideStar = false,  // suppress the star slot (used inside the Favorites box)
 }) {
   const domain = getDomain(tab.url);
   const faviconUrl = showFavicons ? getFaviconUrl(tab.url, tab.favIconUrl) : null;
@@ -28,7 +30,7 @@ export function TabItem({
   const isAudible = tab.audible && !tab.mutedInfo?.muted;
   const isMuted = tab.mutedInfo?.muted;
   const isSuspended = suspended;
-  const hasNote = !!tabNote;
+  const tabIsFavorite = isFavorite?.(tab.url);
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(tab.url);
@@ -113,82 +115,56 @@ export function TabItem({
             )}
           </div>
 
-          {/* Status badges — always visible when applicable */}
-          <div className="flex items-center gap-0 shrink-0">
-            {isPinned && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="cursor-pointer p-1 rounded-md hover:bg-tp-pinned/20 transition-colors active:scale-90"
-                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onPin(tab.id); }}
-                    data-testid={`pin-badge-${tab.id}`}
-                  >
-                    <Pin size={11} className="text-tp-pinned" strokeWidth={2} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">Click to unpin</TooltipContent>
-              </Tooltip>
-            )}
-            {isDuplicate && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="p-0.5" data-testid={`dupe-badge-${tab.id}`}>
-                    <Copy size={9} className="text-tp-duplicate" strokeWidth={2} />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">Duplicate — open in multiple tabs</TooltipContent>
-              </Tooltip>
-            )}
-            {hasNote && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="p-0.5" data-testid={`note-badge-${tab.id}`}>
-                    <StickyNote size={9} className="text-primary/60" strokeWidth={1.5} />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px] max-w-[180px]">{tabNote}</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-
-          {/* Hover actions: note + close (+ mute for audible/muted tabs) */}
-          <div className="flex items-center gap-0 shrink-0">
-            {/* Note button — only shown on hover when there's no note (badge handles the "has note" case) */}
-            {!hasNote && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    data-testid={`tab-note-btn-${tab.id}`}
-                    onClick={(e) => { e.stopPropagation(); onAddNote?.(tab.id); }}
-                    className="cursor-pointer p-0.5 rounded-[3px] transition-all duration-150 hover:bg-[hsl(var(--hover-medium))]
-                      opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-foreground/60"
-                  >
-                    <StickyNote size={11} strokeWidth={1.5} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px] font-body">Add note</TooltipContent>
-              </Tooltip>
-            )}
+          {/* Right-side action rail — intentionally minimal.
+              Pin: reserved 16px slot (icon only when pinned).
+              Mute: inline only for audible / muted tabs.
+              Close: absolute far-right, hover-only.
+              Favorite star is NOT shown on individual rows — favorited tabs
+              are surfaced in the Favorites box at the top of the sidebar, and
+              the right-click menu handles add / remove. This keeps every row
+              visually quiet. */}
+          <div className="flex items-center gap-0 shrink-0 relative pr-[18px]">
+            {/* Pin slot */}
+            <div className="w-[16px] h-[16px] flex items-center justify-center">
+              {isPinned && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="cursor-pointer w-full h-full rounded-[3px] hover:bg-tp-pinned/20 transition-colors active:scale-90 text-tp-pinned flex items-center justify-center"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onPin(tab.id); }}
+                      data-testid={`pin-badge-${tab.id}`}
+                    >
+                      <Pin size={11} strokeWidth={2} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px]">Click to unpin</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            {/* Mute — inline only when the tab is audible/muted */}
             {(isAudible || isMuted) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    data-testid={`tab-mute-${tab.id}`}
-                    onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
-                    className={`cursor-pointer p-0.5 rounded-[3px] transition-all duration-150 hover:bg-[hsl(var(--hover-medium))]
-                      ${isAudible ? 'text-tp-audible' : 'text-muted-foreground/60'}`}
-                  >
-                    {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-[10px]">{isMuted ? 'Unmute tab' : 'Mute tab'}</TooltipContent>
-              </Tooltip>
+              <div className="w-[16px] h-[16px] flex items-center justify-center">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      data-testid={`tab-mute-${tab.id}`}
+                      onClick={(e) => { e.stopPropagation(); onMute(tab.id); }}
+                      className={`cursor-pointer w-full h-full rounded-[3px] transition-all duration-150 hover:bg-[hsl(var(--hover-medium))] flex items-center justify-center
+                        ${isAudible ? 'text-tp-audible' : 'text-muted-foreground/60'}`}
+                    >
+                      {isMuted ? <VolumeX size={11} strokeWidth={1.5} /> : <Volume2 size={11} strokeWidth={1.5} />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px]">{isMuted ? 'Unmute tab' : 'Mute tab'}</TooltipContent>
+                </Tooltip>
+              </div>
             )}
+            {/* Close — absolute far-right, hover-only */}
             <button
               data-testid={`tab-close-${tab.id}`}
               onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-              className="cursor-pointer p-0.5 rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10
-                opacity-0 group-hover:opacity-100 transition-all duration-150"
+              className="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer w-[16px] h-[16px] rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10
+                opacity-0 group-hover:opacity-100 transition-all duration-150 flex items-center justify-center"
             >
               <X size={11} strokeWidth={1.5} />
             </button>
@@ -200,6 +176,21 @@ export function TabItem({
         {/* Navigation */}
         <ContextMenuItem className="cursor-pointer" onClick={() => onSwitch(tab.id)}>Switch to tab</ContextMenuItem>
         <ContextMenuSeparator />
+
+        {/* Favorite toggle */}
+        <ContextMenuItem
+          className="cursor-pointer"
+          onClick={() => {
+            toggleFavorite?.(tab.url);
+            const title = tab.title?.slice(0, 40) || 'Tab';
+            if (tabIsFavorite) toast.info(`Unfavorited: ${title}`, { duration: 1500 });
+            else toast.success(`Favorited: ${title}`, { duration: 1500 });
+          }}
+          data-testid={`tab-ctx-fav-${tab.id}`}
+        >
+          <Star size={12} className="mr-1.5" strokeWidth={1.5} fill={tabIsFavorite ? 'currentColor' : 'none'} />
+          {tabIsFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        </ContextMenuItem>
 
         {/* Tab state */}
         <ContextMenuItem className="cursor-pointer" onClick={() => onPin(tab.id)}>
@@ -221,10 +212,6 @@ export function TabItem({
         <ContextMenuItem className="cursor-pointer" onClick={() => onDuplicate(tab.id)}>
           <Copy size={12} className="mr-1.5" strokeWidth={1.5} />
           Duplicate tab
-        </ContextMenuItem>
-        <ContextMenuItem className="cursor-pointer" onClick={() => onAddNote?.(tab.id)}>
-          <StickyNote size={12} className="mr-1.5" strokeWidth={1.5} />
-          {hasNote ? 'Edit note' : 'Add note'}
         </ContextMenuItem>
         <ContextMenuSub>
           <ContextMenuSubTrigger className="cursor-pointer">Move to</ContextMenuSubTrigger>
