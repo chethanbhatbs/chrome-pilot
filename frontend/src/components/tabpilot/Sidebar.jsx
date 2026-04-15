@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ArrowLeft, HelpCircle, StickyNote, Briefcase, Calendar, Timer, CheckSquare, X as XIcon, Check, Minus, Save, Trash2, Users } from 'lucide-react';
+import { Settings, ArrowLeft, HelpCircle, Calendar, Timer, X as XIcon, Check, Minus, Trash2, Star } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
@@ -7,26 +7,24 @@ import { QuickActions } from './QuickActions';
 import { WindowGroup } from './WindowGroup';
 import { DomainView } from './DomainView';
 import { DuplicatePanel, getDuplicateTabIds } from './DuplicatePanel';
-import { SessionManager } from './SessionManager';
+import { TabItem } from './TabItem';
 import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
 import { FocusMode, getPersistedFocus } from './FocusMode';
 import { HelpPanel } from './HelpPanel';
 import { CommandPalette } from './CommandPalette';
-import { TabNotesPanel } from './TabNotesPanel';
-import { WorkspaceManager } from './WorkspaceManager';
 import { TabTimeline } from './TabTimeline';
 import { AutoClosePanel } from './AutoClosePanel';
 import { ProfilePanel } from './ProfilePanel';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { StatsBar } from './StatsBar';
 import { TourGuide, shouldShowTour } from './TourGuide';
-import { isExtensionContext, chromeStorageGet, chromeStorageSet } from '@/utils/chromeAdapter';
+import { isExtensionContext } from '@/utils/chromeAdapter';
 import { useMockTabs } from '@/hooks/useMockTabs';
 import { useChromeTabs } from '@/hooks/useChromeTabs';
 import { useSearch } from '@/hooks/useSearch';
-import { useSessions } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
+import { useFavorites } from '@/hooks/useFavorites';
 import { toast } from 'sonner';
 
 // Adaptive hook: both always called (React rules of hooks), Chrome one used in extension context
@@ -39,8 +37,8 @@ function useTabsAdapter() {
 export function Sidebar({ onCollapse }) {
   const tabs = useTabsAdapter();
   const search = useSearch(tabs.allTabs);
-  const { sessions, saveSession, deleteSession } = useSessions();
   const { settings, updateSetting } = useSettings();
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
   const searchInputRef = useRef(null);
 
   const [activePanel, setActivePanel] = useState(null);
@@ -52,8 +50,6 @@ export function Sidebar({ onCollapse }) {
   const [confirmPending, setConfirmPending] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTabIds, setSelectedTabIds] = useState(new Set());
-  const [activeWorkspace, setActiveWorkspace] = useState(null); // { id, name, tabIds }
-  const [noteEditing, setNoteEditing] = useState(null); // { tabId, value }
   const [persistedFocus, setPersistedFocus] = useState(null); // restored from chrome.storage
 
   // On mount: check if focus mode was active (survives panel reload / window switch)
@@ -86,71 +82,13 @@ export function Sidebar({ onCollapse }) {
     return () => chrome.storage.onChanged.removeListener(handler);
   }, [activePanel]);
 
-  // On mount: restore active workspace from chrome.storage
-  useEffect(() => {
-    if (!isExtensionContext()) return;
-    chromeStorageGet(['tabpilot_active_workspace']).then(data => {
-      const saved = data?.tabpilot_active_workspace;
-      if (saved?.id) {
-        setActiveWorkspace({
-          ...saved,
-          tabIds: new Set(saved.tabIds || []),
-        });
-      }
-    });
-  }, []);
-
-  // Cross-window sync: listen for workspace state changes from other windows
-  useEffect(() => {
-    if (!isExtensionContext() || !chrome?.storage?.onChanged) return;
-    const handler = (changes) => {
-      if (!changes.tabpilot_active_workspace) return;
-      const newVal = changes.tabpilot_active_workspace.newValue;
-      if (!newVal || !newVal.id) {
-        setActiveWorkspace(null);
-      } else {
-        setActiveWorkspace({
-          ...newVal,
-          tabIds: new Set(newVal.tabIds || []),
-        });
-      }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
-  }, []);
 
   const withConfirm = useCallback((message, action) => {
     if (!settings.confirmActions) { action(); return; }
     setConfirmPending({ message, action });
   }, [settings.confirmActions]);
 
-  const handleActivateWorkspace = useCallback(async (id, name, tabIds) => {
-    const workspaceTabSet = new Set(tabIds);
-    // Hide non-workspace tabs in Chrome (group + collapse)
-    const nonWorkspaceTabs = tabs.allTabs
-      .filter(t => !workspaceTabSet.has(t.id) && !t.pinned) // can't group pinned tabs
-      .map(t => t.id);
-    const hiddenGroupId = await tabs.hideTabs(nonWorkspaceTabs);
-    const wsState = { id, name, tabIds: workspaceTabSet, hiddenTabIds: nonWorkspaceTabs, hiddenGroupId };
-    setActiveWorkspace(wsState);
-    setActivePanel(null);
-    // Persist to chrome.storage for cross-window sync
-    if (isExtensionContext()) {
-      chromeStorageSet({ tabpilot_active_workspace: {
-        id, name, tabIds: [...workspaceTabSet], hiddenTabIds: nonWorkspaceTabs, hiddenGroupId,
-      }});
-    }
-  }, [tabs]);
-
-  const handleDeactivateWorkspace = useCallback(async () => {
-    await tabs.unhideTabs();
-    setActiveWorkspace(null);
-    if (isExtensionContext()) {
-      chromeStorageSet({ tabpilot_active_workspace: null });
-    }
-  }, [tabs]);
-
-  // Hidden group IDs — filter these from display (focus mode / workspace isolation)
+  // Hidden group IDs — filter these from display (focus mode)
   const hiddenGroupIds = useMemo(() => {
     const ids = new Set();
     tabs.tabGroups.forEach(g => { if (g.title === 'Hidden') ids.add(g.id); });
@@ -161,22 +99,16 @@ export function Sidebar({ onCollapse }) {
     return !t.groupId || t.groupId === -1 || !hiddenGroupIds.has(t.groupId);
   }, [hiddenGroupIds]);
 
-  // Display-layer filtering: remove hidden group tabs, then apply workspace filter
+  // Display-layer filtering: remove hidden group tabs
   const filteredAllTabs = useMemo(() => {
-    const visible = tabs.allTabs.filter(isTabVisible);
-    if (!activeWorkspace) return visible;
-    return visible.filter(t => activeWorkspace.tabIds.has(t.id));
-  }, [tabs.allTabs, activeWorkspace, isTabVisible]);
+    return tabs.allTabs.filter(isTabVisible);
+  }, [tabs.allTabs, isTabVisible]);
 
   const filteredWindows = useMemo(() => {
-    const visible = tabs.windows
+    return tabs.windows
       .map(w => ({ ...w, tabs: (w.tabs || []).filter(isTabVisible) }))
       .filter(w => w.tabs.length > 0);
-    if (!activeWorkspace) return visible;
-    return visible
-      .map(w => ({ ...w, tabs: w.tabs.filter(t => activeWorkspace.tabIds.has(t.id)) }))
-      .filter(w => w.tabs.length > 0);
-  }, [tabs.windows, activeWorkspace, isTabVisible]);
+  }, [tabs.windows, isTabVisible]);
 
   const duplicateTabIds = useMemo(() => getDuplicateTabIds(filteredAllTabs), [filteredAllTabs]);
 
@@ -229,9 +161,14 @@ export function Sidebar({ onCollapse }) {
   }, [tabs]);
 
   const handleSwitchTab = useCallback((tabId) => {
+    const tab = tabs.allTabs.find(t => t.id === tabId);
+    // Already on this tab? Tell the user instead of silently re-switching.
+    if (tab?.active) {
+      toast.info("You're already on this tab", { duration: 1500 });
+      return;
+    }
     tabs.switchToTab(tabId);
     setVisitCounts(prev => ({ ...prev, [tabId]: (prev[tabId] || 0) + 1 }));
-    const tab = tabs.allTabs.find(t => t.id === tabId);
     if (tab) toast.info(`Switched to: ${tab.title}`, { duration: 1500 });
   }, [tabs]);
 
@@ -284,27 +221,13 @@ export function Sidebar({ onCollapse }) {
     toast.success('All tabs unmuted');
   }, [tabs]);
 
-  const handleRestoreSession = useCallback(async (session) => {
-    try {
-      const count = await tabs.restoreSession(session);
-      toast.success(`Restored from session "${session.name}" — ${count} tab${count !== 1 ? 's' : ''} opened`);
-    } catch (e) {
-      console.error('Restore session error:', e);
-      toast.error('Failed to restore session');
-    }
+  // Keep-open handler for auto-close pre-warning — adds tab to visitCounts which
+  // removes it from atRiskTabs evaluation, effectively resetting the auto-close timer
+  const handleKeepOpenTab = useCallback((tabId) => {
+    setVisitCounts(prev => ({ ...prev, [tabId]: (prev[tabId] || 0) + 1 }));
+    const tab = tabs.allTabs.find(t => t.id === tabId);
+    toast.success(`Kept open: ${tab?.title?.slice(0, 35) || 'Tab'}`, { duration: 1500 });
   }, [tabs]);
-
-  const handleAddNote = useCallback((tabId) => {
-    setNoteEditing({ tabId, value: tabs.tabNotes[tabId] || '' });
-  }, [tabs]);
-
-  const handleSaveNote = useCallback(() => {
-    if (!noteEditing) return;
-    tabs.setTabNote(noteEditing.tabId, noteEditing.value);
-    if (noteEditing.value.trim()) toast.success('Note saved');
-    else toast.info('Note removed');
-    setNoteEditing(null);
-  }, [noteEditing, tabs]);
 
   const quickActionHandlers = {
     onNewTab: () => withConfirm('Open a new tab?', tabs.createNewTab),
@@ -353,7 +276,6 @@ export function Sidebar({ onCollapse }) {
     matchingTabIds: search.matchingTabIds,
     windows: filteredWindows,
     suspendedTabs: tabs.suspendedTabs,
-    tabNotes: tabs.tabNotes,
     duplicateTabIds,
     onSwitch: handleSwitchTab,
     onClose: handleCloseTab,
@@ -368,7 +290,8 @@ export function Sidebar({ onCollapse }) {
     onMoveTab: tabs.moveTab,
     onSuspend: tabs.suspendTab,
     onUnsuspend: tabs.unsuspendTab,
-    onAddNote: handleAddNote,
+    isFavorite,
+    toggleFavorite,
     selectMode,
     selectedTabIds,
     onToggleSelect: toggleTabSelection,
@@ -377,33 +300,27 @@ export function Sidebar({ onCollapse }) {
 
   const panelButtons = [
     { id: 'timeline', icon: Calendar, label: 'Timeline', panel: 'timeline' },
-    { id: 'sessions', icon: Save, label: 'Sessions', panel: 'sessions' },
-    { id: 'notes', icon: StickyNote, label: 'Notes', panel: 'notes' },
-    { id: 'workspaces', icon: Briefcase, label: 'Workspaces', panel: 'workspaces' },
     { id: 'autoclose', icon: Timer, label: 'Auto-Close', panel: 'autoclose' },
     { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
     { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
   ];
 
-  const showBackButton = ['settings', 'sessions', 'heatmap', 'help', 'notes', 'workspaces', 'timeline', 'autoclose', 'profiles'].includes(activePanel);
+  const showBackButton = ['settings', 'heatmap', 'help', 'timeline', 'autoclose', 'profiles'].includes(activePanel);
 
   if (activePanel === 'focus') {
-    // When workspace is active, only show workspace tabs in focus mode
-    const focusAllTabs = activeWorkspace ? filteredAllTabs : tabs.allTabs;
-    const focusWindows = activeWorkspace ? filteredWindows : tabs.windows;
     return (
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-col h-full bg-background font-body" data-testid="sidebar">
           <FocusMode
-            allTabs={focusAllTabs}
-            windows={focusWindows}
+            allTabs={tabs.allTabs}
+            windows={tabs.windows}
             onSwitch={handleSwitchTab}
             onExit={() => { setActivePanel(null); setPersistedFocus(null); }}
             onHideTabs={tabs.hideTabs}
             onUnhideTabs={tabs.unhideTabs}
             persistedFocus={persistedFocus}
           />
-          <StatsBar allTabs={focusAllTabs} suspendedCount={tabs.suspendedTabs.size} />
+          <StatsBar allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
         </div>
       </TooltipProvider>
     );
@@ -448,18 +365,12 @@ export function Sidebar({ onCollapse }) {
 
         {/* Header */}
         <div className="px-2 pt-2 pb-1 space-y-1 bg-primary/[0.03] border-b border-primary/10 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
+          {/* Row 1: title + panel buttons */}
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-heading font-bold tracking-tight shrink-0 brand-text">
               ChromePilot
             </span>
-            <div className="flex-1 min-w-0 ml-1">
-              <SearchBar
-                query={search.query} setQuery={search.setQuery}
-                resultCount={search.resultCount} clearSearch={search.clearSearch}
-                inputRef={searchInputRef} suggestions={search.suggestions}
-                onSwitchTab={handleSwitchTab}
-              />
-            </div>
+            <div className="flex-1" />
             {panelButtons.map(({ id, icon: Icon, label, panel }) => (
               <Tooltip key={id}>
                 <TooltipTrigger asChild>
@@ -494,6 +405,13 @@ export function Sidebar({ onCollapse }) {
               </Tooltip>
             )}
           </div>
+          {/* Row 2: full-width search bar */}
+          <SearchBar
+            query={search.query} setQuery={search.setQuery}
+            resultCount={search.resultCount} clearSearch={search.clearSearch}
+            inputRef={searchInputRef} suggestions={search.suggestions}
+            onSwitchTab={handleSwitchTab}
+          />
           {/* Only show toolbar when viewing tabs (no active panel or heatmap/focus which are tab-related) */}
           {(!activePanel || activePanel === 'heatmap' || activePanel === 'focus') && (
             <QuickActions handlers={quickActionHandlers} viewMode={viewMode} activePanel={activePanel}
@@ -561,104 +479,80 @@ export function Sidebar({ onCollapse }) {
           </button>
         )}
 
-        {/* Workspace active banner */}
-        {activeWorkspace && !activePanel && (
-          <div className="px-2.5 py-1.5 bg-primary/[0.08] border-b border-primary/20 flex items-center justify-between" data-testid="workspace-active-banner">
-            <div className="flex items-center gap-1.5">
-              <Briefcase size={11} className="text-primary" strokeWidth={2} />
-              <span className="text-[10px] font-heading font-semibold text-primary">
-                {activeWorkspace.name}
-              </span>
-              <span className="text-[9px] text-muted-foreground/60 font-mono">
-                {filteredAllTabs.length} tab{filteredAllTabs.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <button
-              onClick={handleDeactivateWorkspace}
-              className="cursor-pointer flex items-center gap-1 text-[9px] font-heading text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-[hsl(var(--hover-medium))]"
-              data-testid="deactivate-workspace-btn"
-            >
-              <XIcon size={9} strokeWidth={2} /> Exit
-            </button>
-          </div>
-        )}
-
-        {/* Inline note editor */}
-        {noteEditing && (
-          <div className="px-2.5 py-2 bg-primary/[0.04] border-b border-primary/20 space-y-1.5" data-testid="inline-note-editor">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-heading font-semibold text-foreground/80">
-                Note for: {tabs.allTabs.find(t => t.id === noteEditing.tabId)?.title?.slice(0, 30) || 'Tab'}
-              </span>
-              <button onClick={() => setNoteEditing(null)} className="cursor-pointer p-0.5 text-muted-foreground/50 hover:text-foreground">
-                <XIcon size={10} strokeWidth={2} />
-              </button>
-            </div>
-            <input
-              autoFocus
-              type="text"
-              value={noteEditing.value}
-              onChange={(e) => setNoteEditing(prev => ({ ...prev, value: e.target.value }))}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNote(); if (e.key === 'Escape') setNoteEditing(null); }}
-              placeholder="Type a note..."
-              className="w-full h-7 px-2 text-[11px] font-body bg-background border border-border rounded-md
-                text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
-              data-testid="note-input"
-            />
-            <div className="flex gap-1">
-              <button onClick={handleSaveNote}
-                className="cursor-pointer flex-1 h-6 text-[10px] font-heading font-semibold rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                Save
-              </button>
-              {noteEditing.value && (
-                <button onClick={() => { setNoteEditing(prev => ({ ...prev, value: '' })); }}
-                  className="cursor-pointer h-6 px-2 text-[10px] rounded text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Content */}
         <ScrollArea className="flex-1">
           <div className="w-full pr-1.5" data-testid="sidebar-scroll-content">
           {activePanel === 'settings' ? (
             <div className="animate-panel-enter"><SettingsPanel settings={settings} onUpdate={updateSetting} /></div>
-          ) : activePanel === 'sessions' ? (
-            <div className="animate-panel-enter">
-              <SessionManager sessions={sessions} onSave={saveSession} onDelete={deleteSession} onRestore={handleRestoreSession} windows={tabs.windows} />
-            </div>
           ) : activePanel === 'heatmap' ? (
             <div className="animate-panel-enter">
               <HeatmapPanel allTabs={tabs.allTabs} onSwitch={handleSwitchTab} selectMode={selectMode} selectedTabIds={selectedTabIds} onToggleSelect={toggleTabSelection} />
             </div>
           ) : activePanel === 'help' ? (
             <div className="animate-panel-enter"><HelpPanel onBack={() => setActivePanel(null)} /></div>
-          ) : activePanel === 'notes' ? (
-            <div className="animate-panel-enter">
-              <TabNotesPanel allTabs={tabs.allTabs} tabNotes={tabs.tabNotes} onSetNote={tabs.setTabNote} onSwitch={handleSwitchTab} />
-            </div>
-          ) : activePanel === 'workspaces' ? (
-            <div className="animate-panel-enter">
-              <WorkspaceManager
-                allTabs={tabs.allTabs}
-                onSwitch={handleSwitchTab}
-                activeWorkspaceId={activeWorkspace?.id}
-                onActivateWorkspace={handleActivateWorkspace}
-                onDeactivateWorkspace={handleDeactivateWorkspace}
-              />
-            </div>
           ) : activePanel === 'timeline' ? (
             <div className="animate-panel-enter"><TabTimeline /></div>
           ) : activePanel === 'autoclose' ? (
             <div className="animate-panel-enter">
-              <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} onAutoClose={tabs.closeTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} />
+              <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} onAutoClose={tabs.closeTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} onKeepOpen={handleKeepOpenTab} />
             </div>
           ) : activePanel === 'profiles' ? (
             <div className="animate-panel-enter"><ProfilePanel /></div>
           ) : (
             <div>
+              {/* Favorites section — proper card (border + rounded + tint)
+                  so it reads as a distinct group. Stars are hidden on
+                  TabItems inside (via hideStar) because the section header
+                  already marks these as favorites — no need to repeat it
+                  per row. User can still unfavorite via right-click menu. */}
+              {(() => {
+                const favoritedTabs = filteredAllTabs.filter(t => isFavorite(t.url));
+                if (favoritedTabs.length === 0) return null;
+                return (
+                  <div className="ml-2 mr-0.5 my-1.5 rounded-md border border-primary/30 bg-primary/[0.05] overflow-hidden" data-testid="favorites-section">
+                    <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
+                      <Star size={12} className="text-primary shrink-0" fill="currentColor" strokeWidth={2} />
+                      <span className="text-[11px] font-heading font-semibold text-primary/90 truncate">
+                        Favorites
+                      </span>
+                      <span className="text-[8px] font-mono text-primary/50 ml-auto">{favoritedTabs.length}</span>
+                    </div>
+                    <div className="pb-1">
+                      {favoritedTabs.map(tab => (
+                        <TabItem
+                          key={tab.id}
+                          tab={tab}
+                          isActive={tab.active}
+                          showFavicons={settings.showFavicons}
+                          showUrls={false}
+                          compact={true}
+                          suspended={tabs.suspendedTabs.has(tab.id)}
+                          isDuplicate={duplicateTabIds.has(tab.id)}
+                          onSwitch={handleSwitchTab}
+                          onClose={handleCloseTab}
+                          onPin={tabs.pinTab}
+                          onMute={tabs.muteTab}
+                          onDuplicate={handleDuplicate}
+                          onMoveToNewWindow={tabs.moveTabToNewWindow}
+                          onMoveToWindow={tabs.moveTab}
+                          onCloseOthers={tabs.closeOtherTabs}
+                          onCloseToRight={tabs.closeTabsToRight}
+                          onSuspend={tabs.suspendTab}
+                          onUnsuspend={tabs.unsuspendTab}
+                          isFavorite={isFavorite}
+                          toggleFavorite={toggleFavorite}
+                          hideStar={true}
+                          windows={filteredWindows}
+                          currentWindowId={tab.windowId}
+                          selectMode={selectMode}
+                          isSelected={selectedTabIds.has(tab.id)}
+                          onToggleSelect={toggleTabSelection}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {viewMode === 'window' ? (
                 filteredWindows.map(win => (
                   <WindowGroup
@@ -676,9 +570,7 @@ export function Sidebar({ onCollapse }) {
               ) : (
                 <DomainView allTabs={filteredAllTabs} {...sharedTabProps} />
               )}
-              {!activeWorkspace && (
-                <DuplicatePanel allTabs={filteredAllTabs} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
-              )}
+              <DuplicatePanel allTabs={filteredAllTabs} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
             </div>
           )}
           </div>

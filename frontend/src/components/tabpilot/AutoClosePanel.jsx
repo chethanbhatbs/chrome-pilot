@@ -23,7 +23,7 @@ function formatTimeLeft(lastAccessed, activeMinutes) {
   return m > 0 ? `${h}h ${m}m left` : `${h}h left`;
 }
 
-export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpdateSetting, visitCounts = {} }) {
+export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpdateSetting, visitCounts = {}, onKeepOpen }) {
   const enabled = settings.autoCloseEnabled;
   const selectedPreset = settings.autoClosePreset || '30';
   const customMinutes = settings.autoCloseCustomMinutes || '';
@@ -89,6 +89,39 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
       .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
   }, [allTabs, enabled, activeMinutes, isWhitelisted, visitCounts, tick]);
 
+  // Pre-warning toast: 30 seconds before auto-close threshold, warn the user
+  // with a "Keep Open" action button that resets the tab's inactivity timer.
+  // NOTE: In-page overlay (via chrome.scripting) not implemented — only sidepanel toast shown.
+  const warnedRef = useRef(new Set());
+  useEffect(() => {
+    if (!enabled || activeMinutes === 0 || !onKeepOpen) return;
+    const thresholdMs = activeMinutes * 60000;
+    const warningMs = thresholdMs - 30000; // 30s before threshold
+    if (warningMs <= 0) return; // threshold too short for pre-warning
+    const now = Date.now();
+    atRiskTabs.forEach(tab => {
+      if (warnedRef.current.has(tab.id)) return;
+      const elapsed = tab.lastAccessed ? (now - tab.lastAccessed) : thresholdMs + 1;
+      if (elapsed >= warningMs && elapsed < thresholdMs) {
+        warnedRef.current.add(tab.id);
+        const secondsLeft = Math.max(0, Math.round((thresholdMs - elapsed) / 1000));
+        toast.warning(
+          `"${tab.title?.slice(0, 35) || 'Tab'}" will be closed in ${secondsLeft}s — inactive tab`,
+          {
+            duration: 30000,
+            action: {
+              label: 'Keep Open',
+              onClick: () => {
+                warnedRef.current.delete(tab.id);
+                onKeepOpen(tab.id);
+              },
+            },
+          }
+        );
+      }
+    });
+  }, [atRiskTabs, enabled, activeMinutes, onKeepOpen, tick]);
+
   // Actually auto-close expired tabs
   const closedRef = useRef(new Set());
   useEffect(() => {
@@ -100,6 +133,8 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
       const elapsed = tab.lastAccessed ? (now - tab.lastAccessed) : thresholdMs + 1;
       if (elapsed >= thresholdMs) {
         closedRef.current.add(tab.id);
+        // Clear warned state for this tab since it's being closed
+        warnedRef.current.delete(tab.id);
         onAutoClose(tab.id);
         toast.success(`Auto-closed: ${tab.title?.slice(0, 40) || 'Tab'}`, { duration: 3000 });
       }

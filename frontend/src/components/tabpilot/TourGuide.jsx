@@ -34,7 +34,7 @@ const STEPS = [
     iconBg: 'bg-emerald-50 dark:bg-emerald-500/10',
     selector: '[data-testid="sidebar-header"]',
     title: 'Powerful panels',
-    description: 'Timeline, Notes, Workspaces, Auto-Close, Help, and Settings — each icon opens a full panel with powerful features.',
+    description: 'Timeline, Auto-Close, Help, and Settings — each icon in the header opens a full panel with powerful features. Star any tab (or right-click → Add to favorites) to pin it in the Favorites section at the top.',
   },
   {
     icon: BarChart3,

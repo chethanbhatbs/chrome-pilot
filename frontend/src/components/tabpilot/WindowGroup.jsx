@@ -17,7 +17,8 @@ export function WindowGroup({
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
   onCloseWindow, onMinimizeWindow, onReorderTab, onMoveTab,
   onCreateTabInWindow, onRenameWindow,
-  suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
+  suspendedTabs, onSuspend, onUnsuspend,
+  isFavorite, toggleFavorite,
   onHoverEnter, onHoverLeave,
   selectMode, selectedTabIds, onToggleSelect, onSelectAllInWindow
 }) {
@@ -137,7 +138,8 @@ export function WindowGroup({
     onMoveToNewWindow, onMoveToWindow: (tabId, winId) => onMoveTab(tabId, winId),
     onCloseOthers, onCloseToRight, windows, currentWindowId: win.id,
     onDragStart: handleDragStart, onDragEnd: handleDragEnd,
-    onSuspend, onUnsuspend, onAddNote,
+    onSuspend, onUnsuspend,
+    isFavorite, toggleFavorite,
     onHoverEnter, onHoverLeave,
     selectMode, onToggleSelect,
   };
@@ -196,7 +198,7 @@ export function WindowGroup({
               style={{ borderLeftColor: color.bg + '50' }}
             >
               <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
-                tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+                isDuplicate={duplicateTabIds?.has(tab.id)}
                 isSelected={selectedTabIds?.has(tab.id)}
                 {...tabItemProps} />
             </div>
@@ -211,7 +213,7 @@ export function WindowGroup({
             className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === tabIdx ? 'border-t-2 border-t-primary' : ''}`}
           >
             <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
-              tabNote={tabNotes?.[tab.id]} isDuplicate={duplicateTabIds?.has(tab.id)}
+              isDuplicate={duplicateTabIds?.has(tab.id)}
               isSelected={selectedTabIds?.has(tab.id)}
               {...tabItemProps} />
           </div>

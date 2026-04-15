@@ -8,7 +8,7 @@ export function DomainView({
   highlightText, matchingTabIds,
   onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToWindow, onMoveToNewWindow, onCloseOthers, onCloseToRight,
-  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend, tabNotes, onAddNote,
+  onReorderTab, onMoveTab, suspendedTabs, onSuspend, onUnsuspend,
   onHoverEnter, onHoverLeave, duplicateTabIds,
   selectMode, selectedTabIds, onToggleSelect, onSelectAllInWindow
 }) {
@@ -32,7 +32,6 @@ export function DomainView({
           onSwitch={onSwitch}
           onClose={onClose}
           suspendedTabs={suspendedTabs}
-          tabNotes={tabNotes}
           onHoverEnter={onHoverEnter}
           onHoverLeave={onHoverLeave}
           focusedWindowId={focusedWindowId}
@@ -48,7 +47,7 @@ export function DomainView({
 function DomainGroup({
   domain, tabs, showFavicons, compact,
   highlightText, onSwitch, onClose,
-  suspendedTabs, tabNotes,
+  suspendedTabs,
   onHoverEnter, onHoverLeave, focusedWindowId,
   selectMode, selectedTabIds, onToggleSelect
 }) {
@@ -127,7 +126,6 @@ function DomainGroup({
                       onSwitch={onSwitch}
                       onClose={onClose}
                       suspended={suspendedTabs?.has(tab.id)}
-                      tabNote={tabNotes?.[tab.id]}
                       onHoverEnter={onHoverEnter}
                       onHoverLeave={onHoverLeave}
                       focusedWindowId={focusedWindowId}
@@ -156,8 +154,8 @@ function DomainGroup({
   );
 }
 
-function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspended, tabNote, onHoverEnter, onHoverLeave, focusedWindowId, selectMode, isSelected, onToggleSelect }) {
-  const { X, Pin, StickyNote, Volume2, Pause } = require('lucide-react');
+function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspended, onHoverEnter, onHoverLeave, focusedWindowId, selectMode, isSelected, onToggleSelect }) {
+  const { X, Pin, Volume2, Pause } = require('lucide-react');
 
   return (
     <div
@@ -196,7 +194,6 @@ function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspend
         {tab.pinned && <Pin size={9} className="text-tp-pinned" strokeWidth={2} />}
         {tab.audible && !tab.mutedInfo?.muted && <Volume2 size={9} className="text-tp-audible" strokeWidth={2} />}
         {suspended && <Pause size={9} className="text-muted-foreground/40" strokeWidth={2} />}
-        {tabNote && <StickyNote size={9} className="text-primary/60" strokeWidth={1.5} />}
       </div>
       {!selectMode && (
         <button
