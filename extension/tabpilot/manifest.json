@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChromePilot",
-  "version": "1.1.0",
-  "description": "A powerful left-sidebar tab and window manager for Chrome",
+  "name": "Tab Pilot",
+  "version": "1.2.0",
+  "description": "A keyboard-first command center for finding, switching, cleaning, and focusing Chrome tabs.",
   "permissions": [
     "tabs",
     "tabGroups",
@@ -23,8 +23,16 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*", "file:///*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
-    "default_title": "Toggle ChromePilot",
+    "default_title": "Open Tab Pilot",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -37,7 +45,14 @@
         "default": "Ctrl+Shift+E",
         "mac": "Command+Shift+E"
       },
-      "description": "Toggle ChromePilot sidebar"
+      "description": "Toggle Tab Pilot sidebar"
+    },
+    "open-command-center": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Open Tab Pilot command center"
     }
   },
   "content_security_policy": {

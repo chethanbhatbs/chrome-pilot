@@ -53,6 +53,196 @@ function notifySidepanel() {
   }, 100);
 }
 
+function normalizeTabUrl(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    return parsed.href;
+  } catch {
+    return url || '';
+  }
+}
+
+async function getCommandCenterState() {
+  const [tabs, windows, stored] = await Promise.all([
+    chrome.tabs.query({}),
+    chrome.windows.getAll({ windowTypes: ['normal'], populate: true }),
+    chrome.storage.local.get(['tabpilot_focus', 'tabpilot_workspaces']),
+  ]);
+
+  const activeTab = tabs.find((tab) => tab.active && tab.windowId === windows.find((win) => win.focused)?.id)
+    || tabs.find((tab) => tab.active);
+  const urlCounts = tabs.reduce((counts, tab) => {
+    const key = normalizeTabUrl(tab.url);
+    if (key) counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+
+  return {
+    tabs: tabs.map((tab) => ({
+      id: tab.id,
+      windowId: tab.windowId,
+      title: tab.title || tab.url || 'Untitled tab',
+      url: tab.url || '',
+      favIconUrl: tab.favIconUrl || '',
+      active: Boolean(tab.active),
+      pinned: Boolean(tab.pinned),
+      audible: Boolean(tab.audible),
+      duplicateCount: urlCounts[normalizeTabUrl(tab.url)] || 0,
+    })),
+    windows: windows.map((win, index) => ({
+      id: win.id,
+      focused: Boolean(win.focused),
+      tabCount: win.tabs?.length || 0,
+      label: `Window ${index + 1}`,
+    })),
+    activeTabId: activeTab?.id || null,
+    activeWindowId: activeTab?.windowId || null,
+    focusActive: Boolean(stored.tabpilot_focus?.active),
+    workspaceCount: stored.tabpilot_workspaces?.length || 0,
+  };
+}
+
+async function closeDuplicateTabs() {
+  const tabs = await chrome.tabs.query({});
+  const seen = new Map();
+  const duplicateIds = [];
+
+  for (const tab of tabs) {
+    const key = normalizeTabUrl(tab.url);
+    if (!key) continue;
+
+    if (seen.has(key)) {
+      duplicateIds.push(tab.id);
+    } else {
+      seen.set(key, tab.id);
+    }
+  }
+
+  if (duplicateIds.length) {
+    await chrome.tabs.remove(duplicateIds);
+  }
+  return duplicateIds.length;
+}
+
+async function startFocusModeForWindow(windowId) {
+  const tabs = await chrome.tabs.query({ windowId });
+  const focusTabIds = tabs.map((tab) => tab.id).filter(Boolean);
+  if (!focusTabIds.length) return 0;
+
+  await chrome.storage.local.set({
+    tabpilot_focus: {
+      active: true,
+      focusTabIds,
+      startedAt: Date.now(),
+      source: 'command-center-window',
+    },
+  });
+  return focusTabIds.length;
+}
+
+async function startFocusModeForTab(tabId) {
+  if (!tabId) return 0;
+  await chrome.storage.local.set({
+    tabpilot_focus: {
+      active: true,
+      focusTabIds: [tabId],
+      startedAt: Date.now(),
+      source: 'command-center-tab',
+    },
+  });
+  return 1;
+}
+
+async function stopFocusMode() {
+  await chrome.storage.local.set({ tabpilot_focus: null });
+}
+
+async function saveCurrentWindowWorkspace(windowId) {
+  const tabs = await chrome.tabs.query({ windowId });
+  const urls = tabs.map((tab) => tab.url).filter(Boolean);
+  if (!urls.length) return null;
+
+  const stored = await chrome.storage.local.get(['tabpilot_workspaces']);
+  const workspaces = Array.isArray(stored.tabpilot_workspaces) ? stored.tabpilot_workspaces : [];
+  const workspace = {
+    id: `workspace-${Date.now()}`,
+    name: `Workspace ${new Date().toLocaleString()}`,
+    createdAt: Date.now(),
+    urls,
+  };
+  await chrome.storage.local.set({ tabpilot_workspaces: [workspace, ...workspaces].slice(0, 20) });
+  return workspace;
+}
+
+async function openLatestWorkspace() {
+  const stored = await chrome.storage.local.get(['tabpilot_workspaces']);
+  const [workspace] = Array.isArray(stored.tabpilot_workspaces) ? stored.tabpilot_workspaces : [];
+  if (!workspace?.urls?.length) return null;
+  await chrome.windows.create({ url: workspace.urls });
+  return workspace;
+}
+
+async function messageActiveTab(message) {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab?.id) return false;
+  await chrome.tabs.sendMessage(tab.id, message);
+  return true;
+}
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'open-command-center') {
+    messageActiveTab({ action: 'tabpilot-open-command-center' }).catch(() => {
+      chrome.windows.getCurrent().then((win) => {
+        if (win?.id) chrome.sidePanel.open({ windowId: win.id }).catch(() => {});
+      }).catch(() => {});
+    });
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message?.action?.startsWith('tabpilot-command-')) return false;
+
+  (async () => {
+    const activeTabId = sender.tab?.id || message.activeTabId;
+    const activeWindowId = sender.tab?.windowId || message.activeWindowId;
+
+    switch (message.action) {
+      case 'tabpilot-command-state':
+        return { ok: true, state: await getCommandCenterState() };
+      case 'tabpilot-command-switch-tab':
+        await chrome.tabs.update(message.tabId, { active: true });
+        if (message.windowId) await chrome.windows.update(message.windowId, { focused: true });
+        return { ok: true };
+      case 'tabpilot-command-close-tab':
+        await chrome.tabs.remove(message.tabId);
+        return { ok: true };
+      case 'tabpilot-command-close-duplicates':
+        return { ok: true, closedCount: await closeDuplicateTabs() };
+      case 'tabpilot-command-focus-tab':
+        return { ok: true, focusCount: await startFocusModeForTab(message.tabId || activeTabId) };
+      case 'tabpilot-command-focus-window':
+        return { ok: true, focusCount: await startFocusModeForWindow(message.windowId || activeWindowId) };
+      case 'tabpilot-command-stop-focus':
+        await stopFocusMode();
+        return { ok: true };
+      case 'tabpilot-command-save-workspace':
+        return { ok: true, workspace: await saveCurrentWindowWorkspace(message.windowId || activeWindowId) };
+      case 'tabpilot-command-open-workspace':
+        return { ok: true, workspace: await openLatestWorkspace() };
+      case 'tabpilot-command-open-sidepanel':
+        await chrome.sidePanel.open({ windowId: activeWindowId });
+        return { ok: true };
+      default:
+        return { ok: false, error: 'Unknown Tab Pilot command.' };
+    }
+  })()
+    .then(sendResponse)
+    .catch((error) => sendResponse({ ok: false, error: error?.message || String(error) }));
+
+  return true;
+});
+
 // ── Focus Mode: strict tab/window restriction ─────────────────────
 // When focus mode is active:
 // - Block switching to non-focus tabs (force back to a focus tab)
