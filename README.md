@@ -6,16 +6,22 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chethanbhatbs/chrome-pilot/releases/latest/download/chrome-pilot-v1.1.0.zip">
-    <img src="https://img.shields.io/badge/⬇_Download_ZIP-v1.1.0-2ea44f?style=for-the-badge" alt="Download ZIP" />
+  <a href="https://github.com/chethanbhatbs/chrome-pilot/releases/latest/download/chrome-pilot.zip">
+    <img src="https://img.shields.io/badge/⬇_Download_ZIP-Latest-2ea44f?style=for-the-badge" alt="Download ZIP" />
   </a>
+  <img src="https://img.shields.io/github/v/release/chethanbhatbs/chrome-pilot?style=for-the-badge&color=blue" alt="Latest release" />
+  <img src="https://img.shields.io/github/downloads/chethanbhatbs/chrome-pilot/total?style=for-the-badge&color=orange" alt="Downloads" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/hero.gif" alt="ChromePilot demo" width="720" />
 </p>
 
 ---
 
 ## Install (no terminal needed)
 
-1. **[Download the ZIP](https://github.com/chethanbhatbs/chrome-pilot/releases/latest/download/chrome-pilot-v1.1.0.zip)** and unzip it anywhere.
+1. **[Download the ZIP](https://github.com/chethanbhatbs/chrome-pilot/releases/latest/download/chrome-pilot.zip)** and unzip it anywhere.
 2. Open Chrome → `chrome://extensions`
 3. Toggle **Developer mode** on (top-right corner).
 4. Click **Load unpacked** → select the unzipped **`tabpilot`** folder.
@@ -35,6 +41,21 @@ Done. The extension stays installed across Chrome restarts.
 - **Sessions** — snapshot the whole browser state, restore later
 - **Tab suspension** to free memory · **auto-close rules** for idle tabs · **duplicate detection**
 - **Tab notes**, **activity heatmap**, **7-day timeline**, **drag & drop**, **Chrome profile switching**
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/sidebar.png" alt="Sidebar tab tree" /><br><sub align="center">Sidebar — tab tree grouped by window</sub></td>
+<td width="50%"><img src="docs/screenshots/command-palette.png" alt="Command palette" /><br><sub align="center">Cmd+K command palette</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/focus-mode.png" alt="Focus mode" /><br><sub align="center">Focus mode — blocked-action overlay</sub></td>
+<td width="50%"><img src="docs/screenshots/workspaces.png" alt="Workspaces" /><br><sub align="center">Workspaces with custom icons & colors</sub></td>
+</tr>
+</table>
 
 ---
 
