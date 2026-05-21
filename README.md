@@ -7,10 +7,8 @@
 
 <p align="center">
   <a href="https://github.com/chethanbhatbs/chrome-pilot/releases/latest/download/chrome-pilot.zip">
-    <img src="https://img.shields.io/badge/⬇_Download_ZIP-Latest-2ea44f?style=for-the-badge" alt="Download ZIP" />
+    <img src="https://img.shields.io/badge/⬇_Download_ZIP-2ea44f?style=for-the-badge" alt="Download ZIP" />
   </a>
-  <img src="https://img.shields.io/github/v/release/chethanbhatbs/chrome-pilot?style=for-the-badge&color=blue" alt="Latest release" />
-  <img src="https://img.shields.io/github/downloads/chethanbhatbs/chrome-pilot/total?style=for-the-badge&color=orange" alt="Downloads" />
 </p>
 
 <p align="center">
