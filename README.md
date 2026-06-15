@@ -2,6 +2,14 @@
 
 **A powerful tab and window manager for Chrome, built as a sidebar extension.**
 
+<p align="center">
+  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live page" src="https://img.shields.io/badge/Live%20Page-Visit-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  &nbsp;
+  <a href="#installation"><img alt="Install" src="https://img.shields.io/badge/Install-Load%20Unpacked-1f2328?style=for-the-badge&logo=github&logoColor=white"></a>
+</p>
+
+🔗 **Live page:** https://chethanbhatbs.github.io/tab-pilot/
+
 Tab Pilot gives you full control over every open tab and window from a sleek sidebar panel. Search, organize, suspend, focus, and automate, all without leaving your browser.
 
 - **Manifest V3** · **Chrome Side Panel API** · **React 18** · **100% Private** (no data ever leaves your machine)
