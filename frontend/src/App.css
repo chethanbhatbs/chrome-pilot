@@ -1,4 +1,4 @@
-/* ChromePilot Custom Styles */
+/* Tab Pilot Custom Styles */
 
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
@@ -15,12 +15,15 @@
   background: hsl(var(--muted-foreground) / 0.4);
 }
 
-/* Drag and drop visual feedback */
-[draggable="true"] {
-  cursor: grab;
-}
-[draggable="true"]:active {
-  cursor: grabbing;
+/* Drag and drop visual feedback.
+   NOTE: do NOT set `cursor: grab` on every [draggable] element — tab rows are
+   draggable but are primarily click-to-switch, so they must keep the pointer
+   (finger) cursor. The dedicated grip handle carries its own cursor-grab /
+   active:cursor-grabbing classes. A blanket [draggable] rule here also fought
+   the row's `cursor-pointer` (equal specificity, loaded later) and dimmed the
+   whole row on a plain click (the "fold" flicker). Drag feedback is handled
+   per-element where the drag actually starts. */
+[draggable="true"].tp-dragging {
   opacity: 0.6;
 }
 

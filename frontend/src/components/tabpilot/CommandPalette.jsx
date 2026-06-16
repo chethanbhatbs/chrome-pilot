@@ -112,7 +112,7 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground/50 font-mono">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border/40 text-[11px] text-muted-foreground/50 font-mono">
           <span>Arrow keys to navigate</span>
           <span>Enter to switch</span>
           <span>Esc to close</span>

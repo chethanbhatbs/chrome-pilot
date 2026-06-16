@@ -12,11 +12,14 @@ function getActivityColor(ratio) {
   return 'bg-primary/90';
 }
 
-export function TabTimeline() {
+export function TabTimeline({ embedded = false }) {
   const [selectedCell, setSelectedCell] = useState(null);
   const timelineData = useTimelineGrid();
   const currentCellRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  // When embedded inside the Activity panel, drop the outer padding (the panel
+  // supplies it) and the big standalone header (the panel header covers it).
+  const wrapCls = embedded ? 'space-y-3' : 'p-3 space-y-3';
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -39,7 +42,7 @@ export function TabTimeline() {
 
   if (!isExtensionContext()) {
     return (
-      <div className="p-3 space-y-3" data-testid="tab-timeline-panel">
+      <div className={wrapCls} data-testid="tab-timeline-panel">
         <div className="flex items-center gap-2">
           <Calendar size={13} className="text-primary" strokeWidth={2} />
           <span className="text-[12px] font-heading font-bold">Tab Timeline</span>
@@ -54,7 +57,7 @@ export function TabTimeline() {
 
   if (!timelineData) {
     return (
-      <div className="p-3 space-y-3" data-testid="tab-timeline-panel">
+      <div className={wrapCls} data-testid="tab-timeline-panel">
         <div className="flex items-center gap-2">
           <Calendar size={13} className="text-primary" strokeWidth={2} />
           <span className="text-[12px] font-heading font-bold">Tab Timeline</span>
@@ -64,7 +67,7 @@ export function TabTimeline() {
     );
   }
 
-  const { grid, totalHours, mostActiveDay } = timelineData;
+  const { grid, totalVisits, mostActiveDay } = timelineData;
 
   const hourLabels = [];
   for (let h = 0; h <= 23; h++) {
@@ -75,22 +78,32 @@ export function TabTimeline() {
   }
 
   return (
-    <div className="p-3 space-y-3" data-testid="tab-timeline-panel">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Calendar size={13} className="text-primary" strokeWidth={2} />
-          <span className="text-[12px] font-heading font-bold">Tab Timeline</span>
-          <span className="text-[8px] font-mono text-primary/60 bg-primary/10 px-1 py-0.5 rounded">LIVE</span>
+    <div className={wrapCls} data-testid="tab-timeline-panel">
+      {/* Header — compact section label when embedded, full header standalone */}
+      {embedded ? (
+        <div className="flex items-center gap-1.5">
+          <Calendar size={11} className="text-primary" strokeWidth={2} />
+          <span className="text-[11px] font-heading text-muted-foreground/70 uppercase tracking-wider">When you browse</span>
+          <span className="ml-auto text-[11px] font-mono text-muted-foreground">{totalVisits} visits / wk</span>
         </div>
-        <span className="text-[9px] text-muted-foreground font-mono">{totalHours}h this week</span>
-      </div>
-      <p className="text-[10px] text-muted-foreground leading-relaxed">
-        Your browsing activity over the past 7 days. Each cell is one hour.
-        {mostActiveDay.day && (
-          <> Most active: <span className="text-foreground font-semibold">{mostActiveDay.day}</span> ({mostActiveDay.hours}h).</>
-        )}
-      </p>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar size={13} className="text-primary" strokeWidth={2} />
+              <span className="text-[12px] font-heading font-bold">Tab Timeline</span>
+              <span className="text-[11px] font-mono text-primary/60 bg-primary/10 px-1 py-0.5 rounded">LIVE</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground font-mono">{totalVisits} visits this week</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            When you browse, over the past 7 days — each cell is one hour, shaded by page visits.
+            {mostActiveDay.day && (
+              <> Most active: <span className="text-foreground font-semibold">{mostActiveDay.day}</span> ({mostActiveDay.visits} visits).</>
+            )}
+          </p>
+        </>
+      )}
 
       {/* Contributions-style grid */}
       <div ref={scrollContainerRef} className="bg-card rounded-lg border border-border/50 p-4 pr-5 overflow-x-auto scroll-smooth">
@@ -108,7 +121,7 @@ export function TabTimeline() {
         {/* Day rows */}
         {grid.map((day, di) => (
           <div key={di} className="flex items-center gap-0 mb-[2px]">
-            <div className="w-8 shrink-0 text-[8px] text-muted-foreground/70 font-mono pr-1 text-right">
+            <div className="w-8 shrink-0 text-[11px] text-muted-foreground/70 font-mono pr-1 text-right">
               {day.dayName}
             </div>
             {day.hours.map((hour, hi) => {
@@ -140,7 +153,7 @@ export function TabTimeline() {
           {Array.from({ length: 24 }, (_, i) => (
             <div key={i} className="flex-1 min-w-[14px] text-center">
               {i === currentColIdx && (
-                <span className="text-[7px] font-mono font-bold text-primary animate-[pulse_3s_ease-in-out_infinite]">NOW</span>
+                <span className="text-[10px] font-mono font-bold text-primary animate-[pulse_3s_ease-in-out_infinite]">NOW</span>
               )}
             </div>
           ))}
@@ -149,13 +162,13 @@ export function TabTimeline() {
 
         {/* Legend */}
         <div className="flex items-center justify-end gap-1.5 mt-2 pt-2 border-t border-border/30">
-          <span className="text-[8px] text-muted-foreground/60 font-mono">Less</span>
+          <span className="text-[11px] text-muted-foreground/60 font-mono">Less</span>
           <div className="flex items-center gap-[2px]">
             {[0, 0.15, 0.35, 0.55, 0.75, 0.95].map((v, i) => (
               <div key={i} className={`w-3 h-3 rounded-[2px] ${getActivityColor(v)}`} />
             ))}
           </div>
-          <span className="text-[8px] text-muted-foreground/60 font-mono">More</span>
+          <span className="text-[11px] text-muted-foreground/60 font-mono">More</span>
         </div>
       </div>
 
@@ -177,7 +190,7 @@ export function TabTimeline() {
             </div>
             <div className="flex items-center gap-3 mb-2">
               <div className="text-[10px] text-muted-foreground">
-                Active: <span className="text-foreground font-semibold">{hour.minutesActive}m</span>
+                Visits: <span className="text-foreground font-semibold">{hour.visits}</span>
               </div>
               <div className="text-[10px] text-muted-foreground">
                 Intensity: <span className="text-foreground font-semibold">{Math.round(hour.activity * 100)}%</span>
@@ -185,10 +198,10 @@ export function TabTimeline() {
             </div>
             {hour.domains.length > 0 && (
               <div>
-                <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider">Active sites</span>
+                <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">Active sites</span>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {hour.domains.map(d => (
-                    <span key={d} className="text-[9px] font-body px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    <span key={d} className="text-[11px] font-body px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                       {d}
                     </span>
                   ))}
@@ -199,27 +212,6 @@ export function TabTimeline() {
         );
       })()}
 
-      {/* Daily breakdown */}
-      <div>
-        <span className="text-[9px] font-heading text-muted-foreground uppercase tracking-wider font-semibold">Daily Breakdown</span>
-        <div className="space-y-1 mt-1.5">
-          {grid.map((day, i) => {
-            const totalMin = day.hours.reduce((s, h) => s + h.minutesActive, 0);
-            const totalHrs = (totalMin / 60).toFixed(1);
-            const maxMin = Math.max(...grid.map(d => d.hours.reduce((s, h) => s + h.minutesActive, 0)), 1);
-            const ratio = totalMin / maxMin;
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-[9px] font-mono text-muted-foreground w-8 text-right">{day.dayName}</span>
-                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${ratio * 100}%` }} />
-                </div>
-                <span className="text-[9px] font-mono text-foreground/60 w-8">{totalHrs}h</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

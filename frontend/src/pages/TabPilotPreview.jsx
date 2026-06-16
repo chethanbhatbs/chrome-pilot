@@ -106,7 +106,7 @@ export default function TabPilotPreview() {
               hover:border-primary/30 transition-all shadow-lg shadow-black/20"
           >
             <PanelLeftOpen size={14} strokeWidth={1.5} />
-            <span className="text-[11px] font-body font-medium">ChromePilot</span>
+            <span className="text-[11px] font-body font-medium">Tab Pilot</span>
           </button>
         )}
         <LandingPage />
@@ -126,7 +126,7 @@ function LandingPage() {
       <BottomCTA />
       <footer className="text-center py-6 border-t border-border/20">
         <p className="text-[11px] text-muted-foreground/30 font-mono">
-          ChromePilot v1.0 &middot; Manifest V3 &middot; React 18 &middot; Open Source
+          Tab Pilot v1.0 &middot; Manifest V3 &middot; React 18 &middot; Open Source
         </p>
       </footer>
     </div>
@@ -276,7 +276,7 @@ function FeatureGrid() {
 function HowItWorks() {
   const steps = [
     { num: '1', title: 'Install the extension', desc: 'One click from the Chrome Web Store. No sign-up, no configuration needed.' },
-    { num: '2', title: 'Open the sidebar', desc: 'Click the ChromePilot icon or use a keyboard shortcut to open the sidebar panel.' },
+    { num: '2', title: 'Open the sidebar', desc: 'Click the Tab Pilot icon or use a keyboard shortcut to open the sidebar panel.' },
     { num: '3', title: 'Take control', desc: 'Search, organize, suspend, and manage all your tabs from one place.' },
   ];
   return (

@@ -194,8 +194,7 @@ export function WindowGroup({
             <div
               key={tab.id}
               data-drop-idx={tabIdx}
-              className={`animate-slide-in border-l-[3px] ${dragOverIdx === tabIdx ? 'border-t-2 border-t-primary' : ''}`}
-              style={{ borderLeftColor: color.bg + '50' }}
+              className={`animate-slide-in border-l-[3px] border-l-transparent ${dragOverIdx === tabIdx ? 'border-t-2 border-t-primary' : ''}`}
             >
               <TabItem tab={tab} isActive={tab.active && isFocused} suspended={suspendedTabs?.has(tab.id)}
                 isDuplicate={duplicateTabIds?.has(tab.id)}
@@ -242,7 +241,7 @@ export function WindowGroup({
                     const allSel = win.tabs.length > 0 && win.tabs.every(t => selectedTabIds?.has(t.id));
                     const someSel = win.tabs.some(t => selectedTabIds?.has(t.id));
                     return (
-                      <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center transition-all duration-150
+                      <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center cursor-pointer transition-all duration-150
                         ${allSel ? 'bg-primary border-primary' : someSel ? 'bg-primary/30 border-primary/60' : 'border-muted-foreground/30'}`}>
                         {allSel && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
                         {someSel && !allSel && <div className="w-1.5 h-0.5 rounded-full bg-primary" />}
@@ -284,12 +283,12 @@ export function WindowGroup({
                       {win.name || 'Window'}
                     </span>
                   )}
-                  <span className="text-[9px] text-muted-foreground/60 font-mono">{tabCount}</span>
+                  <span className="text-[11px] text-muted-foreground/60 font-mono">{tabCount}</span>
                   {isFocused && (
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
                   )}
                 </div>
-                <div className="text-[9px] text-muted-foreground/60 font-body italic truncate max-w-[180px]">
+                <div className="text-[11px] text-muted-foreground/60 font-body italic truncate max-w-[180px]">
                   {windowSummary}
                 </div>
               </div>

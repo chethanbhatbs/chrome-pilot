@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# ChromePilot Native Host Installer (macOS / Linux)
-# Installs the tiny helper that lets ChromePilot read your Chrome profile
-# names so it can show them in the sidepanel and switch between them.
+# Tab Pilot Native Host Installer (macOS / Linux)
+# Installs the tiny helper that lets Tab Pilot read your Chrome profile names
+# so it can list and switch between them.
+#
+# Zero questions asked: the script finds its OWN location and auto-detects the
+# Tab Pilot extension ID by scanning your Chrome profiles (works for both
+# unpacked/dev and Web Store installs). Just run it and restart Chrome.
 set -e
 
 HOST_NAME="com.tabpilot.profiles"
@@ -9,84 +13,141 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOST_SCRIPT="$SCRIPT_DIR/tabpilot_profiles.py"
 
 echo ""
-echo "  ChromePilot Native Host Installer"
-echo "  ==================================="
-echo ""
-echo "  This sets up a small helper script so ChromePilot can"
-echo "  list and switch between your Chrome profiles."
+echo "  Tab Pilot Native Host Installer"
+echo "  ==============================="
 echo ""
 
-# 1. Make the Python script executable
+# 1. Make the Python helper executable
 chmod +x "$HOST_SCRIPT"
 
-# 2. Determine the native messaging hosts directory
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  NM_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
-elif [[ "$OSTYPE" == "linux"* ]]; then
-  NM_DIR="$HOME/.config/google-chrome/NativeMessagingHosts"
+# 2. Pick a python3 to run the detection (the helper itself needs python3 too)
+PY="$(command -v python3 || true)"
+if [ -z "$PY" ]; then
+  echo "  ERROR: python3 not found on PATH. Install Python 3, then re-run."
+  exit 1
+fi
+
+# 3. Native-messaging-host dirs per browser (only those present get a manifest)
+case "$OSTYPE" in
+  darwin*)
+    SUPPORT="$HOME/Library/Application Support"
+    NM_DIRS=(
+      "$SUPPORT/Google/Chrome/NativeMessagingHosts"
+      "$SUPPORT/Google/Chrome Beta/NativeMessagingHosts"
+      "$SUPPORT/Google/Chrome Canary/NativeMessagingHosts"
+      "$SUPPORT/Chromium/NativeMessagingHosts"
+      "$SUPPORT/BraveSoftware/Brave-Browser/NativeMessagingHosts"
+      "$SUPPORT/Microsoft Edge/NativeMessagingHosts"
+    )
+    ;;
+  linux*)
+    NM_DIRS=(
+      "$HOME/.config/google-chrome/NativeMessagingHosts"
+      "$HOME/.config/google-chrome-beta/NativeMessagingHosts"
+      "$HOME/.config/chromium/NativeMessagingHosts"
+      "$HOME/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts"
+      "$HOME/.config/microsoft-edge/NativeMessagingHosts"
+    )
+    ;;
+  *)
+    echo "  ERROR: Unsupported OS. This installer supports macOS and Linux."
+    exit 1
+    ;;
+esac
+
+# 4. Auto-detect the Tab Pilot extension ID(s) across all profiles
+echo "  Looking for the Tab Pilot extension in your browsers..."
+EXT_IDS="$("$PY" - <<'PYEOF'
+import json, os, glob
+home = os.path.expanduser("~")
+roots = [
+    f"{home}/Library/Application Support/Google/Chrome",
+    f"{home}/Library/Application Support/Google/Chrome Beta",
+    f"{home}/Library/Application Support/Google/Chrome Canary",
+    f"{home}/Library/Application Support/Chromium",
+    f"{home}/Library/Application Support/BraveSoftware/Brave-Browser",
+    f"{home}/Library/Application Support/Microsoft Edge",
+    f"{home}/.config/google-chrome",
+    f"{home}/.config/google-chrome-beta",
+    f"{home}/.config/chromium",
+    f"{home}/.config/BraveSoftware/Brave-Browser",
+    f"{home}/.config/microsoft-edge",
+]
+def looks_like(n): return bool(n) and "pilot" in n.lower() and "tab" in n.lower()
+found = set()
+for root in roots:
+    if not os.path.isdir(root):
+        continue
+    # packed installs: <profile>/Extensions/<id>/<ver>/manifest.json
+    for man in glob.glob(f"{root}/*/Extensions/*/*/manifest.json"):
+        try:
+            if looks_like(json.load(open(man)).get("name", "")):
+                found.add(man.split("/Extensions/")[1].split("/")[0])
+        except Exception:
+            pass
+    # unpacked/dev installs: recorded in Preferences -> extensions.settings
+    for pref in glob.glob(f"{root}/*/Preferences") + glob.glob(f"{root}/*/Secure Preferences"):
+        try:
+            settings = json.load(open(pref)).get("extensions", {}).get("settings", {})
+            for ext_id, meta in settings.items():
+                name = (meta.get("manifest", {}) or {}).get("name", "")
+                path = meta.get("path", "")
+                if looks_like(name) or "chrome-pilot" in path.lower() or "tabpilot" in path.lower():
+                    found.add(ext_id)
+        except Exception:
+            pass
+print(" ".join(sorted(found)))
+PYEOF
+)"
+
+# 5. Fall back to a manual prompt ONLY if auto-detect found nothing
+if [ -z "$EXT_IDS" ]; then
+  echo "  Couldn't auto-detect Tab Pilot (is it loaded in Chrome?)."
+  echo "  Open chrome://extensions, enable Developer mode, copy the Tab Pilot ID,"
+  read -p "  and paste it here: " EXT_IDS
+  if [ -z "$EXT_IDS" ]; then
+    echo "  ERROR: No extension ID. Re-run after loading the extension."
+    exit 1
+  fi
 else
-  echo "  ERROR: Unsupported OS. This installer supports macOS and Linux."
-  exit 1
+  echo "  Found: $EXT_IDS"
 fi
 
-mkdir -p "$NM_DIR"
+# 6. Build the allowed_origins array from all detected IDs
+ORIGINS=""
+for id in $EXT_IDS; do
+  ORIGINS="$ORIGINS    \"chrome-extension://$id/\",
+"
+done
+ORIGINS="$(printf "%s" "$ORIGINS" | sed '$ s/,$//')"
 
-# 3. Walk the user through finding their extension ID
-echo "  HOW TO FIND YOUR CHROMEPILOT EXTENSION ID"
-echo "  -----------------------------------------"
-echo ""
-echo "    Step 1 — Turn on Developer mode"
-echo "      - Open Chrome and go to:  chrome://extensions"
-echo "        (paste that URL into the address bar)"
-echo "      - In the TOP-RIGHT corner of the page, toggle"
-echo "        the \"Developer mode\" switch to ON."
-echo "        This reveals the ID under each extension."
-echo ""
-echo "    Step 2 — Copy the ID"
-echo "      - Find the \"ChromePilot\" card in the list."
-echo "      - Below the name you'll see a long ID like:"
-echo "          ID: nedfbanngcbnicfbpebdopjegjomnman"
-echo "      - Highlight and copy it."
-echo ""
-echo "    Step 3 — Paste it below and press Enter."
-echo ""
-read -p "  Your ChromePilot extension ID: " EXT_ID
-
-if [ -z "$EXT_ID" ]; then
-  echo ""
-  echo "  ERROR: Extension ID is required. Re-run this script once you have it."
-  exit 1
-fi
-
-# Light validation — Chrome extension IDs are 32 lowercase letters a-p
-if ! [[ "$EXT_ID" =~ ^[a-p]{32}$ ]]; then
-  echo ""
-  echo "  WARNING: That doesn't look like a typical Chrome extension ID"
-  echo "  (expected 32 lowercase letters a-p). Installing anyway —"
-  echo "  if profile loading fails, re-run this script with the correct ID."
-  echo ""
-fi
-
-# 4. Write the native messaging manifest
-cat > "$NM_DIR/$HOST_NAME.json" << EOF
+# 7. Write the manifest into every browser that's installed
+WROTE=0
+for NM_DIR in "${NM_DIRS[@]}"; do
+  PARENT="$(dirname "$NM_DIR")"
+  [ -d "$PARENT" ] || continue          # browser not installed -> skip
+  mkdir -p "$NM_DIR"
+  cat > "$NM_DIR/$HOST_NAME.json" <<EOF
 {
   "name": "$HOST_NAME",
-  "description": "ChromePilot Chrome Profile Manager",
+  "description": "Tab Pilot Chrome Profile Manager",
   "path": "$HOST_SCRIPT",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://$EXT_ID/"
+$ORIGINS
   ]
 }
 EOF
+  echo "  Installed -> $NM_DIR/$HOST_NAME.json"
+  WROTE=$((WROTE + 1))
+done
+
+if [ "$WROTE" -eq 0 ]; then
+  echo "  ERROR: No Chromium-family browser found to install into."
+  exit 1
+fi
 
 echo ""
-echo "  DONE — Native messaging host installed at:"
-echo "    $NM_DIR/$HOST_NAME.json"
-echo ""
-echo "  NEXT STEPS:"
-echo "    1. Quit Chrome completely (Cmd+Q on macOS)."
-echo "    2. Re-open Chrome."
-echo "    3. Open the ChromePilot sidebar -> Profiles panel."
-echo "       Your Chrome profiles should now appear."
+echo "  DONE. Next: quit Chrome completely (Cmd+Q) and reopen it,"
+echo "  then open the Tab Pilot Profiles panel."
 echo ""

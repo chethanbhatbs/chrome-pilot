@@ -1,23 +1,19 @@
 import { FileText, Volume2, Pause, AlertTriangle } from 'lucide-react';
+import { normalizeUrl } from '@/utils/grouping';
 
-export function StatsBar({ allTabs, suspendedCount = 0 }) {
+export function StatsBar({ allTabs, suspendedCount = 0, dupCount: dupCountProp }) {
   const tabCount = allTabs.length;
   const audibleCount = allTabs.filter(t => t.audible && !t.mutedInfo?.muted).length;
 
-  const dupCount = (() => {
+  // Use the count the parent already computed; only fall back to a local pass
+  // (via the shared normalizeUrl rule) if it wasn't provided.
+  const dupCount = dupCountProp ?? (() => {
     const urlMap = {};
     let d = 0;
     allTabs.forEach(t => {
       if (!t.url) return;
-      let n;
-      if (t.url.startsWith('chrome://') || t.url.startsWith('chrome-extension://')) {
-        n = t.url.replace(/\/$/, '');
-      } else {
-        try {
-          const u = new URL(t.url);
-          n = u.origin + u.pathname.replace(/\/$/, '') + u.search;
-        } catch { return; }
-      }
+      const n = normalizeUrl(t.url);
+      if (!n) return;
       if (urlMap[n]) d++;
       else urlMap[n] = true;
     });
@@ -38,7 +34,7 @@ export function StatsBar({ allTabs, suspendedCount = 0 }) {
           <div key={label} className="flex flex-col items-center gap-0 cursor-default" data-testid={`stat-${label.toLowerCase()}`}>
             <div className="flex items-center gap-0.5">
               <Icon size={9} strokeWidth={1.5} className={color} />
-              <span className={`text-[8px] ${color}`}>{label}</span>
+              <span className={`text-[11px] ${color}`}>{label}</span>
             </div>
             <span className={`text-[10px] tabular-nums font-mono font-semibold ${valColor}`}>{value}</span>
           </div>

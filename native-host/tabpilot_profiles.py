@@ -93,7 +93,30 @@ def get_chrome_profiles():
     return {'profiles': profiles}
 
 
+def get_profile_dirs():
+    """Set of real Chrome profile directory names from Local State."""
+    local_state_path = get_local_state_path()
+    if not local_state_path or not os.path.exists(local_state_path):
+        return set()
+    try:
+        with open(local_state_path, 'r') as f:
+            return set(json.load(f).get('profile', {}).get('info_cache', {}).keys())
+    except Exception:
+        return set()
+
+
 def switch_profile(profile_directory, open_url=None):
+    # Hardening: both values come from the extension message. subprocess uses an
+    # argv list (no shell), but a value starting with '-' would be interpreted by
+    # Chrome as a launch flag (e.g. --load-extension), and path separators could
+    # escape the profile dir. Reject those, and only allow http(s) URLs.
+    if (not profile_directory
+            or profile_directory.startswith('-')
+            or '/' in profile_directory or '\\' in profile_directory
+            or not re.match(r'^[A-Za-z0-9 _.+-]+$', profile_directory)):
+        return {'error': 'Invalid profile directory'}
+    if open_url and not re.match(r'^https?://', open_url):
+        return {'error': 'Invalid URL (must be http/https)'}
     system = platform.system()
     try:
         if system == 'Darwin':
@@ -157,7 +180,9 @@ def detect_current_profile(extension_id=None):
             if os.path.exists(prefs_path):
                 try:
                     with open(prefs_path, 'r') as pf:
-                        if extension_id in pf.read():
+                        # Match the id as a quoted JSON key, not a loose substring,
+                        # to avoid false positives from incidental occurrences.
+                        if f'"{extension_id}"' in pf.read():
                             matching.append(dir_name)
                 except Exception:
                     pass
@@ -251,6 +276,10 @@ def main():
         open_url = message.get('openUrl')
         if not profile_dir:
             response = {'error': 'Missing profileDirectory'}
+        elif profile_dir not in get_profile_dirs():
+            # Only switch to a profile that actually exists — prevents launching
+            # Chrome with an attacker-supplied directory value.
+            response = {'error': 'Unknown profile directory'}
         else:
             response = switch_profile(profile_dir, open_url)
     elif action == 'detect-profile':

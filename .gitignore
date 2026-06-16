@@ -109,3 +109,6 @@ frontend/node_modules/.cache/default-development/5.pack
 # Environment files
 *.env
 *.env.*
+
+# native-host installer build temp
+native-host/.pkgbuild/

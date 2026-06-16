@@ -1,56 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ArrowRight, ChevronRight, Sparkles, Layout, MousePointerClick, BarChart3, Settings, Rocket } from 'lucide-react';
+import { X, ArrowRight, ChevronRight, Sparkles, Layout, Rocket } from 'lucide-react';
 
-const TOUR_KEY = 'tabpilot_tour_done_v3';
+const TOUR_KEY = 'tabpilot_tour_done_v4';
 
 const STEPS = [
   {
     icon: Sparkles,
     iconColor: 'text-amber-500',
     iconBg: 'bg-amber-50 dark:bg-amber-500/10',
-    title: 'Welcome to ChromePilot',
-    description: 'Your browser just got a major upgrade. Take a quick 30-second tour to discover what you can do.',
-    cta: 'Show me around',
+    title: 'Welcome to Tab Pilot',
+    description: 'A fast command center for your tabs — the essentials in 3 quick steps.',
+    cta: 'Show me',
   },
   {
     icon: Layout,
     iconColor: 'text-blue-500',
     iconBg: 'bg-blue-50 dark:bg-blue-500/10',
-    selector: '[data-testid="sidebar-scroll-content"]',
-    title: 'Your tabs, organized',
-    description: 'All your windows and tabs live here. Click to switch, right-click for options like duplicate, pin, move, or add notes.',
-  },
-  {
-    icon: MousePointerClick,
-    iconColor: 'text-violet-500',
-    iconBg: 'bg-violet-50 dark:bg-violet-500/10',
     selector: '[data-testid="quick-actions"]',
-    title: 'Quick actions toolbar',
-    description: 'Create tabs, group by domain, enter Focus Mode, select multiple tabs for bulk actions, or open the Heatmap.',
-  },
-  {
-    icon: Settings,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-50 dark:bg-emerald-500/10',
-    selector: '[data-testid="sidebar-header"]',
-    title: 'Powerful panels',
-    description: 'Timeline, Auto-Close, Help, and Settings — each icon in the header opens a full panel with powerful features. Star any tab (or right-click → Add to favorites) to pin it in the Favorites section at the top.',
-  },
-  {
-    icon: BarChart3,
-    iconColor: 'text-rose-500',
-    iconBg: 'bg-rose-50 dark:bg-rose-500/10',
-    selector: '[data-testid="stats-bar"]',
-    title: 'Live browser stats',
-    description: 'Monitor memory, CPU, audio, and duplicates in real time. Hit "Fix All" to clean up duplicate tabs instantly.',
+    title: 'Find & manage tabs',
+    description: 'Search (or press Ctrl+K) to jump to any tab. The toolbar handles new tabs, grouping by site, Focus mode, and multi-select. Right-click any tab for more.',
   },
   {
     icon: Rocket,
     iconColor: 'text-primary',
     iconBg: 'bg-primary/10',
-    title: "You're all set!",
-    description: 'Use Cmd+K for command palette, double-click window names to rename, and close tabs fearlessly — undo is always available.',
-    cta: 'Start using ChromePilot',
+    title: "You're all set",
+    description: 'Bottom-right: the people icon opens Profiles, the gear opens Settings, and the sliders icon (top) holds Activity, Timeline & more. Close tabs fearlessly — undo is always available.',
+    cta: 'Start',
   },
 ];
 

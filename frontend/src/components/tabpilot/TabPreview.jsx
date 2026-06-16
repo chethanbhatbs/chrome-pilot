@@ -59,7 +59,7 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
               <img src={faviconUrl} alt="" className="w-6 h-6 rounded-lg shadow-lg"
                 data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
             )}
-            <span className="text-[8px] text-white/60 font-mono">{domain}</span>
+            <span className="text-[11px] text-white/60 font-mono">{domain}</span>
           </div>
         </div>
         {/* Status badges */}
@@ -86,14 +86,14 @@ export function TabPreview({ tab, suspended, tabNote, anchorRect, onClose }) {
       <div className="p-2.5 space-y-2">
         <div>
           <div className="text-[11px] font-body font-medium leading-tight line-clamp-2">{tab.title}</div>
-          <div className="text-[9px] text-muted-foreground/50 truncate mt-0.5">{domain}</div>
+          <div className="text-[11px] text-muted-foreground/50 truncate mt-0.5">{domain}</div>
         </div>
 
         {/* Note */}
         {tabNote && (
           <div className="flex items-start gap-1.5 p-1.5 rounded-md bg-primary/[0.06] border border-primary/10">
             <StickyNote size={9} className="text-primary mt-0.5 shrink-0" strokeWidth={1.5} />
-            <span className="text-[9px] text-foreground/70 leading-relaxed">{tabNote}</span>
+            <span className="text-[11px] text-foreground/70 leading-relaxed">{tabNote}</span>
           </div>
         )}
       </div>

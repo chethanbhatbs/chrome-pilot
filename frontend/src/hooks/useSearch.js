@@ -8,8 +8,8 @@ export function useSearch(allTabs) {
     if (!query.trim()) return null;
     const q = query.toLowerCase();
     return allTabs.filter(tab =>
-      tab.title.toLowerCase().includes(q) ||
-      tab.url.toLowerCase().includes(q)
+      (tab.title || '').toLowerCase().includes(q) ||
+      (tab.url || '').toLowerCase().includes(q)
     );
   }, [query, allTabs]);
 
@@ -24,8 +24,8 @@ export function useSearch(allTabs) {
     if (!query.trim() || query.length < 1) return [];
     const q = query.toLowerCase();
     const matched = allTabs.filter(tab =>
-      tab.title.toLowerCase().includes(q) ||
-      tab.url.toLowerCase().includes(q)
+      (tab.title || '').toLowerCase().includes(q) ||
+      (tab.url || '').toLowerCase().includes(q)
     );
     const tabSuggestions = matched.slice(0, 5).map(t => ({
       type: 'tab',
@@ -50,7 +50,7 @@ export function useSearch(allTabs) {
   }, [query, allTabs]);
 
   const highlightText = useCallback((text) => {
-    if (!query.trim()) return text;
+    if (!text || !query.trim()) return text;
     const q = query.toLowerCase();
     const idx = text.toLowerCase().indexOf(q);
     if (idx === -1) return text;

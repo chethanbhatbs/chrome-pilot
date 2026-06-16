@@ -5,9 +5,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
 import { useState } from 'react';
 
-export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
+export function DuplicatePanel({ allTabs, duplicates: duplicatesProp, onCloseDuplicates, onCloseTab }) {
   const [isOpen, setIsOpen] = useState(false);
-  const duplicates = findDuplicates(allTabs);
+  // Prefer the precomputed list from the parent; fall back to computing locally
+  // so the component still works standalone.
+  const duplicates = duplicatesProp ?? findDuplicates(allTabs);
 
   if (duplicates.length === 0) return null;
 
@@ -45,7 +47,7 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
                   <div className="flex items-center gap-2 mb-1.5">
                     <img src={favicon} alt="" className="w-3.5 h-3.5 rounded-[2px] shrink-0" data-tab-url={url} data-chrome-favicon={tabs[0]?.favIconUrl || ''} onError={handleFaviconError} />
                     <span className="text-[10px] text-muted-foreground truncate font-body">{domain}</span>
-                    <span className="text-[8px] font-mono text-tp-duplicate ml-auto">{tabs.length}x open</span>
+                    <span className="text-[11px] font-mono text-tp-duplicate ml-auto">{tabs.length}x open</span>
                   </div>
                   {(() => {
                     // Keep the active tab; fall back to most recently accessed
@@ -56,17 +58,17 @@ export function DuplicatePanel({ allTabs, onCloseDuplicates, onCloseTab }) {
                         <div key={tab.id} className="flex items-center justify-between py-0.5 pl-6">
                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
                             {isKeep ? (
-                              <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-audible/50 text-tp-audible shrink-0">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1 border-tp-audible/50 text-tp-audible shrink-0">
                                 keep
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-[7px] py-0 px-1 border-tp-duplicate/50 text-tp-duplicate shrink-0">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1 border-tp-duplicate/50 text-tp-duplicate shrink-0">
                                 extra
                               </Badge>
                             )}
                             <div className="flex flex-col min-w-0">
                               <span className="text-[10px] text-foreground/60 truncate">{tab.title}</span>
-                              <span className="text-[8px] text-muted-foreground truncate">
+                              <span className="text-[11px] text-muted-foreground truncate">
                                 {tab.active ? 'Active' : `Window ${tab.windowId}`}
                               </span>
                             </div>

@@ -1,19 +1,20 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ArrowLeft, HelpCircle, Calendar, Timer, X as XIcon, Check, Minus, Trash2, Star } from 'lucide-react';
+import { ArrowLeft, Timer, X as XIcon, Check, Minus, Trash2, Star, Flame, SlidersHorizontal, Pause, Play, VolumeX, Volume2, ClipboardCheck } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SearchBar } from './SearchBar';
 import { QuickActions } from './QuickActions';
 import { WindowGroup } from './WindowGroup';
 import { DomainView } from './DomainView';
-import { DuplicatePanel, getDuplicateTabIds } from './DuplicatePanel';
+import { DuplicatePanel } from './DuplicatePanel';
+import { findDuplicates } from '@/utils/grouping';
 import { TabItem } from './TabItem';
 import { SettingsPanel } from './SettingsPanel';
 import { HeatmapPanel } from './HeatmapPanel';
 import { FocusMode, getPersistedFocus } from './FocusMode';
 import { HelpPanel } from './HelpPanel';
 import { CommandPalette } from './CommandPalette';
-import { TabTimeline } from './TabTimeline';
 import { AutoClosePanel } from './AutoClosePanel';
 import { ProfilePanel } from './ProfilePanel';
 import { ProfileSwitcher } from './ProfileSwitcher';
@@ -110,7 +111,20 @@ export function Sidebar({ onCollapse }) {
       .filter(w => w.tabs.length > 0);
   }, [tabs.windows, isTabVisible]);
 
-  const duplicateTabIds = useMemo(() => getDuplicateTabIds(filteredAllTabs), [filteredAllTabs]);
+  // Single source of duplicate info for the whole sidebar — computed once and
+  // shared with the banner, the footer, and the inline row markers (previously
+  // each scanned all tabs independently).
+  const duplicateInfo = useMemo(() => {
+    const groups = findDuplicates(filteredAllTabs);
+    const ids = new Set();
+    let count = 0;
+    for (const g of groups) {
+      count += g.tabs.length - 1;
+      for (const t of g.tabs) ids.add(t.id);
+    }
+    return { groups, ids, count };
+  }, [filteredAllTabs]);
+  const duplicateTabIds = duplicateInfo.ids;
 
   const toggleSelectMode = useCallback(() => {
     setSelectMode(prev => !prev);
@@ -162,8 +176,14 @@ export function Sidebar({ onCollapse }) {
 
   const handleSwitchTab = useCallback((tabId) => {
     const tab = tabs.allTabs.find(t => t.id === tabId);
-    // Already on this tab? Tell the user instead of silently re-switching.
-    if (tab?.active) {
+    // `active` is per-window — every window has its own active tab. So "already
+    // here" is only true when the tab is active AND its window is the focused
+    // one. Otherwise it's the active tab of *another* window and clicking it
+    // must switch windows (the old check fired the "already on this tab" toast
+    // and refused to switch).
+    const focusedWin = tabs.windows.find(w => w.focused);
+    const alreadyHere = tab?.active && (!focusedWin || tab.windowId === focusedWin.id);
+    if (alreadyHere) {
       toast.info("You're already on this tab", { duration: 1500 });
       return;
     }
@@ -210,8 +230,8 @@ export function Sidebar({ onCollapse }) {
     else toast.info('No inactive tabs to suspend');
   }, [tabs]);
 
-  const handleUnsuspendAll = useCallback(() => {
-    const count = tabs.unsuspendAll();
+  const handleUnsuspendAll = useCallback(async () => {
+    const count = await tabs.unsuspendAll();
     if (count > 0) toast.success(`Restored ${count} tab${count > 1 ? 's' : ''}`);
     else toast.info('No suspended tabs');
   }, [tabs]);
@@ -244,9 +264,13 @@ export function Sidebar({ onCollapse }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Cmd+K (mac) / Ctrl+K (win/linux) opens the command palette — the
+      // Spotlight-style quick switcher advertised on the landing page. This is a
+      // visible overlay (unambiguous feedback), unlike silently focusing the
+      // inline search. toLowerCase() so it fires regardless of caps/shift.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setCmdPaletteOpen(prev => !prev);
+        setCmdPaletteOpen(true);
         return;
       }
       if (cmdPaletteOpen) return;
@@ -257,16 +281,18 @@ export function Sidebar({ onCollapse }) {
         e.preventDefault();
         setSelectedTabIdx(prev => Math.max(prev - 1, 0));
       } else if (e.key === 'Enter' && selectedTabIdx >= 0) {
-        const tab = tabs.allTabs[selectedTabIdx];
+        // Index into the SAME list the arrow keys navigate (filtered), not the
+        // full tab list — otherwise a search filter selects the wrong tab.
+        const tab = filteredAllTabs[selectedTabIdx];
         if (tab) handleSwitchTab(tab.id);
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTabIdx >= 0 && document.activeElement?.tagName !== 'INPUT') {
-        const tab = tabs.allTabs[selectedTabIdx];
+        const tab = filteredAllTabs[selectedTabIdx];
         if (tab) handleCloseTab(tab.id);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedTabIdx, tabs.allTabs, handleSwitchTab, handleCloseTab, cmdPaletteOpen, tabs]);
+  }, [selectedTabIdx, filteredAllTabs, handleSwitchTab, handleCloseTab, cmdPaletteOpen, tabs]);
 
   const sharedTabProps = {
     showFavicons: settings.showFavicons,
@@ -298,14 +324,24 @@ export function Sidebar({ onCollapse }) {
     onSelectAllInWindow: selectAllInWindow,
   };
 
-  const panelButtons = [
-    { id: 'timeline', icon: Calendar, label: 'Timeline', panel: 'timeline' },
-    { id: 'autoclose', icon: Timer, label: 'Auto-Close', panel: 'autoclose' },
-    { id: 'help', icon: HelpCircle, label: 'Help', panel: 'help' },
-    { id: 'settings', icon: Settings, label: 'Settings', panel: 'settings' },
+  // Advanced / secondary features — consolidated into a single header menu so the
+  // common path (search + tabs) stays uncluttered. Nothing removed, just demoted.
+  // Single overflow menu — replaces the old separate toolbar "More" + header
+  // "Advanced" menus. Sectioned so views and bulk actions stay distinct.
+  const advancedItems = [
+    { type: 'label', text: 'Views' },
+    { id: 'heatmap', icon: Flame, label: 'Activity', onClick: () => setActivePanel(prev => prev === 'heatmap' ? null : 'heatmap') },
+    { id: 'autoclose', icon: Timer, label: 'Auto-Close', onClick: () => setActivePanel('autoclose') },
+    { id: 'sep1' },
+    { type: 'label', text: 'Tab actions' },
+    { id: 'suspend', icon: Pause, label: 'Suspend inactive', onClick: quickActionHandlers.onSuspendInactive },
+    { id: 'resume', icon: Play, label: 'Resume all', onClick: quickActionHandlers.onUnsuspendAll },
+    { id: 'mute', icon: VolumeX, label: 'Mute all', onClick: quickActionHandlers.onMuteAll },
+    { id: 'unmute', icon: Volume2, label: 'Unmute all', onClick: quickActionHandlers.onUnmuteAll },
+    { id: 'dupes', icon: ClipboardCheck, label: 'Close duplicates', onClick: quickActionHandlers.onCloseDuplicates },
   ];
 
-  const showBackButton = ['settings', 'heatmap', 'help', 'timeline', 'autoclose', 'profiles'].includes(activePanel);
+  const showBackButton = ['settings', 'heatmap', 'help', 'autoclose', 'profiles'].includes(activePanel);
 
   if (activePanel === 'focus') {
     return (
@@ -320,7 +356,7 @@ export function Sidebar({ onCollapse }) {
             onUnhideTabs={tabs.unhideTabs}
             persistedFocus={persistedFocus}
           />
-          <StatsBar allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} />
+          <StatsBar allTabs={tabs.allTabs} suspendedCount={tabs.suspendedTabs.size} dupCount={duplicateInfo.count} />
         </div>
       </TooltipProvider>
     );
@@ -364,37 +400,60 @@ export function Sidebar({ onCollapse }) {
         )}
 
         {/* Header */}
-        <div className="px-2 pt-2 pb-1 space-y-1 bg-primary/[0.03] border-b border-primary/10 backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
+        <div className="px-2 pt-2 pb-1 space-y-1 bg-background/95 border-b border-border backdrop-blur-md sticky top-0 z-10" data-testid="sidebar-header">
           {/* Row 1: title + panel buttons */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-heading font-bold tracking-tight shrink-0 brand-text">
-              ChromePilot
+            {/* Wordmark only — the plane mark lives on the Chrome toolbar icon, no need
+                to duplicate it inside the panel. Two-tone matches the landing page. */}
+            <span className="text-[13px] font-heading font-bold tracking-tight shrink-0" data-testid="brand-lockup">
+              <span className="text-foreground">Tab</span>{' '}
+              <span className="text-primary">Pilot</span>
             </span>
             <div className="flex-1" />
-            {panelButtons.map(({ id, icon: Icon, label, panel }) => (
-              <Tooltip key={id}>
+            {/* More menu — genuinely secondary panels (Settings lives bottom-right) */}
+            <DropdownMenu>
+              <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    data-testid={`${id}-toggle-btn`}
-                    onClick={() => setActivePanel(activePanel === panel ? null : panel)}
-                    className={`cursor-pointer p-1.5 rounded-md transition-all duration-150
-                      ${activePanel === panel
-                        ? 'text-primary bg-primary/15'
-                        : 'text-foreground/50 hover:text-foreground hover:bg-[hsl(var(--hover-medium))]'
-                      } active:scale-95`}
-                  >
-                    <Icon size={13} strokeWidth={1.8} />
-                  </button>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      data-testid="advanced-menu-btn"
+                      aria-label="Advanced menu"
+                      className={`cursor-pointer p-1.5 rounded-md transition-all duration-150 active:scale-95
+                        ${['heatmap', 'autoclose', 'help'].includes(activePanel)
+                          ? 'text-primary bg-primary/15'
+                          : 'text-foreground/50 hover:text-foreground hover:bg-[hsl(var(--hover-medium))]'
+                        }`}
+                    >
+                      <SlidersHorizontal size={13} strokeWidth={1.8} />
+                    </button>
+                  </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px] font-body">{label}</TooltipContent>
+                <TooltipContent side="bottom" className="text-[10px] font-body">Advanced</TooltipContent>
               </Tooltip>
-            ))}
+              <DropdownMenuContent align="end" className="w-44 font-body">
+                {advancedItems.map((item, i) => {
+                  if (item.type === 'label') {
+                    return <DropdownMenuLabel key={`l${i}`} className="text-[10px] text-muted-foreground/60 font-normal uppercase tracking-wider">{item.text}</DropdownMenuLabel>;
+                  }
+                  if (item.id?.startsWith('sep')) {
+                    return <DropdownMenuSeparator key={item.id} />;
+                  }
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem key={item.id} onClick={item.onClick} data-testid={`advanced-${item.id}`} className="text-xs gap-2 cursor-pointer">
+                      <Icon size={13} strokeWidth={1.5} /> {item.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* Collapse — only in web preview mode (sidePanel has no collapse API) */}
             {onCollapse && !isExtensionContext() && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     data-testid="collapse-sidebar-btn"
+                    aria-label="Collapse sidebar"
                     onClick={() => onCollapse()}
                     className="p-1.5 rounded-md transition-all duration-150 text-foreground/50 hover:text-foreground hover:bg-[hsl(var(--hover-medium))] active:scale-95"
                   >
@@ -429,7 +488,7 @@ export function Sidebar({ onCollapse }) {
               data-testid="select-all-checkbox"
               title={selectedTabIds.size === filteredAllTabs.length ? 'Deselect all' : 'Select all'}
             >
-              <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center transition-all duration-150
+              <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center cursor-pointer transition-all duration-150
                 ${selectedTabIds.size === filteredAllTabs.length
                   ? 'bg-primary border-primary'
                   : selectedTabIds.size > 0
@@ -483,15 +542,13 @@ export function Sidebar({ onCollapse }) {
         <ScrollArea className="flex-1">
           <div className="w-full pr-1.5" data-testid="sidebar-scroll-content">
           {activePanel === 'settings' ? (
-            <div className="animate-panel-enter"><SettingsPanel settings={settings} onUpdate={updateSetting} /></div>
+            <div className="animate-panel-enter"><SettingsPanel settings={settings} onUpdate={updateSetting} onOpenProfiles={() => setActivePanel('profiles')} /></div>
           ) : activePanel === 'heatmap' ? (
             <div className="animate-panel-enter">
               <HeatmapPanel allTabs={tabs.allTabs} onSwitch={handleSwitchTab} selectMode={selectMode} selectedTabIds={selectedTabIds} onToggleSelect={toggleTabSelection} />
             </div>
           ) : activePanel === 'help' ? (
             <div className="animate-panel-enter"><HelpPanel onBack={() => setActivePanel(null)} /></div>
-          ) : activePanel === 'timeline' ? (
-            <div className="animate-panel-enter"><TabTimeline /></div>
           ) : activePanel === 'autoclose' ? (
             <div className="animate-panel-enter">
               <AutoClosePanel allTabs={filteredAllTabs} onClose={handleCloseTab} onAutoClose={tabs.closeTab} settings={settings} onUpdateSetting={updateSetting} visitCounts={visitCounts} onKeepOpen={handleKeepOpenTab} />
@@ -500,6 +557,8 @@ export function Sidebar({ onCollapse }) {
             <div className="animate-panel-enter"><ProfilePanel /></div>
           ) : (
             <div>
+              {/* Duplicate banner sits at the top, next to the tabs it refers to */}
+              <DuplicatePanel allTabs={filteredAllTabs} duplicates={duplicateInfo.groups} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
               {/* Favorites section — proper card (border + rounded + tint)
                   so it reads as a distinct group. Stars are hidden on
                   TabItems inside (via hideStar) because the section header
@@ -515,7 +574,7 @@ export function Sidebar({ onCollapse }) {
                       <span className="text-[11px] font-heading font-semibold text-primary/90 truncate">
                         Favorites
                       </span>
-                      <span className="text-[8px] font-mono text-primary/50 ml-auto">{favoritedTabs.length}</span>
+                      <span className="text-[11px] font-mono text-primary/50 ml-auto">{favoritedTabs.length}</span>
                     </div>
                     <div className="pb-1">
                       {favoritedTabs.map(tab => (
@@ -570,13 +629,27 @@ export function Sidebar({ onCollapse }) {
               ) : (
                 <DomainView allTabs={filteredAllTabs} {...sharedTabProps} />
               )}
-              <DuplicatePanel allTabs={filteredAllTabs} onCloseDuplicates={handleCloseDuplicates} onCloseTab={handleCloseTab} />
+              {(filteredAllTabs.length === 0 || (search.query.trim() && search.resultCount === 0)) && (
+                <div className="px-4 py-12 text-center" data-testid="empty-state">
+                  <p className="text-[12px] font-body text-muted-foreground">
+                    {search.query ? `No tabs match "${search.query}"` : 'No tabs open'}
+                  </p>
+                  {search.query && (
+                    <button
+                      onClick={search.clearSearch}
+                      className="cursor-pointer mt-2 text-[11px] font-heading font-semibold text-primary hover:underline"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
           </div>
         </ScrollArea>
 
-        <ProfileSwitcher onOpenSetup={() => setActivePanel('profiles')} allTabs={filteredAllTabs} suspendedCount={tabs.suspendedTabs.size} />
+        <ProfileSwitcher onOpenSettings={() => setActivePanel('settings')} onOpenHelp={() => setActivePanel('help')} onOpenProfiles={() => setActivePanel('profiles')} allTabs={filteredAllTabs} suspendedCount={tabs.suspendedTabs.size} dupCount={duplicateInfo.count} />
       </div>
     </TooltipProvider>
   );

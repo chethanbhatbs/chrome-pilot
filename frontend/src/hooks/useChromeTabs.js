@@ -15,7 +15,7 @@ import {
   chromeDuplicateTab, chromeMoveTab, chromeMoveTabToNewWindow,
   chromeCreateNewTab, chromeCreateTabInWindow, chromeCreateNewWindow,
   chromeCloseWindow, chromeMinimizeWindow, chromeMuteAll, chromeUnmuteAll,
-  chromeCloseDuplicates, chromeRestoreSession, chromeDiscardTab, chromeHideTabs, chromeUnhideTabs, chromeOnTabsUpdated,
+  chromeCloseDuplicates, chromeRestoreSession, chromeDiscardTab, chromeReloadTab, chromeHideTabs, chromeUnhideTabs, chromeOnTabsUpdated,
   chromeUndoCloseTab, chromeStorageGet, chromeStorageSet,
 } from '@/utils/chromeAdapter';
 
@@ -26,13 +26,21 @@ import {
 export function useChromeTabs() {
   const [windows, setWindows] = useState([]);
   const [tabGroups, setTabGroups] = useState([]);
-  const [suspendedTabs, setSuspendedTabs] = useState(new Set());
+  // Optimistic overlay only — the real "is this tab suspended" truth is Chrome's
+  // `tab.discarded` flag (see the derived `suspendedTabs` below). This set holds
+  // tabs we just asked Chrome to discard, until the next refresh confirms it.
+  const [pendingSuspend, setPendingSuspend] = useState(new Set());
   const [tabNotes, setTabNotes] = useState({});
   const [windowNames, setWindowNames] = useState({});
   const refreshRef = useRef(null);
   const debounceRef = useRef(null);
   // Track lastAccessed ourselves — chrome.tabs.query() doesn't return it reliably
   const lastAccessedRef = useRef({});
+  // Signatures of the last applied state — used to skip no-op re-renders. The 5s
+  // poll fires constantly; without this the whole tree re-renders even when
+  // nothing changed, which is the main render cost at high tab counts.
+  const winSigRef = useRef('');
+  const groupSigRef = useRef('');
 
   // Load persisted data from chrome.storage on mount
   useEffect(() => {
@@ -52,9 +60,17 @@ export function useChromeTabs() {
       wins.forEach(w => w.tabs?.forEach(t => {
         if (t.active) lastAccessedRef.current[t.id] = now;
       }));
-      setWindows(wins);
+      // Only push new state when something actually changed. Cheap O(n) string
+      // build beats an O(n) React re-render of every window/tab/row.
+      const winSig = JSON.stringify(wins.map(w => [
+        w.id, w.focused, w.state,
+        (w.tabs || []).map(t => [t.id, t.windowId, t.index, t.title, t.url,
+          t.active, t.pinned, t.audible, t.mutedInfo?.muted, t.groupId, t.status, t.discarded]),
+      ]));
+      if (winSig !== winSigRef.current) { winSigRef.current = winSig; setWindows(wins); }
       const groups = await chromeGetTabGroups();
-      setTabGroups(groups);
+      const groupSig = JSON.stringify(groups.map(g => [g.id, g.title, g.color, g.collapsed, g.windowId]));
+      if (groupSig !== groupSigRef.current) { groupSigRef.current = groupSig; setTabGroups(groups); }
     } catch (e) {
       console.error('Chrome tabs refresh error:', e);
     }
@@ -104,6 +120,33 @@ export function useChromeTabs() {
     }))),
     [windowsWithNames]
   );
+
+  // A tab is "suspended/paused" iff Chrome has discarded it (unloaded from
+  // memory). Deriving from that ground truth keeps the count accurate and
+  // self-healing — the old local-Set approach drifted (it only grew on our own
+  // suspend actions and never noticed when Chrome reloaded a tab, so e.g. the
+  // footer stayed stuck at "Paused 8"). pendingSuspend overlays the brief gap
+  // between asking Chrome to discard and the next refresh confirming it.
+  const suspendedTabs = useMemo(() => {
+    const s = new Set();
+    for (const t of allTabs) if (t.discarded) s.add(t.id);
+    for (const id of pendingSuspend) if (allTabs.some(t => t.id === id)) s.add(id);
+    return s;
+  }, [allTabs, pendingSuspend]);
+
+  // Once a discard lands (tab now reports discarded) or the tab is gone, drop it
+  // from the optimistic overlay so the overlay can never wrongly inflate the count.
+  useEffect(() => {
+    setPendingSuspend(prev => {
+      if (prev.size === 0) return prev;
+      const next = new Set();
+      for (const id of prev) {
+        const t = allTabs.find(x => x.id === id);
+        if (t && !t.discarded) next.add(id);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [allTabs]);
 
   const switchToTab = useCallback(async (tabId) => {
     lastAccessedRef.current[tabId] = Date.now();
@@ -203,31 +246,34 @@ export function useChromeTabs() {
   }, [windows]);
 
   const suspendTab = useCallback(async (tabId) => {
+    setPendingSuspend(prev => new Set([...prev, tabId]));
     await chromeDiscardTab(tabId);
-    setSuspendedTabs(prev => new Set([...prev, tabId]));
   }, []);
 
   const unsuspendTab = useCallback(async (tabId) => {
+    setPendingSuspend(prev => { const n = new Set(prev); n.delete(tabId); return n; });
     const tab = allTabs.find(t => t.id === tabId);
     if (tab) await chromeSwitchToTab(tabId, tab.windowId);
-    setSuspendedTabs(prev => { const n = new Set(prev); n.delete(tabId); return n; });
   }, [allTabs]);
 
   const suspendInactive = useCallback(async () => {
     const toSuspend = [];
     windows.forEach(w => w.tabs?.forEach(t => {
-      if (!t.active && !t.pinned && !t.audible) toSuspend.push(t.id);
+      if (!t.active && !t.pinned && !t.audible && !t.discarded) toSuspend.push(t.id);
     }));
+    setPendingSuspend(prev => new Set([...prev, ...toSuspend]));
     for (const id of toSuspend) await chromeDiscardTab(id);
-    setSuspendedTabs(new Set(toSuspend));
     return toSuspend.length;
   }, [windows]);
 
-  const unsuspendAll = useCallback(() => {
-    const count = suspendedTabs.size;
-    setSuspendedTabs(new Set());
-    return count;
-  }, [suspendedTabs]);
+  // Actually reload every discarded tab so they're truly un-suspended (the old
+  // version just cleared the local count while the tabs stayed discarded).
+  const unsuspendAll = useCallback(async () => {
+    const discarded = allTabs.filter(t => t.discarded).map(t => t.id);
+    setPendingSuspend(new Set());
+    for (const id of discarded) await chromeReloadTab(id);
+    return discarded.length;
+  }, [allTabs]);
 
   const setTabNote = useCallback((tabId, note) => {
     setTabNotes(prev => {

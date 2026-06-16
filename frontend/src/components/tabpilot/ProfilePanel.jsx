@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, ArrowRightLeft, AlertTriangle, Terminal, RefreshCw, Check, ShieldCheck, Copy, UserPlus, Trash2 } from 'lucide-react';
+import { Users, ArrowRightLeft, AlertTriangle, RefreshCw, Check, ShieldCheck, UserPlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   isExtensionContext, chromeNativeHostPing, chromeGetProfiles, chromeSwitchProfile,
@@ -98,7 +98,7 @@ export function ProfilePanel() {
     const updated = [...hiddenProfiles, directory];
     setHiddenProfiles(updated);
     chromeStorageSet({ tabpilot_hidden_profiles: updated });
-    toast.success(`"${p?.name || directory}" removed from ChromePilot`);
+    toast.success(`"${p?.name || directory}" removed from Tab Pilot`);
   }, [profiles, hiddenProfiles]);
 
   const handleSelectAsMe = useCallback((directory) => {
@@ -108,15 +108,19 @@ export function ProfilePanel() {
     toast.success(`Profile set to "${p?.name || directory}"`);
   }, [profiles]);
 
-  const copyExtensionId = useCallback(() => {
-    if (!isExtensionContext()) return;
-    const id = chrome.runtime.id;
-    navigator.clipboard.writeText(id).then(() => {
-      toast.success('Extension ID copied!');
-    }).catch(() => {
-      toast.info(`ID: ${id}`);
-    });
-  }, []);
+  // Cache the active profile's display info (name/email/picture) so the footer
+  // can render its avatar instantly without calling the native host itself.
+  useEffect(() => {
+    if (!isExtensionContext() || !currentProfile || !profiles.length) return;
+    const p = profiles.find(pr => pr.directory === currentProfile);
+    if (p) {
+      chromeStorageSet({
+        tabpilot_active_profile: {
+          directory: p.directory, name: p.name, userName: p.userName, picture: p.picture || null,
+        },
+      });
+    }
+  }, [currentProfile, profiles]);
 
   // Loading
   if (loading) {
@@ -142,56 +146,40 @@ export function ProfilePanel() {
             <span className="text-[11px] font-heading font-semibold text-amber-500">One-Time Setup</span>
           </div>
           <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-            Profile switching needs a tiny helper script. Follow these steps:
+            Profile switching needs a tiny one-time helper. No typing — just double-click a file:
           </p>
 
-          {/* Step 1: Copy Extension ID */}
-          <div className="space-y-1">
-            <span className="text-[9px] font-heading font-bold text-foreground/70 uppercase tracking-wider">Step 1 — Copy your Extension ID</span>
-            {isExtensionContext() ? (
-              <button
-                onClick={copyExtensionId}
-                className="cursor-pointer w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-secondary/80
-                  border border-border/40 hover:border-primary/30 transition-colors text-left"
-                data-testid="copy-ext-id-btn"
-              >
-                <div className="flex-1 min-w-0">
-                  <span className="text-[9px] text-muted-foreground/60 block">Your extension ID:</span>
-                  <span className="text-[10px] font-mono text-foreground/80 truncate block">{chrome.runtime?.id || '...'}</span>
-                </div>
-                <Copy size={12} className="text-primary shrink-0" strokeWidth={1.5} />
-              </button>
-            ) : (
-              <div className="px-2.5 py-1.5 rounded-md bg-secondary/80 border border-border/40">
-                <span className="text-[9px] text-muted-foreground/60 block">Go to:</span>
-                <span className="text-[10px] font-mono text-foreground/80">chrome://extensions</span>
-                <span className="text-[9px] text-muted-foreground/60 block mt-0.5">Enable Developer mode → find ChromePilot → copy the ID</span>
-              </div>
-            )}
-          </div>
-
-          {/* Step 2: Run install script */}
-          <div className="space-y-1">
-            <span className="text-[9px] font-heading font-bold text-foreground/70 uppercase tracking-wider">Step 2 — Run in Terminal</span>
-            <div className="bg-secondary rounded-md p-2 font-mono text-[9px] text-foreground/80 leading-relaxed">
-              <div className="flex items-center gap-1 mb-1 text-muted-foreground/50">
-                <Terminal size={9} strokeWidth={2} />
-                <span>Terminal</span>
-              </div>
-              <div className="select-all">
-                cd chrome-pilot/native-host<br />
-                bash install.sh
-              </div>
+          {/* Dead-simple: double-click install.command. It auto-detects everything
+              (its own path + the Tab Pilot extension ID). No Terminal, no dragging. */}
+          <div className="space-y-1.5">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">
+                Open the <span className="font-mono">native-host</span> folder (inside where you saved Tab Pilot).
+              </p>
             </div>
-            <p className="text-[9px] text-muted-foreground/60">
-              Paste the extension ID when prompted. Then restart Chrome.
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">
+                Double-click <span className="font-mono font-semibold text-foreground">install.command</span>. A window opens, sets things up, and closes.
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">
+                Restart Chrome, then click Connect below.
+              </p>
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 leading-relaxed pl-6">
+              First time, macOS may say it's from an unidentified developer — right-click
+              <span className="font-mono"> install.command</span> → Open → Open.
             </p>
           </div>
 
           {/* Safety notice */}
           <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-md bg-primary/[0.04] border border-primary/10">
             <ShieldCheck size={11} className="text-primary shrink-0 mt-0.5" strokeWidth={2} />
-            <p className="text-[9px] text-muted-foreground/80 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
               <span className="font-semibold text-primary">100% Safe</span> — The script only reads Chrome's profile names (not passwords, history, or browsing data). It makes zero network requests. You can <a href="#" onClick={(e) => { e.preventDefault(); if (isExtensionContext()) chrome.tabs.create({ url: 'https://github.com/chethan-sudo/chrome-pilot/blob/main/native-host/tabpilot_profiles.py' }); }} className="underline text-primary/80 hover:text-primary">review the source code</a>.
             </p>
           </div>
@@ -217,7 +205,7 @@ export function ProfilePanel() {
         <Header />
         <button
           onClick={() => { setHiddenProfiles([]); chromeStorageSet({ tabpilot_hidden_profiles: [] }); loadProfiles(); }}
-          className="cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-heading font-semibold
+          className="cursor-pointer flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-heading font-semibold
             text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
           data-testid="profile-sync-btn"
         >
@@ -234,7 +222,7 @@ export function ProfilePanel() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-heading font-bold truncate">{profile.name}</span>
-                <span className="text-[7px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
+                <span className="text-[10px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
                   Active
                 </span>
               </div>
@@ -261,7 +249,7 @@ export function ProfilePanel() {
               <div className="flex-1 min-w-0">
                 <span className="text-[11px] font-heading font-semibold truncate block">{profile.name}</span>
               </div>
-              <span className="text-[9px] text-primary font-heading font-semibold shrink-0">This is me</span>
+              <span className="text-[11px] text-primary font-heading font-semibold shrink-0">This is me</span>
             </button>
           ))}
         </div>
@@ -270,7 +258,7 @@ export function ProfilePanel() {
       {/* Other profiles — switch to */}
       {currentProfile && profiles.filter(p => p.directory !== currentProfile && !hiddenProfiles.includes(p.directory)).length > 0 && (
         <div className="space-y-1">
-          <span className="text-[9px] font-heading font-semibold text-muted-foreground/60 uppercase tracking-wider px-0.5">
+          <span className="text-[11px] font-heading font-semibold text-muted-foreground/60 uppercase tracking-wider px-0.5">
             Switch to
           </span>
           {profiles.filter(p => p.directory !== currentProfile && !hiddenProfiles.includes(p.directory)).map(profile => {
@@ -290,7 +278,7 @@ export function ProfilePanel() {
                   <div className="flex-1 min-w-0">
                     <span className="text-[11px] font-heading font-semibold truncate block">{profile.name}</span>
                     {(profile.userName || profile.gaiaName) && (
-                      <span className="text-[9px] text-muted-foreground/60 truncate block">{profile.userName || profile.gaiaName}</span>
+                      <span className="text-[11px] text-muted-foreground/60 truncate block">{profile.userName || profile.gaiaName}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 text-primary shrink-0">
@@ -305,7 +293,7 @@ export function ProfilePanel() {
                   onClick={() => handleRemoveFromExtension(profile.directory)}
                   className="cursor-pointer p-1.5 rounded-md text-muted-foreground/40 hover:text-destructive
                     hover:bg-destructive/10 transition-colors shrink-0"
-                  title="Remove from ChromePilot"
+                  title="Remove from Tab Pilot"
                   data-testid={`remove-profile-${profile.directory}`}
                 >
                   <Trash2 size={11} strokeWidth={1.5} />
@@ -342,7 +330,7 @@ export function ProfilePanel() {
             data-testid="profile-reidentify-btn"
           >
             <RefreshCw size={9} strokeWidth={1.5} className="text-muted-foreground/70" />
-            <span className="text-[9px] font-body text-muted-foreground/70">Wrong profile? Re-identify</span>
+            <span className="text-[11px] font-body text-muted-foreground/70">Wrong profile? Re-identify</span>
           </button>
         )}
       </div>

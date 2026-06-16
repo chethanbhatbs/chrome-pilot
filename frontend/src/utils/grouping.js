@@ -8,7 +8,7 @@ export function getDomain(url) {
 
 // Chrome caches favicons matching the site's active theme. When browsing in dark
 // mode, sites like GitHub/ChatGPT serve white/light favicons. Chrome stores these
-// (as SVG, data URI, or PNG). Displaying a white icon on ChromePilot's light panel
+// (as SVG, data URI, or PNG). Displaying a white icon on Tab Pilot's light panel
 // makes it invisible. Fix: use Google S2 for public domains (always returns
 // properly colored PNG), Chrome's favicon only for internal/private domains.
 function _isInternalDomain(hostname) {
@@ -24,6 +24,16 @@ function _isInternalDomain(hostname) {
 }
 
 export function getFaviconUrl(url, chromeFavIconUrl) {
+  // Prefer Chrome's OWN favicon when it's a real fetched http(s) image. Chrome
+  // already loaded it, so it's the genuine site icon — Google S2 returns a blank
+  // globe for many hosts (e.g. *.appspot.com), which is why real icons went missing.
+  // We skip data:/SVG favicons here because Chrome caches theme-tinted (often white)
+  // versions of those in dark mode; those fall through to S2 below.
+  if (chromeFavIconUrl
+      && /^https?:\/\//i.test(chromeFavIconUrl)
+      && !/\.svg(\?|#|$)/i.test(chromeFavIconUrl)) {
+    return chromeFavIconUrl;
+  }
   try {
     const hostname = new URL(url).hostname;
     // Internal/private domains: Chrome's favicon is the only source that works
@@ -31,8 +41,7 @@ export function getFaviconUrl(url, chromeFavIconUrl) {
     if (_isInternalDomain(hostname)) {
       return chromeFavIconUrl || null;
     }
-    // Public domains: Google S2 — always returns a properly themed, colored PNG
-    // regardless of the user's browser dark/light mode setting
+    // Public domains with no usable Chrome favicon: Google S2 returns a colored PNG.
     return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
   } catch {
     // Can't parse URL — fall back to Chrome's favicon
@@ -165,7 +174,10 @@ export function normalizeUrl(url) {
   }
   try {
     const u = new URL(url);
-    return u.origin;
+    // Two tabs are duplicates only when they point to the SAME page. We ignore
+    // the #hash (in-page anchors) but keep path + query, so different pages on
+    // the same site (e.g. /inbox vs /compose) are NOT treated as duplicates.
+    return u.origin + u.pathname.replace(/\/$/, '') + u.search;
   } catch {
     return url;
   }

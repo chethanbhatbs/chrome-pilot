@@ -2,6 +2,11 @@ import { useRef, useEffect, useState } from 'react';
 import { Search, X, Globe } from 'lucide-react';
 import { FaviconWithFallback } from './FaviconWithFallback';
 
+// One hint on every OS. Ctrl+K works on macOS, Windows and Linux alike — the
+// handler accepts both Ctrl and ⌘ — so we keep the label uniform instead of
+// branching per platform (matches the tour copy too).
+const SHORTCUT_HINT = 'Ctrl+K';
+
 export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef: externalRef, suggestions, onSwitchTab }) {
   const internalRef = useRef(null);
   const ref = externalRef || internalRef;
@@ -72,7 +77,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
         onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); setSelectedIdx(-1); }}
         onFocus={() => setShowSuggestions(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Search tabs... (Cmd+K)"
+        placeholder={`Search tabs... (${SHORTCUT_HINT})`}
         className="w-full h-8 pl-7 pr-10 text-[11px] bg-input/60 rounded-md
           border border-border/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 focus:outline-none
           placeholder:text-muted-foreground/40 text-foreground font-body"
@@ -80,7 +85,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
         {query && (
           <>
-            <span className="text-[9px] text-muted-foreground/50 font-mono">{resultCount}</span>
+            <span className="text-[11px] text-muted-foreground/50 font-mono">{resultCount}</span>
             <button
               data-testid="search-clear-btn"
               onClick={() => { clearSearch(); setShowSuggestions(false); }}
@@ -115,7 +120,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
                   <FaviconWithFallback url={s.url} favIconUrl={s.favIconUrl} className="w-3.5 h-3.5 rounded-[2px] shrink-0" />
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="text-[11px] font-body truncate text-foreground/80">{s.title}</div>
-                    <div className="text-[9px] text-muted-foreground/50 truncate">{s.domain}</div>
+                    <div className="text-[11px] text-muted-foreground/50 truncate">{s.domain}</div>
                   </div>
                 </>
               ) : (
@@ -124,7 +129,7 @@ export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef:
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="text-[11px] font-body truncate text-foreground/80">{s.domain}</div>
                   </div>
-                  <span className="text-[9px] text-muted-foreground/50 font-mono shrink-0">{s.count} tabs</span>
+                  <span className="text-[11px] text-muted-foreground/50 font-mono shrink-0">{s.count} tabs</span>
                 </>
               )}
             </button>

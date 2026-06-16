@@ -1,5 +1,5 @@
 import { getDomain, getFaviconUrl, groupByDomain, handleFaviconError } from '@/utils/grouping';
-import { Globe, ChevronRight, Check } from 'lucide-react';
+import { Globe, ChevronRight, Check, X, Pin, Volume2, Pause } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -82,7 +82,7 @@ function DomainGroup({
                 onClick={handleSelectAllDomain}
                 className="cursor-pointer shrink-0"
               >
-                <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center transition-all duration-150
+                <div className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center cursor-pointer transition-all duration-150
                   ${allSelected ? 'bg-primary border-primary' : someSelected ? 'bg-primary/30 border-primary/60' : 'border-muted-foreground/30'}`}>
                   {allSelected && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
                   {someSelected && !allSelected && <div className="w-1.5 h-0.5 rounded-full bg-primary" />}
@@ -105,12 +105,13 @@ function DomainGroup({
               {activeTabs > 0 && (
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               )}
-              <span className="text-[9px] text-muted-foreground/60 font-mono">{tabs.length}</span>
+              <span className="text-[11px] text-muted-foreground/60 font-mono">{tabs.length}</span>
             </div>
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="pl-5 pb-0.5">
+          {/* Indented + a subtle guide line so child tabs read as nested under the domain */}
+          <div className="ml-[19px] pl-2.5 border-l border-border/60 pb-0.5">
             {(() => {
               const TAB_LIMIT = 10;
               const visibleTabs = (!showAll && tabs.length > TAB_LIMIT) ? tabs.slice(0, TAB_LIMIT) : tabs;
@@ -155,8 +156,6 @@ function DomainGroup({
 }
 
 function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspended, onHoverEnter, onHoverLeave, focusedWindowId, selectMode, isSelected, onToggleSelect }) {
-  const { X, Pin, Volume2, Pause } = require('lucide-react');
-
   return (
     <div
       data-testid={`domain-tab-${tab.id}`}
@@ -177,15 +176,11 @@ function DomainTabItem({ tab, compact, highlightText, onSwitch, onClose, suspend
         ${isSelected ? 'bg-primary/[0.08]' : ''}
       `}
     >
-      {selectMode ? (
+      {selectMode && (
         <div className={`w-3 h-3 rounded-[2px] border flex items-center justify-center shrink-0 transition-all duration-150
           ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
           {isSelected && <Check size={8} className="text-primary-foreground" strokeWidth={3} />}
         </div>
-      ) : (
-        (tab.active && tab.windowId === focusedWindowId) && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-r-full bg-primary" />
-        )
       )}
       <span className={`font-body leading-tight truncate flex-1 min-w-0 ${compact ? 'text-[11px]' : 'text-[11.5px]'}`}>
         {highlightText ? highlightText(tab.title) : tab.title}
