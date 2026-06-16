@@ -207,35 +207,27 @@ Then reload the extension in `chrome://extensions/`.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────┐
-│  Chrome Side Panel (sidepanel/index.html) │
-│  ┌───────────────────────────────────┐  │
-│  │         React Application          │  │
-│  │  ┌─────────┐  ┌────────────────┐  │  │
-│  │  │ Sidebar  │  │  Feature Panels │  │  │
-│  │  │ (main)   │  │  (sessions,   │  │  │
-│  │  │          │  │   workspaces, │  │  │
-│  │  │          │  │   focus, etc.) │  │  │
-│  │  └─────────┘  └────────────────┘  │  │
-│  └───────────────────────────────────┘  │
-│                    │                      │
-│          ┌─────────┴──────────┐          │
-│          │  chromeAdapter.js   │          │
-│          │  (Chrome API layer) │          │
-│          └─────────┬──────────┘          │
-│                    │                      │
-│     ┌──────────────┼──────────────┐      │
-│     │              │              │      │
-│  chrome.tabs  chrome.windows  chrome.    │
-│              chrome.tabGroups  storage   │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph SP["Chrome Side Panel · sidepanel/index.html"]
+        RA["React App"]
+        RA --> SB["Sidebar (main tab tree, search)"]
+        RA --> FP["Feature panels<br/>Activity · Focus · Auto-Close · Profiles · Settings"]
+        SB --> CA
+        FP --> CA["chromeAdapter.js<br/>(Chrome API layer)"]
+    end
 
-┌──────────────────┐
-│  background.js    │  ← Service worker: auto-opens side panel,
-│  (MV3 SW)        │     enforces Focus Mode, listens for
-│                  │     tab/window events, injects notifications
-└──────────────────┘
+    CA --> T["chrome.tabs"]
+    CA --> W["chrome.windows"]
+    CA --> G["chrome.tabGroups"]
+    CA --> S["chrome.storage"]
+    CA --> H["chrome.history"]
+
+    BG["background.js · MV3 service worker"]
+    BG -. "auto-opens panel · enforces Focus Mode · auto-closes idle tabs · tracks active-tab time · tab/window events" .-> SP
+
+    NH["native-host (optional)<br/>Chrome profile switching via native messaging"]
+    CA -. "ping / switch" .-> NH
 ```
 
 ### Key Design Decisions
