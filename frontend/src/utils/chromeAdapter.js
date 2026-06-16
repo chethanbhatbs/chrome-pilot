@@ -5,6 +5,8 @@
  * In web context: falls back to mock data.
  */
 
+import { normalizeUrl } from './grouping';
+
 const IS_EXTENSION = typeof chrome !== 'undefined' && !!chrome?.tabs?.query;
 
 export function isExtensionContext() {
@@ -166,20 +168,21 @@ export async function chromeCloseDuplicates() {
   const groups = {};
   for (const tab of tabs) {
     if (!tab.url) continue;
-    let normalized;
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-      normalized = tab.url.replace(/\/$/, '');
-    } else {
-      try { normalized = new URL(tab.url).origin; } catch { continue; }
-    }
+    // Use the SAME duplicate rule as the rest of the app (full URL minus #hash).
+    // Previously this grouped by origin, which closed unrelated pages on the
+    // same site (e.g. gmail.com/inbox vs gmail.com/compose) — data loss.
+    const normalized = normalizeUrl(tab.url);
+    if (!normalized) continue;
     if (!groups[normalized]) groups[normalized] = [];
     groups[normalized].push(tab);
   }
   const toClose = [];
-  for (const tabs of Object.values(groups)) {
-    if (tabs.length <= 1) continue;
-    const keep = tabs.find(t => t.active) || tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
-    for (const t of tabs) { if (t.id !== keep.id) toClose.push(t.id); }
+  for (const group of Object.values(groups)) {
+    if (group.length <= 1) continue;
+    // Keep the active tab, else the most recently accessed copy.
+    const keep = group.find(t => t.active)
+      || [...group].sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
+    for (const t of group) { if (t.id !== keep.id) toClose.push(t.id); }
   }
   if (toClose.length > 0) await chrome.tabs.remove(toClose);
   return toClose.length;
@@ -343,6 +346,16 @@ export async function chromeDiscardTab(tabId) {
     await chrome.tabs.discard(tabId);
   } catch {
     // Tab might not be discardable
+  }
+}
+
+// Un-suspend a tab: reloading a discarded tab loads it back into memory
+// without switching to it (so "Resume all" doesn't yank focus around).
+export async function chromeReloadTab(tabId) {
+  try {
+    await chrome.tabs.reload(tabId);
+  } catch {
+    // Tab might be gone
   }
 }
 

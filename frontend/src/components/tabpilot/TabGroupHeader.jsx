@@ -8,7 +8,7 @@ export function TabGroupHeader({ group, collapsed, onToggle }) {
     <button
       data-testid={`tab-group-header-${group.id}`}
       onClick={onToggle}
-      className="flex items-center gap-1.5 w-full px-1.5 py-0.5 text-[9px] font-heading font-semibold tracking-tight
+      className="flex items-center gap-1.5 w-full px-1.5 py-0.5 text-[11px] font-heading font-semibold tracking-tight
         transition-colors duration-150 hover:bg-[hsl(var(--hover-subtle))] cursor-pointer"
     >
       <div
@@ -23,7 +23,7 @@ export function TabGroupHeader({ group, collapsed, onToggle }) {
         style={{ color: color.bg }}
       />
       {collapsed && (
-        <span className="text-[8px] text-muted-foreground/50 font-mono font-normal normal-case tracking-normal ml-auto">
+        <span className="text-[11px] text-muted-foreground/50 font-mono font-normal normal-case tracking-normal ml-auto">
           collapsed
         </span>
       )}

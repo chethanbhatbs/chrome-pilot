@@ -73,7 +73,7 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
     const now = Date.now();
     return allTabs
       .filter(tab => {
-        // Skip active, pinned, and recently visited (via ChromePilot click) tabs
+        // Skip active, pinned, and recently visited (via Tab Pilot click) tabs
         if (tab.active || tab.pinned) return false;
         if (visitCounts[tab.id]) return false;
         const domain = getDomain(tab.url);
@@ -162,7 +162,7 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
 
       {/* Inactivity timer presets */}
       <div>
-        <span className="text-[9px] font-heading text-muted-foreground/60 uppercase tracking-wider font-semibold">Inactivity Threshold</span>
+        <span className="text-[11px] font-heading text-muted-foreground/60 uppercase tracking-wider font-semibold">Inactivity Threshold</span>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {PRESETS.map(p => (
             <button
@@ -211,9 +211,9 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
       <div>
         <div className="flex items-center gap-1.5 mb-1">
           <Shield size={10} className="text-primary/60" strokeWidth={2} />
-          <span className="text-[9px] font-heading text-foreground/60 uppercase tracking-wider font-semibold">Whitelisted Domains</span>
+          <span className="text-[11px] font-heading text-foreground/60 uppercase tracking-wider font-semibold">Whitelisted Domains</span>
         </div>
-        <p className="text-[9px] text-muted-foreground mb-1.5">These domains will never be auto-closed.</p>
+        <p className="text-[11px] text-muted-foreground mb-1.5">These domains will never be auto-closed.</p>
         <div className="space-y-0.5 mb-2">
           {whitelist.map(domain => (
             <div key={domain} className="flex items-center justify-between py-1 px-2 rounded-md bg-card/50 border border-border/30"
@@ -268,12 +268,12 @@ export function AutoClosePanel({ allTabs, onClose, onAutoClose, settings, onUpda
                 <span className="text-[10px] font-body truncate flex-1 text-foreground/70">{tab.title}</span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Clock size={8} className="text-destructive/50" strokeWidth={2} />
-                  <span className="text-[8px] font-mono text-destructive/60">{tab.timeLeft}</span>
+                  <span className="text-[11px] font-mono text-destructive/60">{tab.timeLeft}</span>
                 </div>
               </div>
             ))}
             {atRiskTabs.length > 10 && (
-              <div className="text-[9px] text-muted-foreground/60 text-center py-1">
+              <div className="text-[11px] text-muted-foreground/60 text-center py-1">
                 +{atRiskTabs.length - 10} more
               </div>
             )}

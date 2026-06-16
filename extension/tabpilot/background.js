@@ -53,11 +53,16 @@ function notifySidepanel() {
   }, 100);
 }
 
+// Keep this in sync with normalizeUrl() in frontend/src/utils/grouping.js so the
+// command center and the side panel agree on what counts as a duplicate.
 function normalizeTabUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://')) {
+    return url.replace(/\/$/, '');
+  }
   try {
-    const parsed = new URL(url);
-    parsed.hash = '';
-    return parsed.href;
+    const u = new URL(url);
+    return u.origin + u.pathname.replace(/\/$/, '') + u.search;
   } catch {
     return url || '';
   }
@@ -332,8 +337,8 @@ function notifyFocusBlocked(reason) {
       if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://')) return;
 
       const messages = {
-        'new-tab': 'New tabs are blocked in Focus Mode',
-        'new-window': 'New windows are blocked in Focus Mode',
+        'new-tab': 'Staying on your focus tabs',
+        'new-window': 'New window opened outside Focus Mode',
         'switch-tab': 'This tab is not in your focus set',
       };
       const text = messages[reason] || 'Action blocked — Focus Mode active';
@@ -440,7 +445,7 @@ function startFocusGuard() {
         }
       }
     } catch {}
-  }, 500);
+  }, 1500); // light safety poll — event listeners do the real work
 }
 function stopFocusGuard() {
   if (focusGuardInterval) { clearInterval(focusGuardInterval); focusGuardInterval = null; }
@@ -449,9 +454,16 @@ function stopFocusGuard() {
 // Tab events
 chrome.tabs.onCreated.addListener((tab) => {
   notifySidepanel();
-  // Focus mode: close any newly created tab that isn't a focus tab
+  // Focus mode: keep the user on their focus tabs WITHOUT destroying content.
   if (focusModeState && !focusModeState.focusTabIds.has(tab.id)) {
-    chrome.tabs.remove(tab.id).catch(() => {});
+    // Only auto-close a brand-new BLANK tab (Ctrl+T / new-tab page) — there is
+    // nothing to lose. Tabs opened with a real URL (links, restored sessions)
+    // are never closed; we just pull focus back to a focus tab and notify.
+    const url = tab.pendingUrl || tab.url || '';
+    const isBlank = url === '' || url === 'about:blank' || url.startsWith('chrome://newtab');
+    if (isBlank) {
+      chrome.tabs.remove(tab.id).catch(() => {});
+    }
     enforceActiveFocusTab(tab.windowId);
     notifyFocusBlocked('new-tab');
   }
@@ -505,23 +517,12 @@ const panelOpenWindows = new Set();
 // Window events — also auto-open side panel in new/focused windows
 chrome.windows.onCreated.addListener((window) => {
   notifySidepanel();
-  // Focus mode: close any newly created window and return to a focus window
+  // Focus mode: NEVER close a window (it may hold real tabs the user wants).
+  // Just pull focus back to a focus window and notify — onFocusChanged also
+  // keeps the user on a focus window after this.
   if (focusModeState && window.type === 'normal') {
-    // Small delay to let Chrome finish creating the window before we close it
-    setTimeout(async () => {
-      try {
-        // Don't close if this window somehow contains focus tabs (edge case)
-        const winTabs = await chrome.tabs.query({ windowId: window.id });
-        const hasFocusTab = winTabs.some(t => focusModeState?.focusTabIds.has(t.id));
-        if (!hasFocusTab) {
-          await chrome.windows.remove(window.id);
-          panelOpenWindows.delete(window.id);
-          await enforceActiveFocusTab();
-          notifyFocusBlocked('new-window');
-        }
-      } catch {}
-    }, 100);
-    return; // Skip side panel open for windows we're about to close
+    enforceActiveFocusTab();
+    notifyFocusBlocked('new-window');
   }
   if (window.type === 'normal') {
     retrySidePanelOpen(window.id, [100, 300, 700, 1500, 3000]).then(() => {
@@ -585,3 +586,152 @@ try {
 
 // Initial badge
 updateBadge();
+
+// ── Active time tracking ──────────────────────────────────────────────────────
+// REAL, measured "time spent per site". Chrome's history API has no dwell time,
+// so we measure it ourselves: while a tab is the active tab in the focused window
+// AND the user is not idle, we accrue elapsed seconds to that tab's domain.
+// Forward-only (no historical data) and capped per segment to avoid counting a
+// tab left open while the user is away.
+const TIME_KEY = 'tabpilot_time';            // local: { 'YYYY-MM-DD': { domain: seconds } }
+const TIME_SEG_KEY = 'tabpilot_time_segment'; // session: { domain, startedAt }
+const SEGMENT_CAP_S = 1800;                   // never bank >30min from one segment
+const IDLE_THRESHOLD_S = 60;
+
+function timeDomain(url) {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '');
+    if (!h || h.startsWith('chrome') || h === 'newtab') return null;
+    return h;
+  } catch { return null; }
+}
+
+function timeDayKey(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function bankTimeSegment() {
+  try {
+    const { [TIME_SEG_KEY]: seg } = await chrome.storage.session.get(TIME_SEG_KEY);
+    if (!seg?.domain || !seg.startedAt) return;
+    const secs = Math.min(SEGMENT_CAP_S, Math.round((Date.now() - seg.startedAt) / 1000));
+    if (secs <= 0) return;
+    const key = timeDayKey(seg.startedAt);
+    const store = await chrome.storage.local.get(TIME_KEY);
+    const data = store[TIME_KEY] || {};
+    const day = data[key] || {};
+    day[seg.domain] = (day[seg.domain] || 0) + secs;
+    data[key] = day;
+    // Keep ~35 days of history; prune older.
+    const days = Object.keys(data).sort();
+    while (days.length > 35) delete data[days.shift()];
+    await chrome.storage.local.set({ [TIME_KEY]: data });
+  } catch {}
+}
+
+async function startTimeSegment(domain) {
+  if (!domain) { await chrome.storage.session.remove(TIME_SEG_KEY); return; }
+  await chrome.storage.session.set({ [TIME_SEG_KEY]: { domain, startedAt: Date.now() } });
+}
+
+// Bank whatever was accruing, then start a fresh segment for the currently
+// focused tab — or pause (no segment) if idle / no focused window.
+let _retrackLock = false;
+async function retrackTime() {
+  if (_retrackLock) return;
+  _retrackLock = true;
+  try {
+    await bankTimeSegment();
+    let domain = null;
+    try {
+      const idle = await chrome.idle.queryState(IDLE_THRESHOLD_S);
+      if (idle === 'active') {
+        const win = await chrome.windows.getLastFocused({ populate: false });
+        if (win?.focused && win.id !== chrome.windows.WINDOW_ID_NONE) {
+          const [tab] = await chrome.tabs.query({ active: true, windowId: win.id });
+          domain = tab ? timeDomain(tab.url) : null;
+        }
+      }
+    } catch {}
+    await startTimeSegment(domain);
+  } finally {
+    _retrackLock = false;
+  }
+}
+
+try {
+  chrome.idle.setDetectionInterval(IDLE_THRESHOLD_S);
+  chrome.idle.onStateChanged.addListener(retrackTime);
+  chrome.tabs.onActivated.addListener(retrackTime);
+  chrome.windows.onFocusChanged.addListener(retrackTime);
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url && tab.active) retrackTime();
+  });
+  // Periodic flush so long uninterrupted focus still accrues (and survives the
+  // service worker suspending — the alarm wakes it back up).
+  chrome.alarms.create('tabpilot-time-flush', { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'tabpilot-time-flush') retrackTime(); });
+  retrackTime(); // start on SW load
+} catch (e) { console.error('time tracking init error:', e); }
+
+// ── Background auto-close ────────────────────────────────────────────────
+// Closes idle tabs even when the side panel is shut. Previously the closing
+// logic lived ONLY in the Auto-Close panel's React effect, so tabs were closed
+// just when that panel happened to be open (that's the "tabs vanished the
+// moment I opened the panel" bug). Now an alarm evaluates every minute, plus a
+// settings-change listener so toggling it on closes overdue tabs immediately.
+const AC_SETTINGS_KEY = 'tabpilot_settings';
+
+function acHostMatches(host, whitelist) {
+  if (!host) return false;
+  return whitelist.some(w => host === w || host.endsWith('.' + w));
+}
+
+async function runAutoClose() {
+  try {
+    const store = await chrome.storage.local.get(AC_SETTINGS_KEY);
+    const s = store[AC_SETTINGS_KEY];
+    if (!s || !s.autoCloseEnabled) return;
+
+    const minutes = s.autoClosePreset === 'custom'
+      ? parseInt(s.autoCloseCustomMinutes, 10) || 0
+      : parseInt(s.autoClosePreset, 10) || 0;
+    if (!minutes || minutes <= 0) return;
+
+    const whitelist = (s.autoCloseWhitelist || []).map(d => String(d).toLowerCase());
+    const thresholdMs = minutes * 60000;
+    const now = Date.now();
+
+    // Tabs hidden by Focus mode live in a "Hidden" group — never auto-close those.
+    let hiddenGroupIds = new Set();
+    try {
+      const groups = await chrome.tabGroups.query({});
+      hiddenGroupIds = new Set(groups.filter(g => g.title === 'Hidden').map(g => g.id));
+    } catch {}
+
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.active || tab.pinned || tab.audible) continue;       // safe tabs
+      if (tab.groupId != null && hiddenGroupIds.has(tab.groupId)) continue;
+      if (!/^https?:\/\//.test(tab.url || '')) continue;           // leave chrome:// / new-tab alone
+      let host = '';
+      try { host = new URL(tab.url).hostname.replace(/^www\./, '').toLowerCase(); } catch { continue; }
+      if (acHostMatches(host, whitelist)) continue;                // whitelisted
+      const last = tab.lastAccessed || 0;                          // Chrome-native last-active time
+      if (!last) continue;                                         // unknown → don't touch
+      if (now - last >= thresholdMs) {
+        try { await chrome.tabs.remove(tab.id); } catch {}
+      }
+    }
+  } catch (e) { console.error('auto-close error:', e); }
+}
+
+try {
+  chrome.alarms.create('tabpilot-autoclose', { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'tabpilot-autoclose') runAutoClose(); });
+  // React promptly when the user enables/changes the rule (don't wait a minute).
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[AC_SETTINGS_KEY]) runAutoClose();
+  });
+} catch (e) { console.error('auto-close init error:', e); }

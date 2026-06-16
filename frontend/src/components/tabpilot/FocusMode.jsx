@@ -169,7 +169,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
         <div className="mx-4 mb-3 p-2.5 rounded-lg bg-card border border-border text-center">
           <div className="flex items-center justify-center gap-1.5 text-muted-foreground mb-0.5">
             <Timer size={10} strokeWidth={1.5} />
-            <span className="text-[9px] font-heading uppercase tracking-wider">Focus Time</span>
+            <span className="text-[11px] font-heading uppercase tracking-wider">Focus Time</span>
           </div>
           <span className="text-2xl font-mono font-bold text-foreground tracking-wider">
             {formatTime(elapsed)}
@@ -273,7 +273,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
                 <span className="text-[11px] font-heading font-semibold tracking-tight flex-1 truncate">
                   {win.name || 'Window'}
                 </span>
-                <span className="text-[9px] text-muted-foreground/60 font-mono">{winTabs.length}</span>
+                <span className="text-[11px] text-muted-foreground/60 font-mono">{winTabs.length}</span>
               </div>
 
               {/* Tabs */}
@@ -326,7 +326,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
               Access hidden tabs until you exit
             </li>
           </ul>
-          <p className="text-[9px] text-muted-foreground/70 mb-3">
+          <p className="text-[11px] text-muted-foreground/70 mb-3">
             Switching to other apps (VS Code, Finder, etc.) is still allowed.
           </p>
           <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ export function FocusMode({ allTabs, windows, onSwitch, onExit, onHideTabs, onUn
 function FocusCheckbox({ checked, indeterminate }) {
   return (
     <div
-      className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all duration-150
+      className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center cursor-pointer shrink-0 transition-all duration-150
         ${checked
           ? 'bg-primary border-primary'
           : indeterminate

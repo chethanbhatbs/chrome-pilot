@@ -1,24 +1,39 @@
 #!/usr/bin/env bash
 # =============================================================================
-# TabPilot Extension Builder
-# Run from /app: bash build-extension.sh
+# Tab Pilot Extension Builder
+# Run from anywhere: bash build-extension.sh
+# Builds the React app and packages it into extension/tabpilot/sidepanel.
 # =============================================================================
-set -e
+set -euo pipefail
 
-echo "==> Building React app for Chrome Extension..."
-cd /app/frontend
-PUBLIC_URL="." GENERATE_SOURCEMAP=false yarn build
+# Resolve the repo root from this script's location (portable — no hardcoded /app).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FRONTEND="$ROOT/frontend"
+EXT_SIDEPANEL="$ROOT/extension/tabpilot/sidepanel"
+
+# Pick a package manager: prefer yarn when a yarn.lock exists, else npm.
+if command -v yarn >/dev/null 2>&1 && [ -f "$FRONTEND/yarn.lock" ]; then
+  RUN="yarn"
+elif command -v npm >/dev/null 2>&1; then
+  RUN="npm run"
+else
+  echo "ERROR: need either yarn or npm on PATH." >&2
+  exit 1
+fi
+
+echo "==> Building React app for Chrome Extension (using: $RUN)..."
+cd "$FRONTEND"
+PUBLIC_URL="." GENERATE_SOURCEMAP=false $RUN build
 
 echo "==> Packaging extension..."
-EXT_SIDEPANEL="/app/extension/tabpilot/sidepanel"
-JS_FILE=$(ls /app/frontend/build/static/js/main.*.js | xargs basename)
-CSS_FILE=$(ls /app/frontend/build/static/css/main.*.css | xargs basename)
+JS_FILE=$(basename "$(ls -t "$FRONTEND"/build/static/js/main.*.js | head -1)")
+CSS_FILE=$(basename "$(ls -t "$FRONTEND"/build/static/css/main.*.css | head -1)")
 echo "    JS:  $JS_FILE"
 echo "    CSS: $CSS_FILE"
 
 rm -rf "$EXT_SIDEPANEL/static" "$EXT_SIDEPANEL/asset-manifest.json" "$EXT_SIDEPANEL/index.html"
-cp -r /app/frontend/build/static "$EXT_SIDEPANEL/static"
-cp /app/frontend/build/asset-manifest.json "$EXT_SIDEPANEL/asset-manifest.json"
+cp -r "$FRONTEND/build/static" "$EXT_SIDEPANEL/static"
+cp "$FRONTEND/build/asset-manifest.json" "$EXT_SIDEPANEL/asset-manifest.json"
 
 cat > "$EXT_SIDEPANEL/index.html" << HTMLEOF
 <!doctype html>
@@ -26,7 +41,7 @@ cat > "$EXT_SIDEPANEL/index.html" << HTMLEOF
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TabPilot</title>
+  <title>Tab Pilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -40,10 +55,10 @@ cat > "$EXT_SIDEPANEL/index.html" << HTMLEOF
 HTMLEOF
 
 echo ""
-echo "==> Done! Extension is in /app/extension/tabpilot/"
+echo "==> Done! Extension is in $ROOT/extension/tabpilot/"
 echo ""
-echo "  To install:"
-echo "  1. Download /app/extension/tabpilot/ to your computer"
-echo "  2. chrome://extensions/ → Developer mode ON → Load unpacked"
-echo "  3. Select the 'tabpilot' folder → Ctrl+Shift+E to open"
+echo "  To install / update:"
+echo "  1. chrome://extensions/ -> Developer mode ON -> Load unpacked (first time)"
+echo "  2. After rebuilds, click the reload icon on the Tab Pilot card"
+echo "  3. Reload any open tabs so the content script re-injects"
 echo ""

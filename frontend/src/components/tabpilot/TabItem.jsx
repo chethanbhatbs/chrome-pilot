@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { getDomain, getFaviconUrl, handleFaviconError, getLetterAvatar } from '@/utils/grouping';
 import { Pin, Volume2, VolumeX, X, Loader2, Copy, GripVertical, Pause, Check, Star } from 'lucide-react';
 import {
@@ -10,7 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
-export function TabItem({
+function TabItemImpl({
   tab, isActive, showFavicons, showUrls, compact, suspended, isDuplicate,
   highlightText, onSwitch, onClose, onPin, onMute, onDuplicate,
   onMoveToNewWindow, onMoveToWindow, onCloseOthers, onCloseToRight,
@@ -45,8 +46,8 @@ export function TabItem({
         <div
           data-testid={`tab-item-${tab.id}`}
           draggable
-          onDragStart={(e) => onDragStart?.(e, tab)}
-          onDragEnd={onDragEnd}
+          onDragStart={(e) => { e.currentTarget.classList.add('tp-dragging'); onDragStart?.(e, tab); }}
+          onDragEnd={(e) => { e.currentTarget.classList.remove('tp-dragging'); onDragEnd?.(e); }}
           onMouseEnter={(e) => onHoverEnter?.(tab, e)}
           onMouseLeave={() => onHoverLeave?.()}
           onClick={() => {
@@ -57,21 +58,17 @@ export function TabItem({
           className={`group flex items-center gap-1.5 cursor-pointer transition-all duration-150 select-none relative
             ${compact ? 'px-2 py-[3px]' : 'px-2 py-[5px]'}
             ${isActive
-              ? 'bg-primary/[0.10] text-foreground'
+              ? 'bg-primary/[0.16] text-foreground font-medium'
               : 'hover:bg-[hsl(var(--hover-subtle))] text-foreground/75'
             }
             ${isSuspended ? 'opacity-35' : ''}
           `}
         >
-          {/* Active indicator */}
-          {isActive && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-r-full bg-primary active-tab-glow" />
-          )}
 
           {/* Select checkbox or drag handle */}
           {selectMode ? (
             <div
-              className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all duration-150
+              className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center cursor-pointer shrink-0 transition-all duration-150
                 ${isSelected
                   ? 'bg-primary border-primary'
                   : 'border-muted-foreground/30 hover:border-muted-foreground/50'
@@ -97,7 +94,7 @@ export function TabItem({
             ) : faviconUrl ? (
               <img src={faviconUrl} alt="" className="w-4 h-4 rounded-[3px]" data-tab-url={tab.url} data-chrome-favicon={tab.favIconUrl || ''} onError={handleFaviconError} />
             ) : (
-              <div className="w-4 h-4 rounded-[3px] flex items-center justify-center text-[9px] font-bold"
+              <div className="w-4 h-4 rounded-[3px] flex items-center justify-center text-[11px] font-bold"
                 style={{ background: avatar?.color.bg, color: avatar?.color.fg }}
               >{avatar?.letter}</div>
             )}
@@ -162,6 +159,7 @@ export function TabItem({
             {/* Close — absolute far-right, hover-only */}
             <button
               data-testid={`tab-close-${tab.id}`}
+              aria-label="Close tab"
               onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
               className="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer w-[16px] h-[16px] rounded-[3px] text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10
                 opacity-0 group-hover:opacity-100 transition-all duration-150 flex items-center justify-center"
@@ -255,3 +253,8 @@ export function TabItem({
     </ContextMenu>
   );
 }
+
+// Memoized so a change to one tab (or a parent re-render) doesn't re-render
+// every row. Most props are stable (useCallback handlers); the per-render arrow
+// props are few, so shallow comparison still avoids the bulk of row re-renders.
+export const TabItem = memo(TabItemImpl);

@@ -14,7 +14,8 @@
     "activeTab",
     "scripting",
     "nativeMessaging",
-    "bookmarks"
+    "idle",
+    "alarms"
   ],
   "host_permissions": ["<all_urls>"],
   "side_panel": {

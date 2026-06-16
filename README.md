@@ -1,8 +1,16 @@
-# ChromePilot
+# Tab Pilot
 
-**A powerful tab and window manager for Chrome — built as a sidebar extension.**
+**A powerful tab and window manager for Chrome, built as a sidebar extension.**
 
-ChromePilot gives you full control over every open tab and window from a sleek sidebar panel. Search, organize, suspend, focus, and automate — all without leaving your browser.
+<p align="center">
+  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live page" src="https://img.shields.io/badge/Live%20Page-Visit-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  &nbsp;
+  <a href="#installation"><img alt="Install" src="https://img.shields.io/badge/Install-Load%20Unpacked-1f2328?style=for-the-badge&logo=github&logoColor=white"></a>
+</p>
+
+🔗 **Live page:** https://chethanbhatbs.github.io/tab-pilot/
+
+Tab Pilot gives you full control over every open tab and window from a sleek sidebar panel. Search, organize, suspend, focus, and automate, all without leaving your browser.
 
 - **Manifest V3** · **Chrome Side Panel API** · **React 18** · **100% Private** (no data ever leaves your machine)
 
@@ -38,22 +46,17 @@ Toggle between window-based and domain-based views. Sites view groups all tabs b
 ### Multi-Select & Bulk Close
 Click the **Select** button in the toolbar to enter selection mode. Checkboxes appear on every tab. Select individual tabs, select all in a window, or select all. Then bulk-close them in one click. A floating action bar shows the count and provides Select All / Clear / Close actions.
 
-### Strict Focus Mode
-Pick the tabs you want to concentrate on, then start a focus session with a confirmation prompt that explains all restrictions. During focus mode:
-- All other tabs are hidden (collapsed into a Chrome tab group)
-- **New tabs are blocked** — any newly created tab is immediately closed
-- **New windows are blocked** — any newly created Chrome window is closed and you're sent back to a focus window
-- **Tab switching is blocked** — activating a non-focus tab forces you back to a focus tab
-- **Chrome window switching is blocked** — switching to a Chrome window without focus tabs redirects you back (switching to other apps like VS Code, Finder, etc. is allowed)
-- **Hidden tab groups are re-collapsed** — even if manually expanded, they auto-collapse
-- **Page-level notifications** — when an action is blocked, a styled overlay notification appears on the active web page AND in the sidebar
-- A **periodic guard** (500ms interval) catches any edge cases where event listeners miss
-- Timer tracks focus duration in `m:ss` format, switching to `h:mm:ss` after 60 minutes
+### Focus Mode
+Pick the tabs you want to concentrate on and start a focus session. Focus Mode is **non-destructive**, it never closes your content tabs or windows:
+- Your focus set stands out; other tabs are dimmed / grouped
+- Switching to a non-focus tab or window gently redirects you back, your other tabs and windows stay open
+- Only brand-new **blank** tabs (Ctrl/Cmd+T) are auto-closed; nothing with content is ever destroyed
+- A lightweight periodic guard plus event listeners keep you on track; an always-visible Exit ends the session
 - Focus state persists across panel reloads and syncs across all windows
 
 ### Smart Favicons
 Intelligent favicon handling that ensures icons are always visible regardless of browser theme:
-- **Public domains** use Google S2 favicon service — always returns properly themed, colored PNGs regardless of dark/light mode
+- **Public domains** use Google S2 favicon service, always returns properly themed, colored PNGs regardless of dark/light mode
 - **Internal/private domains** (localhost, private IPs, `.local`, `.internal`, `.corp`, etc.) use Chrome's native favicon since external services can't reach internal networks
 - **CSS drop-shadow** safety net ensures favicon contrast in both light and dark themes
 - **7-step fallback chain** when a favicon fails to load: Google S2 128px → DuckDuckGo → direct `/favicon.ico` → Google S2 64px → Clearbit → Chrome's original favicon → colored letter avatar
@@ -65,7 +68,7 @@ When no favicon is available after all fallbacks, a vibrant colored letter avata
 - Replaces the old grey placeholder box for a polished look
 
 ### Smart Workspaces
-Save collections of tabs as named workspaces. Create workspaces like "Dev", "Research", or "Media" with custom icons (16 options) and colors. Activate a workspace to show only its tabs — everything else is hidden. Workspace state syncs across windows via `chrome.storage`. Duplicate workspace names are prevented.
+Save collections of tabs as named workspaces. Create workspaces like "Dev", "Research", or "Media" with custom icons (16 options) and colors. Activate a workspace to show only its tabs, everything else is hidden. Workspace state syncs across windows via `chrome.storage`. Duplicate workspace names are prevented.
 
 ### Session Manager
 Snapshot your entire browser state (all windows and tabs) with a name. Restore any saved session later to reopen everything exactly as it was. View the tab list inside any session before restoring. Duplicate session names are prevented.
@@ -74,7 +77,7 @@ Snapshot your entire browser state (all windows and tabs) with a name. Restore a
 Suspend inactive tabs to free up memory. Suspended tabs remain in the sidebar but are visually dimmed. Suspend all inactive tabs at once, or suspend/unsuspend individual tabs via right-click. The stats bar shows the current suspended count.
 
 ### Auto-Close Rules
-Set time-based rules to automatically close idle tabs. Choose from presets (15min, 30min, 1hr, 2hr) or set a custom timer. Whitelist specific domains (e.g., `mail.google.com`) to keep them safe — subdomain-aware matching means whitelisting `google.com` also protects `docs.google.com`. The at-risk tab preview shows which tabs will be closed and how much time they have left. Tabs are **actually auto-closed** when their inactivity timer expires, with a toast notification for each closed tab. Tab activity is tracked in real time — switching to a tab immediately removes it from the at-risk list.
+Set time-based rules to automatically close idle tabs. Choose from presets (15min, 30min, 1hr, 2hr) or set a custom timer. Whitelist specific domains (e.g., `mail.google.com`) to keep them safe, subdomain-aware matching means whitelisting `google.com` also protects `docs.google.com`. The at-risk tab preview shows which tabs will be closed and how much time they have left. Tabs are **actually auto-closed** when their inactivity timer expires, with a toast notification for each closed tab. Tab activity is tracked in real time, switching to a tab immediately removes it from the at-risk list.
 
 ### Duplicate Detection
 Duplicates are automatically detected and highlighted with a badge. The stats bar shows the duplicate count. The duplicate panel at the bottom lists all duplicates grouped by URL, with one-click "Close All Duplicates". Detection includes `chrome://` and `chrome-extension://` pages (new tab, settings, etc.).
@@ -93,8 +96,8 @@ Switch between Chrome profiles directly from the sidebar. Requires a one-time na
 - **Profile list** with avatars, names, and email addresses
 - **One-click switch** to any profile (opens that profile's Chrome window)
 - **Sync Profiles** button to pick up newly created profiles
-- **Remove profiles** from ChromePilot (per-profile, without affecting Chrome)
-- **Identity selection** — each Chrome profile identifies itself via user selection, cached per-profile in `chrome.storage.local`
+- **Remove profiles** from Tab Pilot (per-profile, without affecting Chrome)
+- **Identity selection**, each Chrome profile identifies itself via user selection, cached per-profile in `chrome.storage.local`
 - **Setup wizard** with copy-paste Terminal commands and safety notice
 
 ### Drag & Drop
@@ -109,46 +112,46 @@ Reorder tabs within a window by dragging. Drag tabs between windows to move them
 
 ### Cross-Window Sync
 All state syncs across windows in real time:
-- **Theme** — change dark/light mode in one window, all windows update
-- **Focus mode** — start/exit focus in one window, all windows follow
-- **Active workspace** — activate/deactivate syncs everywhere
-- **Settings** — any preference change propagates immediately
+- **Theme**, change dark/light mode in one window, all windows update
+- **Focus mode**, start/exit focus in one window, all windows follow
+- **Active workspace**, activate/deactivate syncs everywhere
+- **Settings**, any preference change propagates immediately
 
 ### Notifications
 Toast notifications for all actions (close, duplicate, suspend, mute, etc.) with opaque styling. All notifications auto-dismiss within 2 seconds. Undo support on tab close. Focus Mode blocked-action notifications appear both in the sidebar and as page-level overlays.
 
 ### Stats Bar & Profile Switcher
 A persistent footer combining live metrics and profile switching:
-- **Tabs** — total open tab count
-- **Audio** — tabs currently playing audio
-- **Paused** — suspended tab count
-- **Dupes** — duplicate tab count
-- **Profile dropdown** — quick switch profiles, manage profiles, re-identify
+- **Tabs**, total open tab count
+- **Audio**, tabs currently playing audio
+- **Paused**, suspended tab count
+- **Dupes**, duplicate tab count
+- **Profile dropdown**, quick switch profiles, manage profiles, re-identify
 
 ### Settings Panel
-- **Show favicons** — toggle tab favicons on/off
-- **Show URLs** — display URLs under tab titles
-- **Compact mode** — tighter spacing for more tabs on screen
-- **Confirm actions** — require confirmation before destructive actions
-- **Theme** — Light / Dark / System
+- **Show favicons**, toggle tab favicons on/off
+- **Show URLs**, display URLs under tab titles
+- **Compact mode**, tighter spacing for more tabs on screen
+- **Confirm actions**, require confirmation before destructive actions
+- **Theme**, Light / Dark / System
 
 ### Help Panel
 Categorized feature guide organized into "Find & Navigate", "Organize & Focus", and "Save & Automate" sections. Includes keyboard shortcuts reference and a feedback button.
 
 ### First-Time Tour
-A guided tour highlights key features when you first install ChromePilot.
+A guided tour highlights key features when you first install Tab Pilot.
 
 ---
 
 ## Installation
 
-The extension comes **pre-built** — no npm install or build step needed.
+The extension comes **pre-built**, no npm install or build step needed.
 
 ### Quick Install (3 steps)
 
 1. **Clone the repo:**
    ```bash
-   git clone https://github.com/chethanbhatbs/chrome-pilot.git
+   git clone https://github.com/chethanbhatbs/tab-pilot.git
    ```
 
 2. **Load in Chrome:**
@@ -157,12 +160,12 @@ The extension comes **pre-built** — no npm install or build step needed.
    - Click **Load unpacked**
    - Navigate to the cloned folder and select `extension/tabpilot`
 
-3. **Open ChromePilot:**
-   - Click the ChromePilot icon in the toolbar, OR
+3. **Open Tab Pilot:**
+   - Click the Tab Pilot icon in the toolbar, OR
    - Press `Ctrl+Shift+E` (or `Cmd+Shift+E` on Mac)
    - The sidebar panel opens with all your tabs
 
-That's it — no build, no npm, no dependencies.
+That's it, no build, no npm, no dependencies.
 
 ### Development (if you want to modify the frontend)
 
@@ -179,7 +182,7 @@ bash build-extension.sh
 
 Then reload the extension in `chrome://extensions/`.
 
-5. Click the ChromePilot icon in the toolbar (or press `Cmd+Shift+E`) to open the sidebar.
+5. Click the Tab Pilot icon in the toolbar (or press `Cmd+Shift+E`) to open the sidebar.
 
 6. **(Optional) Set up profile switching:**
    ```bash
@@ -195,8 +198,8 @@ Then reload the extension in `chrome://extensions/`.
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd+Shift+E` | Toggle ChromePilot sidebar |
-| `Cmd+K` / `Ctrl+K` | Open command palette |
+| `Cmd+Shift+E` | Toggle Tab Pilot sidebar |
+| `Cmd+K` / `Ctrl+K` | Focus the search bar |
 | `↑` `↓` | Navigate through tabs |
 | `Enter` | Switch to selected tab |
 | `Delete` / `Backspace` | Close selected tab |
@@ -213,8 +216,8 @@ Then reload the extension in `chrome://extensions/`.
 │  │         React Application          │  │
 │  │  ┌─────────┐  ┌────────────────┐  │  │
 │  │  │ Sidebar  │  │  Feature Panels │  │  │
-│  │  │ (main)   │  │  (sessions,    │  │  │
-│  │  │          │  │   workspaces,  │  │  │
+│  │  │ (main)   │  │  (sessions,   │  │  │
+│  │  │          │  │   workspaces, │  │  │
 │  │  │          │  │   focus, etc.) │  │  │
 │  │  └─────────┘  └────────────────┘  │  │
 │  └───────────────────────────────────┘  │
@@ -242,9 +245,9 @@ Then reload the extension in `chrome://extensions/`.
 - **Display-layer filtering**: Hidden tabs (from focus mode / workspaces) are filtered at the UI display layer, not the data layer. This keeps `tabs.allTabs` complete for operations like workspace activation and session saving.
 - **chrome.storage for cross-window state**: Focus mode, active workspace, theme, and settings all persist to `chrome.storage.local` with `onChanged` listeners for real-time sync.
 - **Per-window tab grouping**: `chrome.tabs.group` only works within a single window, so hiding tabs groups them per-window separately.
-- **Adaptive hooks**: Both `useMockTabs` and `useChromeTabs` are always called (React rules of hooks). The adapter selects based on runtime context — extension uses real Chrome APIs, web preview uses mock data.
+- **Adaptive hooks**: Both `useMockTabs` and `useChromeTabs` are always called (React rules of hooks). The adapter selects based on runtime context, extension uses real Chrome APIs, web preview uses mock data.
 - **Background-enforced Focus Mode**: Focus Mode restrictions are enforced in `background.js` (service worker), not just the UI. This ensures tabs/windows are blocked even if the sidebar is closed. The background script uses `chrome.scripting.executeScript` to inject page-level notifications into active tabs.
-- **Smart favicon routing**: Public domains are routed to Google S2 (theme-independent PNGs) while internal/private domains use Chrome's native `favIconUrl` — external services can't reach internal networks.
+- **Smart favicon routing**: Public domains are routed to Google S2 (theme-independent PNGs) while internal/private domains use Chrome's native `favIconUrl`, external services can't reach internal networks.
 
 ---
 
@@ -281,7 +284,7 @@ Then copy `build/static/` to `extension/tabpilot/sidepanel/static/` and update t
 ## Project Structure
 
 ```
-chrome-pilot/
+tab-pilot/
 ├── extension/tabpilot/          # Chrome extension (load this in chrome://extensions)
 │   ├── manifest.json            # MV3 manifest
 │   ├── background.js            # Service worker (events, focus mode enforcement, notifications)
@@ -293,7 +296,7 @@ chrome-pilot/
 ├── frontend/                    # React source code
 │   ├── src/
 │   │   ├── components/tabpilot/ # All UI components
-│   │   │   ├── Sidebar.jsx      # Main container — state management, filtering, routing
+│   │   │   ├── Sidebar.jsx      # Main container, state management, filtering, routing
 │   │   │   ├── WindowGroup.jsx  # Window tree with tabs, drag-drop, rename
 │   │   │   ├── TabItem.jsx      # Individual tab row with context menu
 │   │   │   ├── DomainView.jsx   # Domain-grouped tab view
@@ -331,7 +334,7 @@ chrome-pilot/
 │   │   │   └── mockData.js           # Mock tab/window data
 │   │   │
 │   │   ├── pages/
-│   │   │   └── ChromePilotPreview.jsx # Web preview with landing page
+│   │   │   └── TabPilotPreview.jsx # Web preview with landing page
 │   │   │
 │   │   └── components/ui/           # shadcn/ui components
 │   │
@@ -378,11 +381,12 @@ chrome-pilot/
 | `activeTab` | Access current tab info |
 | `scripting` | Inject Focus Mode blocked-action notifications into web pages |
 | `nativeMessaging` | Communicate with native host for Chrome profile switching |
-| `bookmarks` | Bookmark management |
+| `idle` | Pause time tracking when you step away |
+| `alarms` | Periodic flush for the active-time tracker |
 | `host_permissions: <all_urls>` | Required for `chrome.scripting.executeScript` to inject into any tab |
 
 ---
 
 ## Privacy
 
-ChromePilot runs **entirely in your browser**. Zero data is collected, transmitted, or stored externally. All data (settings, notes, sessions, workspaces) lives in `chrome.storage.local` on your machine. No analytics. No tracking. No network requests (except favicon fetches from Google S2, DuckDuckGo, and Clearbit as fallbacks).
+Tab Pilot runs **entirely in your browser**. Zero data is collected, transmitted, or stored externally. All data (settings, notes, sessions, workspaces) lives in `chrome.storage.local` on your machine. No analytics. No tracking. No network requests (except favicon fetches from Google S2, DuckDuckGo, and Clearbit as fallbacks).

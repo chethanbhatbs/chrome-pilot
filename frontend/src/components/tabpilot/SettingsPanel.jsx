@@ -1,4 +1,4 @@
-import { Settings, Sun, Moon, Laptop, Check } from 'lucide-react';
+import { Settings, Sun, Moon, Laptop, Check, Users, ChevronRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 
@@ -17,7 +17,7 @@ const accentColors = [
   { id: 'teal',   label: 'Teal',   swatch: '#14b8a6' },
 ];
 
-export function SettingsPanel({ settings, onUpdate }) {
+export function SettingsPanel({ settings, onUpdate, onOpenProfiles }) {
   return (
     <div className="p-3 space-y-3" data-testid="settings-panel">
       <div className="flex items-center gap-1.5 mb-2">
@@ -107,6 +107,30 @@ export function SettingsPanel({ settings, onUpdate }) {
           testId="setting-confirm-actions"
         />
       </div>
+
+      {onOpenProfiles && (
+        <>
+          <Separator className="opacity-20" />
+          <div>
+            <span className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider">Profiles</span>
+            <button
+              onClick={onOpenProfiles}
+              data-testid="settings-open-profiles"
+              className="cursor-pointer w-full flex items-center justify-between mt-1.5 px-2.5 py-2 rounded-md
+                bg-secondary hover:bg-[hsl(var(--hover-medium))] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Users size={13} className="text-muted-foreground" strokeWidth={1.5} />
+                <div className="text-left">
+                  <div className="text-[11px] font-body font-medium">Chrome Profiles</div>
+                  <div className="text-[11px] text-muted-foreground">Switch or manage browser profiles</div>
+                </div>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground" strokeWidth={1.5} />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -116,7 +140,7 @@ function SettingToggle({ label, description, checked, onChange, testId }) {
     <div className="flex items-center justify-between" data-testid={testId}>
       <div>
         <div className="text-[11px] font-body font-medium">{label}</div>
-        <div className="text-[9px] text-muted-foreground">{description}</div>
+        <div className="text-[11px] text-muted-foreground">{description}</div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="scale-75" />
     </div>

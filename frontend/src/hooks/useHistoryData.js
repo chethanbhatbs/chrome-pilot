@@ -14,125 +14,110 @@ function getStartOfToday() {
   return d.getTime();
 }
 
-function processItems(items, timeFilter) {
-  const now = Date.now();
+// How many history URLs to resolve per refresh. search() returns newest-first,
+// so the cap keeps the freshest URLs; each needs one getVisits() call.
+const MAX_URLS = 3000;
 
-  // ── Domain aggregation ──────────────────────────────────────────────
-  const domainMap = {};
-  items.forEach(item => {
-    if (!item.url) return;
-    try {
-      const host = new URL(item.url).hostname.replace(/^www\./, '');
-      if (host.startsWith('chrome') || host === 'newtab') return;
-      if (!domainMap[host]) domainMap[host] = 0;
-      domainMap[host] += 1;
-    } catch { /* invalid URL */ }
+function getVisits(url) {
+  return new Promise(resolve => {
+    try { chrome.history.getVisits({ url }, v => resolve(v || [])); }
+    catch { resolve([]); }
   });
+}
 
-  const minPerVisit = timeFilter === 'day' ? 1 : AVG_MIN_PER_VISIT;
-  const topDomains = Object.entries(domainMap)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 8)
-    .map(([domain, visits]) => ({
-      domain,
-      visits,
-      minutes: visits * minPerVisit,
-      hours: parseFloat((visits * minPerVisit / 60).toFixed(1)),
-    }));
+// Run async fn over arr with bounded concurrency so we don't fire thousands of
+// getVisits() calls at once and stall the panel.
+async function mapLimit(arr, limit, fn) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += limit) {
+    const chunk = await Promise.all(arr.slice(i, i + limit).map(fn));
+    out.push(...chunk);
+  }
+  return out;
+}
 
-  // ── URL visit counts (for matching to open tabs) ─────────────────
-  const urlVisitCounts = {};
-  items.forEach(item => {
-    if (!item.url) return;
-    urlVisitCounts[item.url] = item.visitCount || 1;
-  });
-
-  // ── Timeline ────────────────────────────────────────────────────────
-  let timelineData;
+// Bucket ACTUAL visit timestamps for the trend chart (real, not estimated).
+function bucketTimeline(times, timeFilter, now) {
   if (timeFilter === 'day') {
-    const hourLabels = ['12am','3am','6am','9am','12pm','3pm','6pm','9pm'];
-    const currentHour = new Date().getHours();
-    const buckets = Array.from({ length: 8 }, (_, i) => ({ hour: hourLabels[i], visits: 0, minutes: 0 }));
-    items.forEach(item => {
-      if (!item.lastVisitTime) return;
-      if (item.lastVisitTime < getStartOfToday()) return;
-      const h = new Date(item.lastVisitTime).getHours();
-      if (h > currentHour) return;
-      const bucketIdx = Math.floor(h / 3);
-      buckets[bucketIdx].visits += 1;
-    });
-    // Estimate active minutes: each page visit ≈ 1 minute of browsing
-    // Capped at 180 min per 3-hour bucket (physically possible maximum)
-    buckets.forEach(b => { b.minutes = Math.min(180, b.visits); });
-    timelineData = buckets;
-  } else if (timeFilter === 'week') {
+    const labels = ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'];
+    const buckets = labels.map(h => ({ hour: h, visits: 0 }));
+    times.forEach(t => { buckets[Math.floor(new Date(t).getHours() / 3)].visits += 1; });
+    return buckets;
+  }
+  if (timeFilter === 'week') {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const visitCounts = Array(7).fill(0);
-    items.forEach(item => {
-      if (!item.lastVisitTime) return;
-      const dayIdx = (new Date(item.lastVisitTime).getDay() + 6) % 7; // 0=Mon
-      visitCounts[dayIdx] += 1;
-    });
-    // Cap each day at 16 hours (realistic max active browsing)
-    timelineData = days.map((day, i) => ({
-      day,
-      visits: visitCounts[i],
-      hours: parseFloat(Math.min(16, visitCounts[i] * AVG_MIN_PER_VISIT / 60).toFixed(1)),
-    }));
-  } else {
-    const weeks = ['W1', 'W2', 'W3', 'W4'];
-    const visitCounts = Array(4).fill(0);
-    items.forEach(item => {
-      if (!item.lastVisitTime) return;
-      const daysAgo = (now - item.lastVisitTime) / 86_400_000;
-      const wIdx = Math.min(3, Math.floor(daysAgo / 7));
-      visitCounts[3 - wIdx] += 1;
-    });
-    timelineData = weeks.map((week, i) => ({
-      week,
-      visits: visitCounts[i],
-      hours: parseFloat(Math.min(80, visitCounts[i] * AVG_MIN_PER_VISIT / 60).toFixed(1)),
-    }));
+    const buckets = days.map(d => ({ day: d, visits: 0 }));
+    times.forEach(t => { buckets[(new Date(t).getDay() + 6) % 7].visits += 1; });
+    return buckets;
   }
-
-  const totalVisits = items.length;
-
-  // Compute total minutes from timeline data (matches what the chart shows)
-  let totalMinutes;
-  if (timeFilter === 'day') {
-    totalMinutes = timelineData.reduce((s, b) => s + b.minutes, 0);
-  } else if (timeFilter === 'week') {
-    totalMinutes = timelineData.reduce((s, d) => s + d.hours * 60, 0);
-  } else {
-    totalMinutes = timelineData.reduce((s, w) => s + w.hours * 60, 0);
-  }
-
-  return { topDomains, timelineData, totalVisits, totalMinutes, urlVisitCounts };
+  const weeks = ['W1', 'W2', 'W3', 'W4'];
+  const buckets = weeks.map(w => ({ week: w, visits: 0 }));
+  times.forEach(t => {
+    const wIdx = Math.min(3, Math.floor((now - t) / (7 * 86_400_000)));
+    buckets[3 - wIdx].visits += 1;
+  });
+  return buckets;
 }
 
 /**
- * Returns real Chrome history data in extension context, null in web preview.
+ * Real Chrome history, counted by ACTUAL VISITS in the selected window.
+ *
+ * chrome.history.search() returns one item per unique URL (deduped), and its
+ * visitCount is lifetime — so counting items undercounts revisits (opening
+ * Gmail 10× registered as 1, which is the "count never changes" bug). We pull
+ * each URL's visit timestamps via getVisits() and count those inside
+ * [startTime, now], so every revisit is counted.
  */
 export function useHistoryData(timeFilter) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
     if (!isExtensionContext()) return;
+    let cancelled = false;
 
-    async function fetchHistory() {
+    (async () => {
       try {
-        // For 'day' filter, use since midnight today (not 24h ago)
-        const startTime = timeFilter === 'day'
-          ? getStartOfToday()
-          : Date.now() - msFor(timeFilter);
+        const now = Date.now();
+        const startTime = timeFilter === 'day' ? getStartOfToday() : now - msFor(timeFilter);
         const items = await chrome.history.search({ text: '', startTime, maxResults: 10_000 });
-        setData(processItems(items, timeFilter));
-      } catch (e) {
-        console.error('ChromePilot history error:', e);
-      }
-    }
+        const urls = items.map(i => i.url).filter(Boolean).slice(0, MAX_URLS);
 
-    fetchHistory();
+        const perUrl = await mapLimit(urls, 200, async (url) => {
+          const visits = await getVisits(url);
+          const times = visits.map(v => v.visitTime).filter(t => t >= startTime && t <= now);
+          return { url, times };
+        });
+        if (cancelled) return;
+
+        const domainMap = {};
+        const allTimes = [];
+        let totalVisits = 0;
+        for (const { url, times } of perUrl) {
+          if (!times.length) continue;
+          let host;
+          try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { continue; }
+          if (host.startsWith('chrome') || host === 'newtab') continue;
+          domainMap[host] = (domainMap[host] || 0) + times.length;
+          totalVisits += times.length;
+          for (const t of times) allTimes.push(t);
+        }
+
+        const topDomains = Object.entries(domainMap)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 8)
+          .map(([domain, visits]) => ({ domain, visits }));
+
+        setData({
+          topDomains,
+          timelineData: bucketTimeline(allTimes, timeFilter, now),
+          totalVisits,
+        });
+      } catch (e) {
+        console.error('Tab Pilot history error:', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [timeFilter]);
 
   return data;
@@ -157,83 +142,138 @@ export function useTimelineGrid() {
         const currentHour = new Date().getHours();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const oldestStart = today.getTime() - 6 * 86_400_000;
 
-        for (let d = 6; d >= 0; d--) {
-          const date = new Date();
-          date.setDate(date.getDate() - d);
-          date.setHours(0, 0, 0, 0);
+        // Single pass: bucket each history item into [day 0..6][hour 0..23].
+        // Previously each of the 168 cells filtered the full item list — O(items*168),
+        // which froze the panel on large histories. This is O(items + 168).
+        const counts = Array.from({ length: 7 }, () => new Array(24).fill(0));
+        const domainBuckets = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => new Set()));
+        for (const item of items) {
+          const t = item.lastVisitTime;
+          if (t == null || t < oldestStart) continue;
+          const dayIdx = Math.floor((t - oldestStart) / 86_400_000);
+          if (dayIdx < 0 || dayIdx > 6) continue;
+          const hour = Math.floor((t - (oldestStart + dayIdx * 86_400_000)) / 3_600_000);
+          if (hour < 0 || hour > 23) continue;
+          counts[dayIdx][hour]++;
+          const set = domainBuckets[dayIdx][hour];
+          if (set.size < 3) {
+            try {
+              const host = new URL(item.url).hostname.replace(/^www\./, '');
+              if (!host.startsWith('chrome') && host !== 'newtab') set.add(host);
+            } catch {}
+          }
+        }
+
+        // Heatmap intensity is scaled against the busiest hour so the colour ramp
+        // has contrast. The metric is the REAL page-visit count from Chrome history
+        // — we deliberately don't invent "minutes/hours" here (that fabricated number
+        // contradicted the measured time-spent tracker). The Timeline answers "when
+        // do I browse", not "how long".
+        let maxHourly = 0;
+        for (let d = 0; d <= 6; d++) for (let h = 0; h <= 23; h++) {
+          if (counts[d][h] > maxHourly) maxHourly = counts[d][h];
+        }
+
+        for (let dayIdx = 0; dayIdx <= 6; dayIdx++) {
+          const date = new Date(oldestStart + dayIdx * 86_400_000);
           const dayName = days[date.getDay()];
           const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const dayStart = date.getTime();
-          const dayEnd = dayStart + 86_400_000;
-          const isToday = date.getTime() === today.getTime();
-
-          // Filter items for this day
-          const dayItems = items.filter(item =>
-            item.lastVisitTime >= dayStart && item.lastVisitTime < dayEnd
-          );
+          const isToday = dayIdx === 6;
 
           const hours = [];
           for (let h = 0; h <= 23; h++) {
             // Skip future hours on today
             if (isToday && h > currentHour) {
-              hours.push({ hour: h, minutesActive: 0, activity: 0, domains: [] });
+              hours.push({ hour: h, visits: 0, activity: 0, domains: [] });
               continue;
             }
 
-            const hourStart = dayStart + h * 3_600_000;
-            const hourEnd = hourStart + 3_600_000;
-            const hourItems = dayItems.filter(item =>
-              item.lastVisitTime >= hourStart && item.lastVisitTime < hourEnd
-            );
-
-            const minutesActive = Math.min(60, hourItems.length * AVG_MIN_PER_VISIT);
-            const activity = Math.min(1, minutesActive / 60);
-
-            // Get domains active in this hour
-            const domainSet = new Set();
-            hourItems.forEach(item => {
-              try {
-                const host = new URL(item.url).hostname.replace(/^www\./, '');
-                if (!host.startsWith('chrome') && host !== 'newtab') domainSet.add(host);
-              } catch {}
-            });
+            const visits = counts[dayIdx][h];
+            const activity = maxHourly ? visits / maxHourly : 0;
 
             hours.push({
               hour: h,
-              minutesActive,
+              visits,
               activity,
-              domains: Array.from(domainSet).slice(0, 3),
+              domains: Array.from(domainBuckets[dayIdx][h]).slice(0, 3),
             });
           }
 
-          grid.push({ dayName, dateStr, hours, date: new Date(date) });
+          grid.push({ dayName, dateStr, hours, date });
         }
 
-        const totalMinutes = grid.reduce((sum, day) =>
-          sum + day.hours.reduce((s, h) => s + h.minutesActive, 0), 0
+        const totalVisits = grid.reduce((sum, day) =>
+          sum + day.hours.reduce((s, h) => s + h.visits, 0), 0
         );
 
-        let mostActiveDay = { day: '', hours: '0' };
+        let mostActiveDay = { day: '', visits: 0 };
         grid.forEach(day => {
-          const total = day.hours.reduce((s, h) => s + h.minutesActive, 0);
-          if (total > parseFloat(mostActiveDay.hours) * 60) {
-            mostActiveDay = { day: day.dayName, hours: (total / 60).toFixed(1) };
+          const total = day.hours.reduce((s, h) => s + h.visits, 0);
+          if (total > mostActiveDay.visits) {
+            mostActiveDay = { day: day.dayName, visits: total };
           }
         });
 
-        setData({
-          grid,
-          totalHours: (totalMinutes / 60).toFixed(1),
-          mostActiveDay,
-        });
+        setData({ grid, totalVisits, mostActiveDay });
       } catch (e) {
-        console.error('ChromePilot timeline error:', e);
+        console.error('Tab Pilot timeline error:', e);
       }
     }
 
     fetchHistory();
   }, []);
+
+  return data;
+}
+
+function timeDayKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * REAL measured active-time per site, written by the background tracker into
+ * chrome.storage.local['tabpilot_time'] = { 'YYYY-MM-DD': { domain: seconds } }.
+ * Forward-only — empty until the tracker has accrued time. Never estimated.
+ */
+export function useTimeSpent(timeFilter) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!isExtensionContext() || !chrome?.storage?.local) { setData(null); return; }
+    let cancelled = false;
+
+    const load = () => {
+      chrome.storage.local.get('tabpilot_time', (store) => {
+        if (cancelled) return;
+        const all = store?.tabpilot_time || {};
+        // Build the set of day-keys in range (today back N days), summing what exists.
+        const span = timeFilter === 'day' ? 1 : timeFilter === 'week' ? 7 : 30;
+        const totals = {};
+        let totalSeconds = 0;
+        for (let i = 0; i < span; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const day = all[timeDayKey(d)];
+          if (!day) continue;
+          Object.entries(day).forEach(([domain, secs]) => {
+            totals[domain] = (totals[domain] || 0) + secs;
+            totalSeconds += secs;
+          });
+        }
+        const sites = Object.entries(totals)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([domain, seconds]) => ({ domain, seconds }));
+        setData({ sites, totalSeconds });
+      });
+    };
+
+    load();
+    const iv = setInterval(load, 5000); // refresh while the panel is open
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [timeFilter]);
 
   return data;
 }
