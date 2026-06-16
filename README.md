@@ -11,11 +11,6 @@
 Tab Pilot gives you full control over every open tab and window from a sleek sidebar panel. Search, organize, suspend, focus, and automate, all without leaving your browser.
 
 - **Manifest V3** · **Chrome Side Panel API** · **React 18** · **100% Private** (no data ever leaves your machine)
-
-<p align="center">
-  <img src="docs/screenshot.png" alt="Tab Pilot side panel — searchable tab tree grouped by window and site, with duplicate detection and live stats" width="390">
-</p>
-
 ---
 
 ## Table of Contents
