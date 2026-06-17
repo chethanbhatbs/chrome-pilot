@@ -2,10 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import { Search, X, Globe } from 'lucide-react';
 import { FaviconWithFallback } from './FaviconWithFallback';
 
-// One hint on every OS. Ctrl+K works on macOS, Windows and Linux alike — the
-// handler accepts both Ctrl and ⌘ — so we keep the label uniform instead of
-// branching per platform (matches the tour copy too).
-const SHORTCUT_HINT = 'Ctrl+K';
+// Both shortcuts work on every OS (the handler accepts Ctrl and ⌘), so show both
+// in the placeholder rather than guessing the platform.
+const SHORTCUT_HINT = '⌘K / Ctrl+K';
 
 export function SearchBar({ query, setQuery, resultCount, clearSearch, inputRef: externalRef, suggestions, onSwitchTab }) {
   const internalRef = useRef(null);

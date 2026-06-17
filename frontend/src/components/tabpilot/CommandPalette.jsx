@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Command, X } from 'lucide-react';
-import { getFaviconUrl, getDomain, handleFaviconError } from '@/utils/grouping';
+import { getFaviconUrl, getDomain, handleFaviconError, handleFaviconLoad } from '@/utils/grouping';
 
 export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
   const [query, setQuery] = useState('');
@@ -98,6 +98,7 @@ export function CommandPalette({ allTabs, onSwitch, isOpen, onClose }) {
                   data-tab-url={tab.url}
                   data-chrome-favicon={tab.favIconUrl || ''}
                   onError={handleFaviconError}
+                  onLoad={handleFaviconLoad}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-body truncate text-foreground">{tab.title}</div>
