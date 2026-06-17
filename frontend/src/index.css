@@ -6,10 +6,6 @@
 
 @layer base {
   :root {
-    /* Declare the scheme so a dark-mode OS doesn't tint our light page — without
-       this, Chrome gives <input>/scrollbars a dark UA background that bleeds
-       through semi-transparent fills (the grayish search bar). */
-    color-scheme: light;
     /* Light theme tuned to match Gmail: pure-white surfaces, neutral cool grays */
     --background: 0 0% 100%;
     --foreground: 220 18% 13%;
@@ -41,7 +37,6 @@
   }
 
   .dark {
-    color-scheme: dark;
     --background: 216 28% 7%;
     --foreground: 210 14% 94%;
     --card: 215 21% 11%;

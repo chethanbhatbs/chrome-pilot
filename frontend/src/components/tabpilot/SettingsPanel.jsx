@@ -74,31 +74,6 @@ export function SettingsPanel({ settings, onUpdate, onOpenProfiles }) {
         </div>
       </div>
 
-      {/* Text size */}
-      <div>
-        <span className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider">Text Size</span>
-        <div className="flex gap-1 mt-1.5">
-          {[
-            { value: 'default', label: 'Default' },
-            { value: 'large', label: 'Large' },
-            { value: 'larger', label: 'Larger' },
-          ].map(({ value, label }) => (
-            <button
-              key={value}
-              data-testid={`textsize-${value}`}
-              onClick={() => onUpdate('textSize', value)}
-              className={`cursor-pointer flex-1 py-1.5 rounded-md text-[11px] font-body transition-all duration-150
-                ${(settings.textSize || 'large') === value
-                  ? 'bg-primary text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.25)]'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--hover-medium))]'
-                }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <Separator className="opacity-20" />
 
       {/* Toggles */}

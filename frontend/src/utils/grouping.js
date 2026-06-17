@@ -24,14 +24,9 @@ function _isInternalDomain(hostname) {
 }
 
 export function getFaviconUrl(url, chromeFavIconUrl) {
-  // Use Chrome's OWN favicon only when it's a real http(s) NON-SVG image — a
-  // genuine colored icon. We skip SVG/data favicons because Chrome caches
-  // theme-tinted (often white) versions in dark mode, which are invisible on the
-  // light panel (e.g. GitHub's white octocat). For those, Google S2 returns a
-  // colored PNG. S2 sometimes returns a generic 16x16 GLOBE (HTTP 200) for
-  // domains it doesn't know (*.pages.dev, *.workers.dev, github.io, internal
-  // apps); handleFaviconLoad() detects that by size and falls back to Chrome's
-  // real favicon → letter avatar.
+  // Prefer Chrome's OWN favicon when it's a real http(s) non-SVG image; otherwise
+  // use Google S2 (colored PNG). On error, handleFaviconError() walks the
+  // fallback chain down to a letter avatar.
   if (chromeFavIconUrl
       && /^https?:\/\//i.test(chromeFavIconUrl)
       && !/\.svg(\?|#|$)/i.test(chromeFavIconUrl)) {
@@ -47,26 +42,6 @@ export function getFaviconUrl(url, chromeFavIconUrl) {
     return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
   } catch {
     return chromeFavIconUrl || null;
-  }
-}
-
-// Google S2 serves a generic 16x16 globe (HTTP 200) for domains it has no icon
-// for, so onError never fires and the globe sticks. Detect it by the loaded size
-// and fall back to Chrome's own favicon (the real one Chrome fetched), else the
-// colored letter avatar. Real S2 icons load at >=32px, so 16px == the globe.
-export function handleFaviconLoad(e) {
-  const img = e.target;
-  const src = img.src || '';
-  if (!/google\.com\/s2\/favicons/.test(src)) return;     // only judge S2 results
-  if (img.naturalWidth === 0 || img.naturalWidth > 16) return; // real icon, keep it
-  const tried = (img.dataset.faviconTried || '').split(',').filter(Boolean);
-  if (tried.includes('s2globe')) return;                  // already handled once
-  img.dataset.faviconTried = [...tried, 's2globe'].join(',');
-  const chromeFavicon = img.dataset.chromeFavicon || '';
-  if (chromeFavicon && chromeFavicon !== src) {
-    img.src = chromeFavicon;                              // the real tab-strip icon
-  } else {
-    _showLetterAvatar(img, img.dataset.tabUrl || src);   // nothing real → letter
   }
 }
 
