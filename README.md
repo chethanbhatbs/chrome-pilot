@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chethanbhatbs/tab-pilot/releases/latest/download/tab-pilot.zip"><img alt="Download tab-pilot.zip" src="https://img.shields.io/badge/Download-tab--pilot.zip-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  <a href="https://github.com/chethanbhatbs/tab-pilot/releases/latest/download/tab-pilot.zip"><img alt="Download Tab Pilot" src="https://img.shields.io/badge/Download-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
   &nbsp;
-  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live demo" src="https://img.shields.io/badge/Live%20Demo-Visit-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live demo" src="https://img.shields.io/badge/Live%20Demo-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 </p>
 
 <p align="center">
