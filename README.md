@@ -5,13 +5,13 @@
 </p>
 
 <p align="center">
-  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live page" src="https://img.shields.io/badge/Live%20Page-Visit-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  <a href="https://github.com/chethanbhatbs/tab-pilot/releases/latest/download/tab-pilot.zip"><img alt="Download tab-pilot.zip" src="https://img.shields.io/badge/Download-tab--pilot.zip-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
   &nbsp;
-  <a href="#installation"><img alt="Install" src="https://img.shields.io/badge/Install-Load%20Unpacked-1f2328?style=for-the-badge&logo=github&logoColor=white"></a>
+  <a href="https://chethanbhatbs.github.io/tab-pilot/"><img alt="Live demo" src="https://img.shields.io/badge/Live%20Demo-Visit-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <sub>Manifest V3 · Chrome Side Panel API · React 18 · 100% private — no data leaves your machine</sub>
+  <sub>Download the zip, then <code>chrome://extensions</code> → Developer mode → Load unpacked · Manifest V3 · 100% private</sub>
 </p>
 
 ---
