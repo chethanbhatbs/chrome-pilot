@@ -1,32 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ArrowRight, ChevronRight, Sparkles, Layout, Rocket } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Search, LayoutGrid, Settings } from 'lucide-react';
 
-const TOUR_KEY = 'tabpilot_tour_done_v4';
+const TOUR_KEY = 'tabpilot_tour_done_v5';
 
+// Each step points at a real element (selector) and explains exactly what it does.
 const STEPS = [
   {
-    icon: Sparkles,
-    iconColor: 'text-amber-500',
-    iconBg: 'bg-amber-50 dark:bg-amber-500/10',
-    title: 'Welcome to Tab Pilot',
-    description: 'A fast command center for your tabs — the essentials in 3 quick steps.',
-    cta: 'Show me',
-  },
-  {
-    icon: Layout,
+    icon: Search,
     iconColor: 'text-blue-500',
     iconBg: 'bg-blue-50 dark:bg-blue-500/10',
-    selector: '[data-testid="quick-actions"]',
-    title: 'Find & manage tabs',
-    description: 'Search (or press Ctrl+K) to jump to any tab. The toolbar handles new tabs, grouping by site, Focus mode, and multi-select. Right-click any tab for more.',
+    selector: '[data-testid="search-bar"]',
+    title: 'Find any tab',
+    description: 'Type here to filter every open tab by title or URL — or press Ctrl+K to jump straight to one.',
   },
   {
-    icon: Rocket,
+    icon: LayoutGrid,
+    iconColor: 'text-violet-500',
+    iconBg: 'bg-violet-50 dark:bg-violet-500/10',
+    selector: '[data-testid="quick-actions"]',
+    title: 'The toolbar',
+    description: 'New tab · group by Site · Focus mode · multi-Select. Right-click any tab for pin, mute, move and more.',
+  },
+  {
+    icon: Settings,
     iconColor: 'text-primary',
     iconBg: 'bg-primary/10',
-    title: "You're all set",
-    description: 'Bottom-right: the people icon opens Profiles, the gear opens Settings, and the sliders icon (top) holds Activity, Timeline & more. Close tabs fearlessly — undo is always available.',
-    cta: 'Start',
+    selector: '[data-testid="profile-bottom-bar"]',
+    title: 'Profile & settings',
+    description: 'Bottom-right: your profile, Help and Settings. Live tab stats (count, audio, duplicates) sit on the left.',
   },
 ];
 
@@ -88,6 +89,10 @@ export function TourGuide({ onComplete }) {
     else transition(step + 1);
   }, [step, isLast, transition]);
 
+  const handlePrev = useCallback(() => {
+    if (!isFirst) transition(step - 1);
+  }, [step, isFirst, transition]);
+
   const handleFinish = useCallback(() => {
     setVisible(false);
     setTimeout(() => {
@@ -95,6 +100,17 @@ export function TourGuide({ onComplete }) {
       onComplete();
     }, 200);
   }, [onComplete]);
+
+  // Keyboard navigation: ← / → to move, Esc to close.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') handleFinish();
+      else if (e.key === 'ArrowRight') handleNext();
+      else if (e.key === 'ArrowLeft') handlePrev();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleNext, handlePrev, handleFinish]);
 
   if (!visible) return null;
 
@@ -136,8 +152,17 @@ export function TourGuide({ onComplete }) {
         `}
         style={
           highlight
-            ? { top: Math.max(12, Math.min(highlight.top + highlight.height + 16, window.innerHeight - 320)),
-                left: Math.max(12, Math.min(highlight.left, window.innerWidth - 316)) }
+            ? (() => {
+                // Place the card above the target if it sits in the lower half
+                // (e.g. the footer), otherwise below it.
+                const above = highlight.top > window.innerHeight * 0.5;
+                return {
+                  top: above
+                    ? Math.max(12, highlight.top - 236)
+                    : Math.min(highlight.top + highlight.height + 16, window.innerHeight - 240),
+                  left: Math.max(12, Math.min(highlight.left, window.innerWidth - 316)),
+                };
+              })()
             : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
         }
         onClick={(e) => e.stopPropagation()}
@@ -191,31 +216,22 @@ export function TourGuide({ onComplete }) {
             ))}
           </div>
 
-          {/* Actions */}
+          {/* Actions — Back / Next (← → keys work too) */}
           <div className="flex items-center gap-2">
-            {isFirst && (
-              <button
-                onClick={handleFinish}
-                className="cursor-pointer px-3 h-9 rounded-xl text-[11px] font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                data-testid="tour-skip-link"
-              >
-                Skip
-              </button>
-            )}
-            {!isFirst && !isLast && (
-              <button
-                onClick={handleFinish}
-                className="cursor-pointer px-3 h-9 rounded-xl text-[11px] font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              >
-                Skip
-              </button>
-            )}
+            <button
+              onClick={handlePrev}
+              disabled={isFirst}
+              className="cursor-pointer flex items-center gap-1 px-3 h-9 rounded-xl text-[11px] font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              data-testid="tour-back-btn"
+            >
+              <ChevronLeft size={14} strokeWidth={2} /> Back
+            </button>
             <button
               onClick={handleNext}
               className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 h-9 bg-primary text-primary-foreground text-[12px] font-heading font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98]"
               data-testid="tour-next-btn"
             >
-              {current.cta || 'Next'}
+              {isLast ? 'Done' : 'Next'}
               {!isLast && <ChevronRight size={14} strokeWidth={2} />}
             </button>
           </div>

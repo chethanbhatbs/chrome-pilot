@@ -140,13 +140,16 @@ function HeroSection() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
       <div className="relative max-w-2xl mx-auto px-8 pt-16 pb-10">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/5 border border-primary/20
-            flex items-center justify-center shadow-lg shadow-primary/10">
-            <span className="text-2xl font-heading font-black text-primary">C</span>
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 text-white text-2xl"
+            style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}
+            aria-hidden="true"
+          >
+            {'✈'}
           </div>
           <div>
             <h1 className="text-3xl font-heading font-black tracking-tight leading-none">
-              <span className="text-foreground">Chrome</span><span className="text-primary">Pilot</span>
+              <span className="text-foreground">Tab</span> <span className="text-primary">Pilot</span>
             </h1>
             <p className="text-xs text-muted-foreground/50 font-mono mt-0.5">Chrome Tab & Window Manager</p>
           </div>
