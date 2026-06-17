@@ -24,20 +24,17 @@ function _isInternalDomain(hostname) {
 }
 
 export function getFaviconUrl(url, chromeFavIconUrl) {
-  // Prefer Chrome's OWN favicon when it's a real fetched http(s) image. Chrome
-  // already loaded it, so it's the genuine site icon — Google S2 returns a blank
-  // globe for many hosts (e.g. *.appspot.com), which is why real icons went missing.
-  // We skip data:/SVG favicons here because Chrome caches theme-tinted (often white)
-  // versions of those in dark mode; those fall through to S2 below.
-  // Trust Chrome's own favicon whenever it gave us a real one (http/https/data,
-  // including SVG). For an OPEN tab this is exactly the icon you see in the tab
-  // strip — the ground truth. We used to skip SVG/data and fall back to Google
-  // S2, but S2 returns a generic GLOBE with HTTP 200 for domains it doesn't know
-  // (*.pages.dev, *.workers.dev, *.appspot.com, github.io, internal apps). That
-  // "globe" loads successfully, so the onError fallback chain never fired and the
-  // real icon (e.g. Cloudflare's SVG) was hidden behind a globe. The CSS
-  // drop-shadow net keeps any theme-tinted icon visible.
-  if (chromeFavIconUrl && /^(https?:|data:)/i.test(chromeFavIconUrl)) {
+  // Use Chrome's OWN favicon only when it's a real http(s) NON-SVG image — a
+  // genuine colored icon. We skip SVG/data favicons because Chrome caches
+  // theme-tinted (often white) versions in dark mode, which are invisible on the
+  // light panel (e.g. GitHub's white octocat). For those, Google S2 returns a
+  // colored PNG. S2 sometimes returns a generic 16x16 GLOBE (HTTP 200) for
+  // domains it doesn't know (*.pages.dev, *.workers.dev, github.io, internal
+  // apps); handleFaviconLoad() detects that by size and falls back to Chrome's
+  // real favicon → letter avatar.
+  if (chromeFavIconUrl
+      && /^https?:\/\//i.test(chromeFavIconUrl)
+      && !/\.svg(\?|#|$)/i.test(chromeFavIconUrl)) {
     return chromeFavIconUrl;
   }
   try {
@@ -47,12 +44,29 @@ export function getFaviconUrl(url, chromeFavIconUrl) {
     if (_isInternalDomain(hostname)) {
       return chromeFavIconUrl || null;
     }
-    // No Chrome favicon at all: Google S2 (falls through the onError chain →
-    // letter avatar if S2 has nothing real).
     return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
   } catch {
-    // Can't parse URL — fall back to Chrome's favicon
     return chromeFavIconUrl || null;
+  }
+}
+
+// Google S2 serves a generic 16x16 globe (HTTP 200) for domains it has no icon
+// for, so onError never fires and the globe sticks. Detect it by the loaded size
+// and fall back to Chrome's own favicon (the real one Chrome fetched), else the
+// colored letter avatar. Real S2 icons load at >=32px, so 16px == the globe.
+export function handleFaviconLoad(e) {
+  const img = e.target;
+  const src = img.src || '';
+  if (!/google\.com\/s2\/favicons/.test(src)) return;     // only judge S2 results
+  if (img.naturalWidth === 0 || img.naturalWidth > 16) return; // real icon, keep it
+  const tried = (img.dataset.faviconTried || '').split(',').filter(Boolean);
+  if (tried.includes('s2globe')) return;                  // already handled once
+  img.dataset.faviconTried = [...tried, 's2globe'].join(',');
+  const chromeFavicon = img.dataset.chromeFavicon || '';
+  if (chromeFavicon && chromeFavicon !== src) {
+    img.src = chromeFavicon;                              // the real tab-strip icon
+  } else {
+    _showLetterAvatar(img, img.dataset.tabUrl || src);   // nothing real → letter
   }
 }
 

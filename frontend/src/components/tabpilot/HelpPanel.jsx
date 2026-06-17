@@ -55,7 +55,7 @@ export function HelpPanel({ onBack }) {
         <h1 className="text-[16px] font-heading font-bold text-foreground tracking-tight brand-text">Tab Pilot</h1>
         <p className="text-[11px] text-muted-foreground/70 font-body mt-0.5">Your browser, mastered.</p>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <span className="text-[11px] font-mono text-muted-foreground/50 bg-secondary px-1.5 py-0.5 rounded">v1.1.0</span>
+          <span className="text-[11px] font-mono text-muted-foreground/50 bg-secondary px-1.5 py-0.5 rounded">v1.2.0</span>
           <span className="text-[11px] font-mono text-primary/70 bg-primary/[0.08] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
             <ShieldCheck size={9} strokeWidth={2} /> 100% local
           </span>
@@ -75,7 +75,7 @@ export function HelpPanel({ onBack }) {
           </div>
           <div className="flex items-start gap-2">
             <span className="text-[10px] font-mono font-bold text-primary/70 bg-primary/10 w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-[1px]">3</span>
-            <span className="text-[11px] text-foreground/75 leading-snug font-body">Press <kbd className="text-[10px] font-mono bg-secondary px-1 py-0 rounded border border-border/40">Cmd+K</kbd> for the command palette</span>
+            <span className="text-[11px] text-foreground/75 leading-snug font-body">Press <kbd className="text-[10px] font-mono bg-secondary px-1 py-0 rounded border border-border/40">⌘K / Ctrl+K</kbd> for the command palette</span>
           </div>
         </div>
       </Section>
@@ -94,8 +94,8 @@ export function HelpPanel({ onBack }) {
       {/* Focus & Control */}
       <Section icon={Focus} iconColor="text-violet-500" title="Focus & Control">
         <div className="space-y-0.5">
-          <FeatureItem icon={Focus} text="Focus Mode hides everything except your chosen tabs" />
-          <FeatureItem icon={Eye} text="Strict tab blocking prevents new distractions" />
+          <FeatureItem icon={Focus} text="Focus Mode highlights your chosen tabs and dims the rest" />
+          <FeatureItem icon={Eye} text="Gently nudges you back if you stray — nothing is closed" />
           <FeatureItem icon={Copy} text="Select mode for bulk-closing multiple tabs at once" />
           <FeatureItem icon={Pause} text="Suspend inactive tabs to free memory" />
         </div>
@@ -107,7 +107,7 @@ export function HelpPanel({ onBack }) {
           <FeatureItem icon={Copy} text="Duplicate detection with one-click Fix All" />
           <FeatureItem icon={Timer} text="Auto-Close rules close idle tabs on a timer" />
           <FeatureItem icon={Clock} text="30-second warning before auto-close with Keep Open option" />
-          <FeatureItem icon={Clock} text="Tab timeline tracks your browsing history" />
+          <FeatureItem icon={Clock} text="Activity view: visits per day, top sites, and real time spent" />
         </div>
       </Section>
 
@@ -123,7 +123,7 @@ export function HelpPanel({ onBack }) {
       {/* Keyboard Shortcuts */}
       <Section icon={Keyboard} iconColor="text-emerald-500" title="Keyboard Shortcuts">
         <div className="space-y-0">
-          <ShortcutRow keys="Cmd+K" action="Command palette" />
+          <ShortcutRow keys="⌘K / Ctrl+K" action="Command palette" />
           <ShortcutRow keys="Cmd+Shift+E" action="Toggle sidebar" />
           <ShortcutRow keys="Up / Down" action="Navigate tabs" />
           <ShortcutRow keys="Enter" action="Switch to tab" />
@@ -145,7 +145,7 @@ export function HelpPanel({ onBack }) {
           </li>
           <li className="text-[11px] text-foreground/70 leading-snug font-body flex items-start gap-1.5">
             <span className="text-primary/50 shrink-0 mt-[3px]">&bull;</span>
-            Cmd+K from anywhere to jump to any open tab
+            ⌘K / Ctrl+K from anywhere to open the command palette
           </li>
           <li className="text-[11px] text-foreground/70 leading-snug font-body flex items-start gap-1.5">
             <span className="text-primary/50 shrink-0 mt-[3px]">&bull;</span>
@@ -157,7 +157,7 @@ export function HelpPanel({ onBack }) {
           </li>
           <li className="text-[11px] text-foreground/70 leading-snug font-body flex items-start gap-1.5">
             <span className="text-primary/50 shrink-0 mt-[3px]">&bull;</span>
-            Focus Mode blocks new tabs and window switching
+            Focus Mode gently redirects you back; only blank new tabs are closed
           </li>
         </ul>
       </div>
