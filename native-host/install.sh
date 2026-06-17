@@ -55,7 +55,13 @@ case "$OSTYPE" in
     ;;
 esac
 
-# 4. Auto-detect the Tab Pilot extension ID(s) across all profiles
+# 4. Extension ID: prefer one passed as an argument (the Profiles panel builds a
+#    command with chrome.runtime.id baked in — works on every OS / Chrome variant,
+#    no profile scanning needed). Otherwise auto-detect by scanning profiles.
+EXT_IDS="${1:-}"
+if [ -n "$EXT_IDS" ]; then
+  echo "  Using extension ID provided: $EXT_IDS"
+else
 echo "  Looking for the Tab Pilot extension in your browsers..."
 EXT_IDS="$("$PY" - <<'PYEOF'
 import json, os, glob
@@ -99,6 +105,7 @@ for root in roots:
 print(" ".join(sorted(found)))
 PYEOF
 )"
+fi
 
 # 5. Fall back to a manual prompt ONLY if auto-detect found nothing
 if [ -z "$EXT_IDS" ]; then

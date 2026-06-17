@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, ArrowRightLeft, AlertTriangle, RefreshCw, Check, ShieldCheck, UserPlus, Trash2 } from 'lucide-react';
+import { Users, ArrowRightLeft, AlertTriangle, RefreshCw, Check, ShieldCheck, Copy, UserPlus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   isExtensionContext, chromeNativeHostPing, chromeGetProfiles, chromeSwitchProfile,
@@ -23,6 +23,9 @@ function getAvatarColor(name) {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
+
+// Self-locating revoke command — removes the native host (no ID needed).
+const UNINSTALL_CMD = `bash "$(find ~ -maxdepth 6 -path '*native-host/uninstall.sh' | head -1)"`;
 
 export function ProfilePanel() {
   const [profiles, setProfiles] = useState([]);
@@ -136,6 +139,10 @@ export function ProfilePanel() {
 
   // Setup required
   if (!hostAvailable) {
+    // The extension knows its own ID live — bake it into one universal command
+    // that also finds the helper folder, so users never search or paste an ID.
+    const extId = (isExtensionContext() && chrome.runtime?.id) || 'YOUR_EXTENSION_ID';
+    const installCmd = `bash "$(find ~ -maxdepth 6 -path '*native-host/install.sh' | head -1)" ${extId}`;
     return (
       <div className="p-3 space-y-3" data-testid="profile-panel">
         <Header />
@@ -146,34 +153,22 @@ export function ProfilePanel() {
             <span className="text-[11px] font-heading font-semibold text-amber-500">One-Time Setup</span>
           </div>
           <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-            Profile switching needs a tiny one-time helper. The <span className="font-mono">native-host</span> folder is included in the download.
+            One command does it all — it finds the helper folder and uses your extension ID automatically. Paste it into a terminal (macOS · Linux · WSL), press Enter:
           </p>
 
-          <div className="space-y-1.5">
-            <div className="flex items-start gap-2">
-              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
-              <p className="text-[11px] text-foreground/80 leading-relaxed">
-                Open the <span className="font-mono">native-host</span> folder (inside the unzipped Tab Pilot).
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
-              <p className="text-[11px] text-foreground/80 leading-relaxed">
-                <span className="font-semibold text-foreground">macOS:</span> double-click <span className="font-mono">install.command</span>.<br />
-                <span className="font-semibold text-foreground">Linux / Windows:</span> open a terminal in that folder and run <span className="font-mono">bash install.sh</span>.
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
-              <p className="text-[11px] text-foreground/80 leading-relaxed">
-                Restart Chrome, then click Connect below.
-              </p>
-            </div>
-            <p className="text-[10px] text-muted-foreground/50 leading-relaxed pl-6">
-              On macOS the first run may warn "unidentified developer" — right-click
-              <span className="font-mono"> install.command</span> → Open → Open.
-            </p>
+          <div className="bg-secondary rounded-md p-2 font-mono text-[10px] text-foreground/80 leading-relaxed break-all select-all" data-testid="install-command">
+            {installCmd}
           </div>
+          <button
+            onClick={() => { navigator.clipboard?.writeText(installCmd); toast.success('Command copied'); }}
+            data-testid="copy-install-cmd"
+            className="cursor-pointer w-full flex items-center justify-center gap-1.5 h-7 text-[10px] font-heading font-semibold rounded-md bg-secondary hover:bg-[hsl(var(--hover-medium))] text-foreground/80 transition-colors"
+          >
+            <Copy size={11} strokeWidth={1.5} /> Copy command
+          </button>
+          <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+            Then restart Chrome and click Connect. <span className="text-muted-foreground/40">(macOS: you can instead double-click <span className="font-mono">install.command</span> in the native-host folder.)</span>
+          </p>
 
           {/* Safety notice */}
           <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-md bg-primary/[0.04] border border-primary/10">
@@ -332,6 +327,33 @@ export function ProfilePanel() {
             <span className="text-[11px] font-body text-muted-foreground/70">Wrong profile? Re-identify</span>
           </button>
         )}
+      </div>
+
+      {/* Helper status + revoke — so you can see it's connected and undo the setup */}
+      <div className="pt-2 mt-1 border-t border-border/30">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Check size={11} className="text-emerald-500" strokeWidth={2.5} />
+          <span className="text-[10px] font-heading font-semibold text-emerald-600 dark:text-emerald-400">Profile helper connected</span>
+        </div>
+        <details data-testid="revoke-helper">
+          <summary className="cursor-pointer list-none text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors">
+            Remove / disconnect the helper ▾
+          </summary>
+          <p className="text-[10px] text-muted-foreground/60 mt-1.5 leading-relaxed">
+            Run this in a terminal, then restart Chrome:
+          </p>
+          <div className="bg-secondary rounded-md p-2 font-mono text-[10px] text-foreground/80 break-all select-all mt-1" data-testid="uninstall-command">
+            {UNINSTALL_CMD}
+          </div>
+          <button
+            onClick={() => { navigator.clipboard?.writeText(UNINSTALL_CMD); toast.success('Command copied'); }}
+            data-testid="copy-uninstall-cmd"
+            className="cursor-pointer w-full flex items-center justify-center gap-1.5 h-7 mt-1 text-[10px] font-heading font-semibold rounded-md bg-secondary hover:bg-[hsl(var(--hover-medium))] text-foreground/80 transition-colors"
+          >
+            <Copy size={11} strokeWidth={1.5} /> Copy command
+          </button>
+          <p className="text-[10px] text-muted-foreground/40 mt-1">macOS: you can instead double-click <span className="font-mono">uninstall.command</span>.</p>
+        </details>
       </div>
     </div>
   );
