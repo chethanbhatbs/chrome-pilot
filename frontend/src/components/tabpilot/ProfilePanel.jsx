@@ -146,22 +146,21 @@ export function ProfilePanel() {
             <span className="text-[11px] font-heading font-semibold text-amber-500">One-Time Setup</span>
           </div>
           <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-            Profile switching needs a tiny one-time helper. No typing — just double-click a file:
+            Profile switching needs a tiny one-time helper. The <span className="font-mono">native-host</span> folder is included in the download.
           </p>
 
-          {/* Dead-simple: double-click install.command. It auto-detects everything
-              (its own path + the Tab Pilot extension ID). No Terminal, no dragging. */}
           <div className="space-y-1.5">
             <div className="flex items-start gap-2">
               <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
               <p className="text-[11px] text-foreground/80 leading-relaxed">
-                Open the <span className="font-mono">native-host</span> folder (inside where you saved Tab Pilot).
+                Open the <span className="font-mono">native-host</span> folder (inside the unzipped Tab Pilot).
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="shrink-0 w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
               <p className="text-[11px] text-foreground/80 leading-relaxed">
-                Double-click <span className="font-mono font-semibold text-foreground">install.command</span>. A window opens, sets things up, and closes.
+                <span className="font-semibold text-foreground">macOS:</span> double-click <span className="font-mono">install.command</span>.<br />
+                <span className="font-semibold text-foreground">Linux / Windows:</span> open a terminal in that folder and run <span className="font-mono">bash install.sh</span>.
               </p>
             </div>
             <div className="flex items-start gap-2">
@@ -171,7 +170,7 @@ export function ProfilePanel() {
               </p>
             </div>
             <p className="text-[10px] text-muted-foreground/50 leading-relaxed pl-6">
-              First time, macOS may say it's from an unidentified developer — right-click
+              On macOS the first run may warn "unidentified developer" — right-click
               <span className="font-mono"> install.command</span> → Open → Open.
             </p>
           </div>
