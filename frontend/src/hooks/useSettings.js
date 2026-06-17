@@ -6,6 +6,7 @@ const STORAGE_KEY = 'tabpilot_settings';
 const DEFAULT_SETTINGS = {
   theme: 'light',
   accentColor: 'blue',
+  textSize: 'large',  // 'default' | 'large' | 'larger' — base UI was too small
   defaultView: 'window',
   showFavicons: true,
   showUrls: true,
@@ -101,6 +102,13 @@ export function useSettings() {
       root.removeAttribute('data-accent');
     }
   }, [settings.accentColor]);
+
+  // Apply UI text size as a page zoom. The panel is sized in px, so zoom scales
+  // everything (text, icons, padding) proportionally — like browser zoom.
+  useEffect(() => {
+    const scale = { default: 1, large: 1.15, larger: 1.3 }[settings.textSize] ?? 1.15;
+    document.documentElement.style.zoom = scale === 1 ? '' : String(scale);
+  }, [settings.textSize]);
 
   return { settings, updateSetting };
 }
