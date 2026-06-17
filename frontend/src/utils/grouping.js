@@ -29,9 +29,15 @@ export function getFaviconUrl(url, chromeFavIconUrl) {
   // globe for many hosts (e.g. *.appspot.com), which is why real icons went missing.
   // We skip data:/SVG favicons here because Chrome caches theme-tinted (often white)
   // versions of those in dark mode; those fall through to S2 below.
-  if (chromeFavIconUrl
-      && /^https?:\/\//i.test(chromeFavIconUrl)
-      && !/\.svg(\?|#|$)/i.test(chromeFavIconUrl)) {
+  // Trust Chrome's own favicon whenever it gave us a real one (http/https/data,
+  // including SVG). For an OPEN tab this is exactly the icon you see in the tab
+  // strip — the ground truth. We used to skip SVG/data and fall back to Google
+  // S2, but S2 returns a generic GLOBE with HTTP 200 for domains it doesn't know
+  // (*.pages.dev, *.workers.dev, *.appspot.com, github.io, internal apps). That
+  // "globe" loads successfully, so the onError fallback chain never fired and the
+  // real icon (e.g. Cloudflare's SVG) was hidden behind a globe. The CSS
+  // drop-shadow net keeps any theme-tinted icon visible.
+  if (chromeFavIconUrl && /^(https?:|data:)/i.test(chromeFavIconUrl)) {
     return chromeFavIconUrl;
   }
   try {
@@ -41,7 +47,8 @@ export function getFaviconUrl(url, chromeFavIconUrl) {
     if (_isInternalDomain(hostname)) {
       return chromeFavIconUrl || null;
     }
-    // Public domains with no usable Chrome favicon: Google S2 returns a colored PNG.
+    // No Chrome favicon at all: Google S2 (falls through the onError chain →
+    // letter avatar if S2 has nothing real).
     return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
   } catch {
     // Can't parse URL — fall back to Chrome's favicon
